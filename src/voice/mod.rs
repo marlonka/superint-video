@@ -86,7 +86,7 @@ impl Defaults {
         if let Some(preset) = &preset {
             if let Some(model) = &preset.narration.model {
                 defaults.model = model.clone();
-                defaults.voice = route_voice(model).into();
+                defaults.voice = usual_voice(model).into();
             }
             if let Some(voice) = &preset.narration.voice {
                 defaults.voice = voice.clone();
@@ -98,7 +98,7 @@ impl Defaults {
         }
         if let Some(model) = &settings.narration_model {
             defaults.model = model.clone();
-            defaults.voice = route_voice(model).into();
+            defaults.voice = usual_voice(model).into();
         }
         if let Some(voice) = &settings.narration_voice {
             defaults.voice = voice.clone();
@@ -124,19 +124,28 @@ impl Defaults {
         defaults
     }
 
+    /// The default voice when it fits the model's voices, else that family's house voice.
     fn voice_for(&self, model: &str) -> String {
-        if Provider::of(model) == Provider::of(&self.model) {
+        if speaks_gemini(model) == speaks_gemini(&self.model) {
             self.voice.clone()
         } else {
-            route_voice(model).into()
+            usual_voice(model).into()
         }
     }
 }
 
-fn route_voice(model: &str) -> &'static str {
-    match Provider::of(model) {
-        Provider::OpenRouter => OPENROUTER.voice,
-        Provider::AiStudio | Provider::GoogleCloud | Provider::OpenAi => AI_STUDIO.voice,
+/// Whether a TTS model speaks with Gemini's voices and tags, on any route (OpenRouter's
+/// `google/gemini-…` too); the others on OpenRouter are ElevenLabs'. The voice follows the
+/// model, not the provider that carries it.
+fn speaks_gemini(model: &str) -> bool {
+    Provider::of(model) != Provider::OpenRouter || model.contains("gemini")
+}
+
+fn usual_voice(model: &str) -> &'static str {
+    if speaks_gemini(model) {
+        AI_STUDIO.voice
+    } else {
+        OPENROUTER.voice
     }
 }
 
@@ -249,10 +258,10 @@ impl VoiceDoc {
     /// The tag syntax follows the model, not the route: Gemini TTS through OpenRouter still
     /// reads angle brackets.
     pub fn syntax(&self) -> Syntax {
-        match self.provider() {
-            Provider::OpenRouter if self.model.contains("gemini") => Syntax::Gemini,
-            Provider::OpenRouter => Syntax::ElevenLabs,
-            Provider::AiStudio | Provider::GoogleCloud | Provider::OpenAi => Syntax::Gemini,
+        if speaks_gemini(&self.model) {
+            Syntax::Gemini
+        } else {
+            Syntax::ElevenLabs
         }
     }
 
@@ -1227,6 +1236,26 @@ mod tests {
         assert_eq!(doc.voice, OPENROUTER.voice);
         assert_eq!(doc.syntax(), Syntax::ElevenLabs);
         assert!(VoiceDoc::parse("---\ntakes: 9\n---\nHallo.", &Defaults::builtin()).is_err());
+    }
+
+    #[test]
+    fn gemini_through_openrouter_keeps_a_gemini_voice() {
+        let doc = VoiceDoc::parse(
+            "---\nmodel: google/gemini-3.8-flash-tts\n---\nHallo.",
+            &Defaults::builtin(),
+        )
+        .unwrap();
+        assert_eq!(doc.voice, AI_STUDIO.voice);
+        assert_eq!(doc.syntax(), Syntax::Gemini);
+        let defaults = Defaults::builtin();
+        assert_eq!(
+            defaults.voice_for("google/gemini-3.8-flash-tts"),
+            defaults.voice
+        );
+        assert_eq!(
+            defaults.voice_for("elevenlabs/eleven-v4-turbo"),
+            OPENROUTER.voice
+        );
     }
 
     fn take(number: u32, wer: f64, missing: usize, wpm: f64) -> TakeReport {
