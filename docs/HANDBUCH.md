@@ -4,7 +4,7 @@ Alles, was in die [README](../README.md) nicht passt: Installation im Detail, St
 
 ## Schnellstart: fertiges Windows-Paket
 
-1. Lade unter [Releases](https://github.com/marlonka/superint-video/releases/latest) die Datei `superint-video-0.3.0-windows-x64.zip` herunter. Solange das Repository privat ist, musst du dafür bei GitHub angemeldet sein.
+1. Lade unter [Releases](https://github.com/marlonka/superint-video/releases/latest) die Datei `superint-video-0.3.0-windows-x64.zip` herunter.
 2. Entpacke das ZIP in einen beschreibbaren Ordner.
 3. Stelle die Laufzeit-Abhängigkeiten bereit:
 
@@ -273,30 +273,29 @@ Set-Location superint-video
 .\dist\superint-video.exe doctor --json
 ```
 
-Solange das Repository privat ist, muss dein Git-Zugriff auf GitHub eingerichtet sein. Alternativ klonst du nach Anmeldung mit `gh repo clone marlonka/superint-video`.
-
 Der Build installiert Studio-Abhängigkeiten, generiert Manifest-Typen, prüft Schema und Svelte, führt Tests aus, baut Studio und bettet es in die Rust-EXE ein. Anschließend prüft er die echte HTTP-API und erzeugt unter `dist/` das Windows-ZIP mit Dokumentation, Skill und Prüfsummen. Optionen: `-SkipInstall` bei bereits installierten npm-Abhängigkeiten, `-DebugBuild` für eine Debug-EXE; `-SkipChecks` überspringt die normalen Prüfungen.
 
 ### Demo öffnen
 
-Die Repository-Demo enthält drei HTML-Szenen, lokales SVG, ein synthetisches Video und synthetisches Audio:
+Die Repository-Demo enthält drei HTML-Szenen, lokales SVG, ein synthetisches Video und synthetisches Audio. Video und Audio liegen nicht im Repository, sondern entstehen beim ersten Mal mit FFmpeg:
 
 ```powershell
+.\scripts\generate-demo-assets.ps1
 .\dist\superint-video.exe studio .\examples\demo
 .\dist\superint-video.exe render .\examples\demo --output renders/demo.mp4
 ```
 
-Fehlende Demo-Medien erzeugst du mit `.\scripts\generate-demo-assets.ps1`; `-Force` ersetzt die generierten Dateien. Die separate `examples/fixture` zeigt Frame-Markierungen, Lücken, Source-Offsets und Überlagerungen.
+`-Force` erzeugt die Demo-Medien neu. Die separate `examples/fixture` zeigt Frame-Markierungen, Lücken, Source-Offsets und Überlagerungen.
 
 ## Tests und aktueller Stand
 
-`scripts/build.ps1` baut und prüft alles lokal. Die Windows-CI läuft nur auf Abruf (Actions → Run workflow, oder `gh workflow run windows.yml --ref <branch>`) und bei Release-Tags, weil Windows-Runner doppelt so viele Actions-Minuten kosten. Chromium-/FFmpeg-Integrationstests werden lokal separat ausgeführt:
+`scripts/build.ps1` baut und prüft alles lokal. Die Windows-CI führt dasselbe bei jedem Pull Request, jedem Push auf `main` und bei Release-Tags aus. Chromium-/FFmpeg-Integrationstests werden lokal separat ausgeführt:
 
 ```powershell
 cargo test --test render_contract --test media_contract --test failure_contract -- --ignored --test-threads=1
 ```
 
-Die lokale Prüfung umfasst über 100 Rust-Tests, die Szenen-Tests, 13 echte Chromium-/FFmpeg-Integrationstests und die HTTP-API in zehn Prüfgruppen. Die Gestaltungsregeln für Studio und App stehen in [design.md](design.md) und [REDESIGN.md](REDESIGN.md).
+Die lokale Prüfung umfasst über 100 Rust-Tests, die Szenen-Tests, 13 echte Chromium-/FFmpeg-Integrationstests und die HTTP-API in zehn Prüfgruppen. Die Gestaltungsregeln für Studio und App stehen im Repository in [docs/design.md](https://github.com/marlonka/superint-video/blob/main/docs/design.md) und [docs/REDESIGN.md](https://github.com/marlonka/superint-video/blob/main/docs/REDESIGN.md).
 
 ### Grenzen
 
@@ -310,6 +309,19 @@ Die lokale Prüfung umfasst über 100 Rust-Tests, die Szenen-Tests, 13 echte Chr
 - Die lokalen Server sind für Loopback ausgelegt. Nicht als öffentlich erreichbaren Dienst betreiben.
 
 Reproduzierbarkeit bezieht sich auf dieselben Projekt-Frames in einer dokumentierten Umgebung. Browser, Betriebssystem, Fonts und Media-Tools können das Ergebnis zwischen Rechnern verändern.
+
+## Datenschutz und KI-Kennzeichnung
+
+**Was deinen Rechner verlässt.** Superint Video sammelt keine Nutzungsdaten und hat kein Konto. Bild, Studio und Render laufen lokal. Ins Netz gehen nur:
+
+- Für Stimme, Transkription und Musik die Texte, Prompts und Aufnahmen, die dein Agent dafür schreibt, an den Anbieter, den du eingerichtet hast: Google AI Studio oder OpenRouter (und von dort an das gewählte Modell). Es gelten deren Bedingungen. Bei der kostenlosen Stufe der Gemini API darf Google Eingaben und Ausgaben zur Verbesserung seiner Produkte verwenden; vertrauliche Inhalte gehören nur in einen bezahlten Zugang.
+- `listen` schickt die Datei, die du anhören lässt, über Earshot an Gemini.
+- `doctor --online` und die Einrichtung prüfen deinen API-Schlüssel beim Anbieter und fragen die Modellliste ab.
+- „Installieren“ in der Einrichtung startet `winget`, das Chrome oder FFmpeg aus den offiziellen Quellen lädt.
+
+Was dein Coding-Agent (Claude Code, ChatGPT Codex) mit deinen Dateien macht, regeln dessen Anbieter. API-Schlüssel bleiben auf deinem Rechner: in der App unter Windows für dein Benutzerkonto verschlüsselt, sonst in einer `.env`, die Git ignoriert.
+
+**KI-Inhalte kennzeichnen.** Stimme und Musik kommen in der Regel aus generativen Modellen, und die Szenen schreibt ein KI-Agent. Jedes exportierte MP4 trägt das in seinen Metadaten (`comment`, `description`). Wenn du einen Film veröffentlichst, kennzeichne ihn auch sichtbar als KI-erzeugt oder KI-gestützt, wie es Plattformen (etwa YouTube bei realistisch wirkenden Inhalten) und in der EU der AI Act verlangen. Eine echte Stimme darfst du nur mit Einwilligung der Person nachbilden; der Skill `superint-audio` beschreibt den Weg über Googles Einwilligungssatz.
 
 ## Fehler beheben
 

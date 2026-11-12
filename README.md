@@ -1,3 +1,5 @@
+<p align="right"><a href="README.en.md">English</a></p>
+
 <h1 align="center">Superint Video</h1>
 
 <p align="center">
@@ -171,12 +173,18 @@ Aus dem Quellcode: `git clone`, dann `.\scripts\build.ps1`. Dafür brauchst du R
 > [!IMPORTANT]
 > **Stand:** v0.3.0 ist veröffentlicht. Enthalten sind Presets, Ablauf-Skills, Ton und Produktionsbereich sowie die App mit Einrichtung, festem Filme-Ordner und Stil-Dateien. Geprüft ist nur Windows x64. App und Studio sprechen Deutsch und Englisch; Meldungen der Kommandozeile sind englisch. Kurze SDR-Filme funktionieren gut; lange Projekte, HDR und Ripple-Editing nicht. Die Grenzen stehen im [Handbuch](docs/HANDBUCH.md#grenzen).
 
+## Datenschutz und KI-Inhalte
+
+Superint Video sammelt keine Nutzungsdaten und braucht kein Konto. Bild, Studio und Render bleiben auf deinem Rechner. Für Stimme, Transkription und Musik gehen die Texte und Aufnahmen, die dein Agent dafür schreibt, an den Anbieter, den du eingerichtet hast (Google AI Studio oder OpenRouter), zu dessen Bedingungen. Bei der kostenlosen Stufe der Gemini API darf Google sie zur Verbesserung seiner Produkte nutzen. Was dein Coding-Agent mit deinen Dateien macht, regelt dessen Anbieter.
+
+Stimme und Musik kommen meist aus generativen Modellen. Jedes exportierte MP4 sagt das in seinen Metadaten. Kennzeichne deine Filme beim Veröffentlichen auch sichtbar als KI-gestützt, und bilde echte Stimmen nur mit Einwilligung nach. Mehr dazu im [Handbuch](docs/HANDBUCH.md#datenschutz-und-ki-kennzeichnung).
+
 ## Dokumentation
 
 - [Handbuch](docs/HANDBUCH.md): Installation, Studio, Presets, Prüfen und Rendern, Projektformat, Grenzen, Fehler beheben
 - [Starter-Prompts](prompts/README.md) für Erklärvideos, Shorts, Launch-Filme, eigene Skripte und Änderungen
 - [Szenen-API](skills/superint-video/references/scene-api.md), [Projektformat](docs/FORMAT.md), [JSON Schema](docs/video.schema.json)
-- [Versionsverlauf](CHANGELOG.md) · [Mitmachen](CONTRIBUTING.md)
+- [Versionsverlauf](CHANGELOG.md) · [Mitmachen](CONTRIBUTING.md) · [Sicherheit](SECURITY.md)
 
 ## Lizenz und Dank
 

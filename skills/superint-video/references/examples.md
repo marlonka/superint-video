@@ -3,7 +3,7 @@
 The repository includes:
 
 - `examples/starter`: one deterministic scene; same pattern as `init`.
-- `examples/demo`: three HTML scenes, local SVG, five-second video, overlapping audio, fades.
+- `examples/demo`: three HTML scenes, local SVG, five-second video, overlapping audio, fades. Its video and audio are generated, not committed: run `scripts/generate-demo-assets.ps1` once (needs FFmpeg).
 - `examples/fixture`: synthetic frame markers, a gap, overlap, and nonzero scene source offsets.
 
 Run from the repository root using the installed binary or the built executable:
@@ -36,8 +36,8 @@ Mixed manifest fragment using local files:
 }
 ```
 
-Copy `numbered.mp4` and `tone.wav` from `examples/demo/assets` into the fresh project's
-`assets/` before running this fragment. The fixture is synthetic, created for this repository.
+Before running this fragment, put `numbered.mp4` and `tone.wav` into the fresh project's `assets/`:
+`scripts/generate-demo-assets.ps1 -Destination <project>/assets` makes them. The fixture is synthetic, created for this repository.
 Do not interpret its sound or frame pattern as third-party footage.
 
 | Symptom | Fix |

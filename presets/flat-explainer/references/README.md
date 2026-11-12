@@ -4,7 +4,7 @@ Stills that show the look this preset aims for. Every new project gets a copy in
 
 ## Shipped
 
-`style-reference.jpg` is the style sheet for this preset, made for it by the user. Compare against it:
+`style-reference.jpg` is the style sheet made for this preset. Compare against it:
 
 - the characters: proportions, faces, hair, clothing, props in their hands;
 - the palette;

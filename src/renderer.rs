@@ -355,6 +355,20 @@ pub async fn render_watched(
     result
 }
 
+/// Written into every exported MP4, so players and platforms can see how the film was made.
+/// Voice and music usually come from generative models; the EU AI Act asks for such content
+/// to be recognisable, and the IPTC term is the common machine-readable way to say it.
+const PROVENANCE: [&str; 4] = [
+    "-metadata",
+    concat!(
+        "comment=Made with Superint Video (https://github.com/marlonka/superint-video). ",
+        "Picture written as code with an AI coding agent; voice and music may be AI-generated. ",
+        "IPTC digital source type: compositeWithTrainedAlgorithmicMedia"
+    ),
+    "-metadata",
+    "description=Contains AI-generated or AI-assisted content (Superint Video)",
+];
+
 #[allow(clippy::too_many_arguments)]
 async fn encode(
     captures: &[Capture],
@@ -423,6 +437,7 @@ async fn encode(
         "-colorspace",
         "bt709",
     ])
+    .args(PROVENANCE)
     .args(["-movflags", "+faststart"])
     .arg(path)
     .stdin(Stdio::piped())
@@ -602,6 +617,7 @@ async fn mix(
         "-movflags",
         "+faststart",
     ])
+    .args(PROVENANCE)
     .arg(output);
     process::output(cmd, cancel, Duration::from_secs(120)).await?;
     Ok(true)
@@ -645,6 +661,7 @@ async fn mux(
             "-movflags",
             "+faststart",
         ])
+        .args(PROVENANCE)
         .arg(output);
     process::output(cmd, cancel, Duration::from_secs(120)).await?;
     Ok(true)

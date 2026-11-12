@@ -1,0 +1,40 @@
+name: Fehler / Bug
+description: Etwas funktioniert nicht wie beschrieben. / Something does not work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke für die Meldung. Sicherheitslücken bitte nicht hier, sondern über SECURITY.md melden. Entferne API-Schlüssel und alles Private aus Ausgaben und Dateien.
+        Thanks for reporting. Security issues go through SECURITY.md, not here. Remove API keys and anything private first.
+  - type: textarea
+    id: what
+    attributes:
+      label: Was ist passiert? / What happened?
+      description: Was hast du getan, was hast du erwartet, was kam heraus? / What did you do, expect and get?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte / Steps to reproduce
+      placeholder: |
+        1. superint-video new ...
+        2. ...
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Ausgabe von `superint-video doctor --json` / Output of `superint-video doctor --json`
+      render: json
+  - type: input
+    id: version
+    attributes:
+      label: Version und System / Version and system
+      placeholder: 0.3.0, Windows 11 x64
+    validations:
+      required: true
+  - type: input
+    id: agent
+    attributes:
+      label: Coding-Agent (falls beteiligt) / Coding agent (if involved)
+      placeholder: Claude Code, ChatGPT Codex, ...

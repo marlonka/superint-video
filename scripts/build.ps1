@@ -111,11 +111,13 @@ try {
     # The app people double-click: it starts `superint-video app` from its own folder.
     Copy-Item -LiteralPath (Join-Path $taskTargetRoot "$taskProfile/superint-video-app.exe") -Destination (Join-Path $taskDistRoot 'Superint Video.exe') -Force
     Copy-Item -LiteralPath (Join-Path $taskRepoRoot 'README.md') -Destination (Join-Path $taskDistRoot 'README.md') -Force
+    Copy-Item -LiteralPath (Join-Path $taskRepoRoot 'README.en.md') -Destination (Join-Path $taskDistRoot 'README.en.md') -Force
+    Copy-Item -LiteralPath (Join-Path $taskRepoRoot 'SECURITY.md') -Destination (Join-Path $taskDistRoot 'SECURITY.md') -Force
     Copy-Item -LiteralPath (Join-Path $taskRepoRoot 'CONTRIBUTING.md') -Destination (Join-Path $taskDistRoot 'CONTRIBUTING.md') -Force
     Copy-Item -LiteralPath (Join-Path $taskRepoRoot 'CHANGELOG.md') -Destination (Join-Path $taskDistRoot 'CHANGELOG.md') -Force
     Copy-Item -LiteralPath (Join-Path $taskRepoRoot 'THIRD_PARTY_NOTICES.md') -Destination (Join-Path $taskDistRoot 'THIRD_PARTY_NOTICES.md') -Force
     Copy-Item -LiteralPath (Join-Path $taskRepoRoot 'LICENSE') -Destination (Join-Path $taskDistRoot 'LICENSE') -Force
-    foreach ($taskDocument in @('HANDBUCH.md', 'FORMAT.md', 'video.schema.json', 'INTERFACES.md', 'design.md', 'REDESIGN.md', 'THIRD_PARTY_LICENSES.txt')) {
+    foreach ($taskDocument in @('HANDBUCH.md', 'FORMAT.md', 'video.schema.json', 'INTERFACES.md', 'THIRD_PARTY_LICENSES.txt')) {
         Copy-Item -LiteralPath (Join-Path $taskRepoRoot "docs/$taskDocument") -Destination (Join-Path $taskDistRoot "docs/$taskDocument") -Force
     }
     $taskDistSkills = Join-Path $taskDistRoot 'skills'
@@ -132,8 +134,29 @@ try {
     $taskBuildSuffix = if ($DebugBuild) { '-debug' } else { '' }
     $taskArchiveName = "superint-video-$taskVersion-windows-x64$taskBuildSuffix.zip"
     $taskArchivePath = Join-Path $taskDistRoot $taskArchiveName
-    $taskArchiveInputs = @('Superint Video.exe', 'superint-video.exe', 'README.md', 'CONTRIBUTING.md', 'CHANGELOG.md', 'THIRD_PARTY_NOTICES.md', 'LICENSE', 'docs', 'prompts', 'skills') | ForEach-Object { Join-Path $taskDistRoot $_ }
-    Compress-Archive -LiteralPath $taskArchiveInputs -DestinationPath $taskArchivePath -Force
+    # Compress-Archive in Windows PowerShell 5.1 writes entry names with backslashes, which the ZIP
+    # format does not allow: unzip on macOS and Linux then makes files named 'docs\HANDBUCH.md'.
+    # So the archive is written entry by entry, with forward slashes.
+    Add-Type -AssemblyName System.IO.Compression
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $taskArchiveInputs = @('Superint Video.exe', 'superint-video.exe', 'README.md', 'README.en.md', 'CHANGELOG.md', 'CONTRIBUTING.md', 'SECURITY.md', 'THIRD_PARTY_NOTICES.md', 'LICENSE', 'docs', 'prompts', 'skills')
+    if (Test-Path -LiteralPath $taskArchivePath) { Remove-Item -LiteralPath $taskArchivePath -Force }
+    $taskZip = [System.IO.Compression.ZipFile]::Open($taskArchivePath, [System.IO.Compression.ZipArchiveMode]::Create)
+    try {
+        $taskDistPrefix = $taskDistRoot.TrimEnd('\') + '\'
+        foreach ($taskInput in $taskArchiveInputs) {
+            $taskInputPath = Join-Path $taskDistRoot $taskInput
+            $taskFiles = if (Test-Path -LiteralPath $taskInputPath -PathType Container) {
+                Get-ChildItem -LiteralPath $taskInputPath -Recurse -File | Sort-Object FullName
+            }
+            else { Get-Item -LiteralPath $taskInputPath }
+            foreach ($taskFile in $taskFiles) {
+                $taskEntry = $taskFile.FullName.Substring($taskDistPrefix.Length).Replace('\', '/')
+                [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($taskZip, $taskFile.FullName, $taskEntry, [System.IO.Compression.CompressionLevel]::Optimal) | Out-Null
+            }
+        }
+    }
+    finally { $taskZip.Dispose() }
     $taskChecksumLines = @('Superint Video.exe', 'superint-video.exe', $taskArchiveName) | ForEach-Object {
         $taskFileHash = (Get-FileHash -LiteralPath (Join-Path $taskDistRoot $_) -Algorithm SHA256).Hash.ToLowerInvariant()
         "$taskFileHash  $_"
