@@ -18,6 +18,7 @@
     Project,
     PropDefinition,
     RenderJob,
+    TextSpot,
     Track,
     Transform,
   } from './types';
@@ -52,6 +53,11 @@
   let frame = 0;
   let playing = false;
   let playerReady = false;
+  /** Where the paused picture shows texts the user can retype, from the player. */
+  let texts: TextSpot[] = [];
+  let editingText: TextSpot | null = null;
+  let textDraft = '';
+  let textEditor: HTMLTextAreaElement | undefined;
   let player: HTMLIFrameElement;
   let importInput: HTMLInputElement;
   let timeline: HTMLDivElement;
@@ -653,6 +659,7 @@
       // State messages arrive while typing; unchanged schemas must not reset field values.
       if (data.propDefinitions && !sameValue(propDefinitions, data.propDefinitions))
         propDefinitions = data.propDefinitions;
+      if (Array.isArray(data.texts) && !sameValue(texts, data.texts)) texts = data.texts;
     }
     if (data.type === 'error') {
       diagnostics = [
@@ -758,15 +765,56 @@
     changeClip({ transform: { [key]: numberValue(event) } });
   }
   function changeProp(key: string, value: string | number | boolean) {
-    const id = selected?.id;
-    if (id)
-      void edit(() => ({
-        type: 'updateClip',
-        id,
-        changes: {
-          props: { ...project?.manifest.clips.find((clip) => clip.id === id)?.props, [key]: value },
-        },
-      }));
+    if (selected) changePropOf(selected.id, key, value);
+  }
+  function changePropOf(id: string, key: string, value: string | number | boolean) {
+    void edit(() => ({
+      type: 'updateClip',
+      id,
+      changes: {
+        props: { ...project?.manifest.clips.find((clip) => clip.id === id)?.props, [key]: value },
+      },
+    }));
+  }
+
+  // Texts in the picture: a click opens a field right where the text stands, filled with it.
+  // Enter keeps the new words, Escape the old ones; the inspector shows the same prop.
+  function textName(text: TextSpot) {
+    return propDefinitions[text.clipId]?.[text.prop]?.label || text.prop;
+  }
+  function textValue(text: TextSpot) {
+    const clip = manifest?.clips.find((item) => item.id === text.clipId);
+    return String(
+      clip?.props?.[text.prop] ?? propDefinitions[text.clipId]?.[text.prop]?.default ?? '',
+    );
+  }
+  async function editText(text: TextSpot) {
+    selectClip(text.clipId);
+    editingText = text;
+    textDraft = textValue(text);
+    await tick();
+    textEditor?.focus();
+    textEditor?.select();
+  }
+  function closeText(keep: boolean) {
+    const text = editingText;
+    editingText = null;
+    if (keep && text && textDraft !== textValue(text))
+      changePropOf(text.clipId, text.prop, textDraft);
+  }
+  function onTextKey(event: KeyboardEvent) {
+    if (event.key === 'Escape' || (event.key === 'Enter' && !event.shiftKey)) {
+      event.preventDefault();
+      event.stopPropagation();
+      closeText(event.key === 'Enter');
+    }
+  }
+  /** The field stands on the text, at least wide enough to type in, and inside the picture. */
+  function editorPlace(text: TextSpot, scale: number, width: number, height: number) {
+    const wide = Math.min(width, Math.max(text.w * scale, 280));
+    const left = Math.max(0, Math.min(text.x * scale, width - wide));
+    const top = Math.max(0, Math.min(text.y * scale, height - 112));
+    return `left:${left}px;top:${top}px;width:${wide}px`;
   }
   function split() {
     if (
@@ -1555,6 +1603,31 @@
               sandbox="allow-scripts allow-same-origin"
               style={`width:${manifest.width}px;height:${manifest.height}px;transform:scale(${actualScale})`}
             ></iframe>
+            {#if playerReady && !playing && !scrub && texts.length}<div class="text-spots">
+                {#each texts as text (`${text.clipId}:${text.prop}`)}<button
+                    type="button"
+                    class="text-spot"
+                    class:current={editingText?.clipId === text.clipId &&
+                      editingText?.prop === text.prop}
+                    style={`left:${text.x * actualScale}px;top:${text.y * actualScale}px;width:${text.w * actualScale}px;height:${text.h * actualScale}px`}
+                    aria-label={$t('preview.editText', { name: textName(text) })}
+                    title={$t('preview.editText', { name: textName(text) })}
+                    onclick={() => editText(text)}
+                  ></button>{/each}
+                {#if editingText}<div
+                    class="text-editor"
+                    style={editorPlace(editingText, actualScale, stageWidth, stageHeight)}
+                  >
+                    <textarea
+                      bind:this={textEditor}
+                      bind:value={textDraft}
+                      rows={Math.min(4, Math.max(1, textDraft.split('\n').length))}
+                      aria-label={$t('preview.editText', { name: textName(editingText) })}
+                      onkeydown={onTextKey}
+                      onblur={() => closeText(true)}></textarea>
+                    <span>{$t('preview.editHint')}</span>
+                  </div>{/if}
+              </div>{/if}
             {#if !playerReady}<div class="preview-loading">
                 <span class="loader"></span><span>{$t('preview.loading')}</span>
               </div>{/if}

@@ -33,6 +33,18 @@ props: {
 }
 ```
 
+A text prop the user sees on screen becomes clickable in Studio's preview: the user clicks it and types a new text, which goes into the clip's `props`. Mark the element that shows it with `data-prop`, so it is found even when the scene changes the words on the way (uppercase, a counter, a typewriter):
+
+```html
+<h1 id="title" data-prop="title"></h1>
+```
+
+```js
+render({props}) { title.textContent = props.title; }
+```
+
+Without the mark, an element whose text is exactly the prop's value is found too. Text drawn into a canvas or WebGL cannot be clicked; it stays editable on the right of Studio.
+
 `interpolate(value, inputStops, outputStops, {clamp=true,ease=ease.linear})` interpolates
 between corresponding numeric arrays. Input stops must be strictly increasing.
 Arrays must have the same length, at least two. Outside values clamp by default.

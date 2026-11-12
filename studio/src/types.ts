@@ -89,6 +89,15 @@ export interface PropDefinition {
   min?: number;
   max?: number;
 }
+/** A text prop where the paused preview shows it, in project pixels. */
+export interface TextSpot {
+  clipId: string;
+  prop: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
 export interface RenderJob {
   id: string;
   status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';

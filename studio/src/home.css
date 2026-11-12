@@ -528,7 +528,11 @@
 .composer-field > textarea:focus-visible {
   outline: none;
 }
-/* The text waits while a recording is running; dictated words go where the cursor was. */
+/* While the microphone listens, the box says so in the one colour the app keeps for it. The
+   text waits; dictated words go where the cursor was. */
+.composer-field.dictating {
+  border-color: var(--live);
+}
 .composer-field.dictating > textarea {
   color: var(--secondary);
 }
@@ -538,10 +542,10 @@
   justify-content: flex-end;
   gap: 8px;
   min-height: 48px;
-  padding: 0 4px 4px 12px;
+  padding: 0 6px 6px 12px;
 }
 .dictate.active {
-  padding-left: 4px;
+  padding-left: 6px;
 }
 .dictate.active > :not(.sr-only) {
   animation: dictate-in 200ms ease-out;
@@ -557,8 +561,50 @@
   font-size: 14px;
   line-height: 1.4;
 }
-.dictate-start > svg {
+/* The microphone: quiet until it listens, then filled and breathing, until it is pressed
+   again to write down what it heard. */
+.dictate-mic {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   color: var(--secondary);
+}
+.dictate-mic:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--text);
+}
+.dictate-mic > svg {
+  width: 20px;
+  height: 20px;
+}
+.dictate-mic.live,
+.dictate-mic.live:hover:not(:disabled),
+.dictate-mic.writing {
+  background: var(--live);
+  color: var(--live-text);
+}
+.dictate-mic.live {
+  animation: dictate-breathe 1.6s ease-out infinite;
+}
+.dictate-mic.writing:disabled {
+  opacity: 1;
+  cursor: progress;
+}
+@keyframes dictate-breathe {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--live) 55%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--live) 0%, transparent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dictate-mic.live {
+    animation: none;
+  }
 }
 .dictate-wave {
   flex: 1;
@@ -578,15 +624,6 @@
   font-size: 14px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-}
-.icon-button.dictate-done {
-  border-radius: 50%;
-  background: var(--action);
-  color: var(--action-text);
-}
-.icon-button.dictate-done:hover:not(:disabled) {
-  background: var(--text);
-  color: var(--action-text);
 }
 .composer-options,
 .default-fields {

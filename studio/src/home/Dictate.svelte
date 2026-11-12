@@ -36,8 +36,8 @@
   let barAt = 0;
   let frame = 0;
   let canvas: HTMLCanvasElement | undefined;
-  let startButton: HTMLButtonElement | undefined;
-  let doneButton: HTMLButtonElement | undefined;
+  /** One button starts and ends a recording, so it never moves and focus stays on it. */
+  let mic: HTMLButtonElement | undefined;
   /** The last thing a screen reader heard about the dictation. */
   let said = '';
 
@@ -71,7 +71,7 @@
     recording = started;
     phase = 'recording';
     await tick();
-    doneButton?.focus();
+    mic?.focus();
     barAt = performance.now();
     frame = requestAnimationFrame(listen);
   }
@@ -134,7 +134,7 @@
   function stopWith(tell: () => void) {
     phase = 'idle';
     tell();
-    void tick().then(() => startButton?.focus());
+    void tick().then(() => mic?.focus());
   }
 
   /** Throws the recording away, or the answer that is still on its way. */
@@ -147,7 +147,7 @@
     controller = null;
     phase = 'idle';
     said = $t('dictate.discarded');
-    void tick().then(() => startButton?.focus());
+    void tick().then(() => mic?.focus());
   }
 
   function problem(cause: unknown): string {
@@ -218,16 +218,7 @@
 
 {#if supported}
   <div class="dictate" class:active>
-    {#if !active}
-      {#if !available}<span class="dictate-hint">{$t('dictate.needsKey')}</span>{/if}
-      <button
-        bind:this={startButton}
-        class="button quiet dictate-start"
-        disabled={!available}
-        title={available ? $t('dictate.startHint') : undefined}
-        onclick={begin}><Icon name="mic" />{$t('dictate.start')}</button
-      >
-    {:else}
+    {#if active}
       <button
         class="icon-button"
         aria-label={$t('dictate.discard')}
@@ -241,21 +232,30 @@
         bind:this={canvas}
       ></canvas>
       <span class="dictate-time"
-        >{#if phase === 'writing'}<span class="loader small"></span>{$t(
-            'dictate.writing',
-          )}{:else if phase === 'starting'}{$t('dictate.starting')}{:else}{clock(
-            seconds,
-          )}{/if}</span
+        >{#if phase === 'writing'}{$t('dictate.writing')}{:else if phase === 'starting'}{$t(
+            'dictate.starting',
+          )}{:else}{clock(seconds)}{/if}</span
       >
-      <button
-        bind:this={doneButton}
-        class="icon-button dictate-done"
-        aria-label={$t('dictate.done')}
-        title={$t('dictate.done')}
-        disabled={phase !== 'recording'}
-        onclick={finish}><Icon name="check" /></button
-      >
+    {:else if !available}
+      <span class="dictate-hint">{$t('dictate.needsKey')}</span>
     {/if}
+    <button
+      bind:this={mic}
+      class="dictate-mic"
+      class:live={phase === 'recording'}
+      class:writing={phase === 'writing'}
+      aria-label={$t(phase === 'recording' ? 'dictate.done' : 'dictate.start')}
+      title={phase === 'recording'
+        ? $t('dictate.done')
+        : available && phase === 'idle'
+          ? $t('dictate.startHint')
+          : undefined}
+      disabled={!available || phase === 'starting' || phase === 'writing'}
+      onclick={phase === 'recording' ? finish : begin}
+      >{#if phase === 'writing'}<span class="loader small"></span>{:else}<Icon
+          name="mic"
+        />{/if}</button
+    >
     <span class="sr-only" role="status" aria-live="polite">{spoken}</span>
   </div>
 {/if}

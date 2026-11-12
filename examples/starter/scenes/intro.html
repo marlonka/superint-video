@@ -11,7 +11,7 @@
   </style>
 </head>
 <body>
-  <main><p id="subtitle"></p><h1 id="title"></h1><div id="line"></div></main>
+  <main><p id="subtitle" data-prop="subtitle"></p><h1 id="title" data-prop="title"></h1><div id="line"></div></main>
   <script type="module">
     import {defineScene, spring, interpolate} from '/runtime/scene.js';
     const title = document.querySelector('#title'), subtitle = document.querySelector('#subtitle'), line = document.querySelector('#line');

@@ -60,6 +60,59 @@ export function validateActors(result) {
   });
 }
 
+/**
+ * Where the scene shows its text props, so Studio can let the user click a text and retype it.
+ * A text is the element marked data-prop="key", else the innermost element whose text is
+ * exactly the prop's value. Hidden and fully transparent elements are left out; each element
+ * counts once. Boxes are in scene pixels: [{prop, x, y, w, h}].
+ */
+export function textBoxes(root, definitions, props, styleOf = element => getComputedStyle(element)) {
+  const keys = Object.entries(definitions || {}).filter(([, prop]) => prop.type === 'text').map(([key]) => key);
+  if (!root || !keys.length) return [];
+  const plain = text => String(text ?? '').replace(/\s+/g, ' ').trim();
+  const elements = [];
+  (function walk(element) {
+    for (const child of element.children || []) { elements.push(child); walk(child); }
+  })(root);
+  // The words themselves, not the block around them: a paragraph is as wide as the page.
+  const measure = element => {
+    const range = element.ownerDocument?.createRange?.();
+    if (range) {
+      range.selectNodeContents(element);
+      const box = range.getBoundingClientRect();
+      if (box.width > 0 && box.height > 0) return box;
+    }
+    return element.getBoundingClientRect();
+  };
+  const shown = element => {
+    const box = measure(element);
+    if (!(box.width > 0 && box.height > 0)) return null;
+    let alpha = 1;
+    for (let node = element; node; node = node.parentElement) {
+      const style = styleOf(node);
+      if (style.display === 'none' || style.visibility === 'hidden') return null;
+      alpha *= Number(style.opacity ?? 1);
+    }
+    return alpha < 0.05 ? null : box;
+  };
+  const claimed = new Set();
+  const boxes = [];
+  for (const key of keys) {
+    let element = elements.find(item => item.getAttribute?.('data-prop') === key);
+    const value = plain(props?.[key]);
+    if (!element && value) {
+      const matches = elements.filter(item => !claimed.has(item) && plain(item.textContent) === value);
+      element = matches.find(item => !matches.some(other => other !== item && item.contains(other)));
+    }
+    if (!element || claimed.has(element)) continue;
+    const box = shown(element);
+    if (!box) continue;
+    claimed.add(element);
+    boxes.push({ prop: key, x: box.left, y: box.top, w: box.width, h: box.height });
+  }
+  return boxes;
+}
+
 let definition = null;
 function validateProp(key, prop, value) {
   const expectedType = prop.type === 'number' ? 'number' : prop.type === 'boolean' ? 'boolean' : 'string';
@@ -129,7 +182,9 @@ if (typeof window !== 'undefined' && window.parent !== window) {
         await assetReadiness();
         // A layout read flushes author style changes before the parent's capture.
         document.documentElement.getBoundingClientRect();
-        post({ type: 'frame', requestId: message.requestId, frame: context.frame, actors });
+        // Only the preview asks where the texts are: a render never needs them.
+        const texts = context.preview ? textBoxes(document.body, definition?.props, props) : [];
+        post({ type: 'frame', requestId: message.requestId, frame: context.frame, actors, texts });
       } catch (error) {
         post({ type: 'error', requestId: message.requestId, message: error?.stack || String(error) });
       }

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { interpolate, ease, spring, random, validateActors } from './scene.js';
+import { interpolate, ease, spring, random, validateActors, textBoxes } from './scene.js';
 
 test('motion evaluates identically after reverse and random frame requests', () => {
   const sample = frame => [spring(frame / 30), interpolate(frame, [0, 30, 60], [0, 100, 20], { ease: ease.outCubic }), random('scene', frame)];
@@ -45,4 +45,38 @@ test('seeded random provides stable indexed values within range', () => {
   assert.notEqual(random('a', 10), random('b', 10));
   assert.notEqual(random('a', 10), random('a', 11));
   for (let index = 0; index < 200; index++) assert.ok(random('a', index) >= 0 && random('a', index) < 1);
+});
+
+// A few elements are enough to stand for a scene: children, text, a box and a style.
+function element({ text = '', box = [0, 0, 100, 20], style = {}, prop, children = [] } = {}) {
+  const node = {
+    children, style, parentElement: null,
+    get textContent() { return children.length ? children.map(child => child.textContent).join('') : text; },
+    getAttribute: name => (name === 'data-prop' ? prop ?? null : null),
+    getBoundingClientRect: () => ({ left: box[0], top: box[1], width: box[2], height: box[3] }),
+    contains(other) { return other === node || children.some(child => child.contains(other)); },
+  };
+  for (const child of children) child.parentElement = node;
+  return node;
+}
+const styleOf = node => ({ display: 'block', visibility: 'visible', opacity: '1', ...node.style });
+
+test('texts are found by their mark, else by their exact words, innermost first', () => {
+  const title = element({ text: 'Probier’s selbst aus', box: [20, 380, 540, 100] });
+  const marked = element({ text: 'ganz anders', prop: 'note', box: [80, 880, 900, 30] });
+  const root = element({ children: [element({ children: [title] }), marked] });
+  const definitions = { title: { type: 'text', default: '' }, note: { type: 'text', default: '' }, size: { type: 'number', default: 1 } };
+  const boxes = textBoxes(root, definitions, { title: '  Probier’s   selbst aus ', note: 'Hinweis', size: 3 }, styleOf);
+  assert.deepEqual(boxes, [
+    { prop: 'title', x: 20, y: 380, w: 540, h: 100 },
+    { prop: 'note', x: 80, y: 880, w: 900, h: 30 },
+  ]);
+});
+
+test('hidden, transparent and missing texts give no box', () => {
+  const faded = element({ text: 'Später', style: { opacity: '0' } });
+  const root = element({ children: [element({ style: { visibility: 'hidden' }, children: [element({ text: 'Weg' })] }), faded, element({ text: 'Leer', box: [0, 0, 0, 0] })] });
+  const definitions = { a: { type: 'text' }, b: { type: 'text' }, c: { type: 'text' }, d: { type: 'text' } };
+  assert.deepEqual(textBoxes(root, definitions, { a: 'Weg', b: 'Später', c: 'Leer', d: 'Nirgends' }, styleOf), []);
+  assert.deepEqual(textBoxes(root, {}, {}, styleOf), []);
 });

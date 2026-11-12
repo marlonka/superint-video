@@ -338,6 +338,8 @@ export const de: Catalog = {
   'preview.label': 'Vorschau',
   'preview.frameTitle': 'Vorschau des Films',
   'preview.loading': 'Szenen werden geladen',
+  'preview.editText': 'Text ändern: {name}',
+  'preview.editHint': 'Enter übernimmt · Umschalt+Enter neue Zeile · Esc bricht ab',
   'preview.previous': 'Vorheriges Bild',
   'preview.next': 'Nächstes Bild',
   'preview.play': 'Abspielen',

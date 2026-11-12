@@ -339,6 +339,8 @@ export const en = {
   'preview.label': 'Preview',
   'preview.frameTitle': 'Preview of the film',
   'preview.loading': 'Loading scenes',
+  'preview.editText': 'Change the text: {name}',
+  'preview.editHint': 'Enter keeps it · Shift+Enter new line · Esc cancels',
   'preview.previous': 'Previous frame',
   'preview.next': 'Next frame',
   'preview.play': 'Play',

@@ -2,6 +2,11 @@
 
 ## Unveröffentlicht
 
+- **Mikrofon im Feld:** Statt „Sprechen“ steht ein Mikrofon-Knopf unten rechts im Eingabefeld. Während der Aufnahme sind er und der Rand des Felds blau, die einzige Farbe der App, und derselbe Knopf schreibt die Aufnahme auf; „✕“ oder Escape verwirft sie.
+- **Werkzeuge ohne Neustart finden:** Hat winget ein Werkzeug nur in den PATH eingetragen statt einen Link anzulegen (ohne Entwicklermodus der Normalfall), findet die App es trotzdem: Sie liest den PATH, den Windows gespeichert hat. Das Earshot-Fenster findet uv auch in winget's Paketordner.
+
+- **Text in der Vorschau ändern:** Im angehaltenen Studio-Bild zeigt ein Rahmen, welche Texte sich ändern lassen, sobald die Maus über dem Bild ist. Ein Klick öffnet direkt am Text ein Feld mit dem bisherigen Wortlaut; Enter übernimmt (in die `props` des Clips, wie rechts im Inspektor), Esc bricht ab. Szenen finden ihre Texte über `data-prop="key"` oder, ohne Markierung, als Element mit genau dem Text des Props; der Player meldet sie als `texts` in Bühnenpixeln. Die Skills sagen Claude, Texte so zu markieren.
+
 - **Earshot richtig installieren:** Die Einrichtung empfahl `pip install earshot`, doch auf PyPI gehört der Name einem anderen Projekt (Spracherkennung von pykeio). Jetzt installiert „Installieren“ Earshot von GitHub mit uv (`uv tool install "earshot[mcp,llm] @ git+https://github.com/Leonxlnx/earshot"`) und holt uv vorher über winget, wenn es fehlt; „Auftrag für Claude Code oder Codex kopieren“ gibt dieselbe Aufgabe dem Coding-Agent. Die App findet Werkzeuge, die uv oder pipx nach `%USERPROFILE%\.local\bin` legen, auch ohne Neustart.
 - **Einrichtung führt:** Drei nummerierte Schritte mit Fortschrittsbalken, erledigte mit Haken, der nächste hervorgehoben, Freiwilliges ohne Nummer. Nach dem letzten Schritt bleibt die Einrichtung stehen, bis „Weiter zum ersten Film“ gewählt wird, statt sofort zu verschwinden.
 
