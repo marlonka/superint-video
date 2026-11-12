@@ -9,6 +9,8 @@
 - **Über den fertigen Film sprechen:** „Stimme“ im Studio → „Über den Film sprechen“ spielt den Film ohne Ton ab einer gewählten Stelle, während du sprichst; der Sprechtext steht daneben. Die Aufnahme wird die Stimme ab dieser Stelle.
 - **Für den Coding-Agenten:** `superint-video voice own <ordner> --wait` öffnet die Aufnahme und wartet, `--file` nimmt eine Datei, `source: own` in `voice.md` stellt `voice check` und `voice assemble` auf die eigene Stimme um. `doctor --json` zeigt unter `capabilities`, was gerade geht (`aiVoice`, `transcription`, `music`, `dictation`, `style`, `ownVoice`, `soundEffects`, `narration`). Die Skills kennen alle drei Wege und warten nie auf einen API-Schlüssel.
 - **Filme ohne Stimme oder Musik:** `mix` und `render` arbeiten mit dem, was da ist. Jedes MP4 hat eine Tonspur; ist nichts zu hören, ist sie still, weil manche Upload-Formulare, Schnittprogramme und Fernseher Dateien ohne Tonspur ablehnen. `mix` duckt die Musik auch unter einer Stimme, die über den Film gesprochen wurde.
+- **„KI-Modelle“:** Der Bereich in der Einrichtung heißt jetzt „KI-Modelle“ (englisch „AI models“), ebenso der Knopf zum Wählen.
+- **Chrome DevTools MCP ohne Trace-Adressen:** Der Prompt zum Einrichten trägt den Server für Claude Code, ChatGPT Codex und Google Antigravity mit `--no-usage-statistics` und `--no-performance-crux` ein. Der zweite Schalter verhindert, dass die Performance-Werkzeuge des Servers Trace-Adressen an Googles CrUX-Dienst schicken.
 
 ## 0.7.1 — 2026-11-12
 

@@ -177,7 +177,7 @@ export const de: Catalog = {
   'setup.openai.euRefused':
     'Steht bei deinem OpenAI-Projekt „Project Residency: Global“, nimmt eu.api.openai.com es nicht an: „In der EU verarbeiten“ ausschalten.',
   'setup.openai.saved': 'OpenAI geht jetzt an {address}',
-  'setup.models.title': 'Modelle',
+  'setup.models.title': 'KI-Modelle',
   'setup.models.why':
     'Für Profis: welches Modell welche Aufgabe übernimmt. Leere Felder behalten die Standardmodelle, je nach Schlüssel.',
   'setup.models.usual': 'Standardmodelle',
@@ -185,13 +185,13 @@ export const de: Catalog = {
     'Die üblichen Modelle der Anbieter, für die du einen API-Schlüssel hast.',
   'setup.models.usualVoice': '{voice} (üblich)',
   'setup.models.own': 'Eigene Wahl',
-  'setup.models.change': 'Modelle wählen',
+  'setup.models.change': 'KI-Modelle wählen',
   'setup.models.field.narration': 'Stimme: Modell',
   'setup.models.field.voice': 'Stimme: Name',
   'setup.models.hint':
     'IDs so, wie der Anbieter sie schreibt. gemini-… und lyria-… sind von Google, über Google Cloud, solange dessen Schlüssel da ist, sonst über AI Studio. anbieter/modell geht über OpenRouter. gpt-… ist von OpenAI und nur fürs Diktat und für neue Stile. Gilt für neue Filme; ein Film kann trotzdem andere nennen.',
   'setup.models.reset': 'Zurück zu den Standardmodellen',
-  'setup.models.saved': 'Modelle gespeichert',
+  'setup.models.saved': 'KI-Modelle gespeichert',
   'setup.key.source.app': 'Auf diesem Rechner gespeichert.',
   'setup.key.source.google':
     'Mit deinem Google-Konto angemeldet (Application Default Credentials). Abmelden: gcloud auth application-default revoke',
@@ -223,7 +223,7 @@ export const de: Catalog = {
   'setup.browser.lacks': 'Fehlt bei {agents}.',
   'setup.browser.copy': 'Auftrag kopieren',
   'setup.browser.task':
-    'Richte bitte für dich selbst Chrome DevTools MCP ein ({url}), damit du für Superint Video Websites öffnen und Screenshots machen kannst. Es braucht Node.js LTS mit npx; fehlt es, installiere es (unter Windows: winget install --id OpenJS.NodeJS.LTS). Trag den Server für alle Projekte ein, mit --no-usage-statistics, damit keine Nutzungsdaten an Google gehen. Claude Code: claude mcp add chrome-devtools --scope user -- npx -y chrome-devtools-mcp@latest --no-usage-statistics. ChatGPT Codex: codex mcp add chrome-devtools -- npx -y chrome-devtools-mcp@latest --no-usage-statistics. Google Antigravity: in ~/.gemini/config/mcp_config.json unter mcpServers einen Eintrag chrome-devtools mit command npx und den args -y, chrome-devtools-mcp@latest, --no-usage-statistics. Unter Windows läuft npx über cmd /c (command cmd, die args beginnen mit /c und npx); Codex braucht dort in ~/.codex/config.toml zusätzlich env mit SystemRoot = C:\\Windows und PROGRAMFILES = C:\\Program Files sowie startup_timeout_ms = 20000. Prüf danach, dass die Werkzeuge navigate_page und take_screenshot da sind, und sag mir, ob du dafür neu gestartet werden musst.',
+    'Richte bitte für dich selbst Chrome DevTools MCP ein ({url}), damit du für Superint Video Websites öffnen und Screenshots machen kannst. Es braucht Node.js LTS mit npx; fehlt es, installiere es (unter Windows: winget install --id OpenJS.NodeJS.LTS). Trag den Server für alle Projekte ein, mit --no-usage-statistics und --no-performance-crux, damit weder Nutzungsdaten noch Trace-Adressen an Google gehen. Claude Code: claude mcp add chrome-devtools --scope user -- npx -y chrome-devtools-mcp@latest --no-usage-statistics --no-performance-crux. ChatGPT Codex: codex mcp add chrome-devtools -- npx -y chrome-devtools-mcp@latest --no-usage-statistics --no-performance-crux. Google Antigravity: in ~/.gemini/config/mcp_config.json unter mcpServers einen Eintrag chrome-devtools mit command npx und den args -y, chrome-devtools-mcp@latest, --no-usage-statistics, --no-performance-crux. Unter Windows läuft npx über cmd /c (command cmd, die args beginnen mit /c und npx); Codex braucht dort in ~/.codex/config.toml zusätzlich env mit SystemRoot = C:\\Windows und PROGRAMFILES = C:\\Program Files sowie startup_timeout_ms = 20000. Prüf danach, dass die Werkzeuge navigate_page und take_screenshot da sind, und sag mir, ob du dafür neu gestartet werden musst.',
   'voice.sound.bright': 'hell',
   'voice.sound.upbeat': 'beschwingt',
   'voice.sound.informative': 'informativ',

@@ -939,7 +939,7 @@ async fn voice_discard(
     State(state): State<StudioState>,
     RoutePath(number): RoutePath<usize>,
 ) -> ApiResult<Json<Value>> {
-    own::discard(&state.root, number, false)?;
+    own::discard(&state.root, number)?;
     voice_payload(&state).await
 }
 async fn voice_whole(State(state): State<StudioState>, bytes: Bytes) -> ApiResult<Json<Value>> {

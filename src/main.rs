@@ -702,7 +702,7 @@ async fn own_voice(
             break;
         }
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        status = voice::own::status(root)?;
+        status = voice::own::status_with(root, Some(status["timing"] == "measured"))?;
     }
     status["studio"] = json!(studio);
     status["next"] = json!(if status["complete"] == true {

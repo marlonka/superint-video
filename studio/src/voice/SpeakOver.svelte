@@ -129,7 +129,9 @@
       }
       return;
     }
-    filmStartedAt = opened.elapsed();
+    // The message that the film runs comes a moment after it started; the frames it already
+    // played say how long ago that was.
+    filmStartedAt = Math.max(0, opened.elapsed() - Math.max(0, frame - from) / fps);
     phase = 'recording';
     // The film ends the take when it runs out.
     watch = (_, plays) => !plays && void finish();

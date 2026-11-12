@@ -89,6 +89,17 @@ impl State {
     fn save(&self, root: &Path) -> Result<()> {
         atomic_write(&root.join(STATE), &serde_json::to_vec_pretty(self)?)
     }
+
+    /// Loads, changes and saves the state as one step. Studio answers requests side by side;
+    /// without the lock, one that loaded earlier would save over what another just changed.
+    fn update<T>(root: &Path, change: impl FnOnce(&mut Self) -> Result<T>) -> Result<T> {
+        static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+        let _held = LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut state = Self::load(root);
+        let result = change(&mut state)?;
+        state.save(root)?;
+        Ok(result)
+    }
 }
 
 fn take_file(number: usize, draft: bool) -> String {
@@ -183,7 +194,13 @@ async fn decode(bytes: &[u8]) -> Result<Vec<f32>> {
         .context("This file could not be read as audio (WAV, MP3, M4A, Ogg, WebM or FLAC)")
 }
 
+/// The transcript of what was recorded at `file` before, now of no use.
+fn forget_transcript(root: &Path, file: &str) {
+    let _ = fs::remove_file(root.join(file).with_extension("json"));
+}
+
 fn keep(root: &Path, file: &str, text: &str, cleaned: &Cleaned) -> Result<Take> {
+    forget_transcript(root, file);
     audio::write_wav(&root.join(file), &cleaned.samples, audio::RATE)?;
     Ok(Take {
         file: file.to_string(),
@@ -214,47 +231,53 @@ pub async fn record(root: &Path, number: usize, bytes: &[u8], accept: bool) -> R
     let doc = read_doc(root)?;
     let text = paragraph(&doc, number)?.text.clone();
     let cleaned = clean(&decode(bytes).await?, audio::RATE, false)?;
-    let take = keep(root, &take_file(number, !accept), &text, &cleaned)?;
-    let mut state = State::load(root);
-    let entry = state.paragraphs.entry(number).or_default();
-    if accept {
-        entry.accepted = Some(take);
-        entry.draft = None;
-    } else {
-        entry.draft = Some(take);
-    }
-    state.save(root)
-}
-
-/// The draft becomes the paragraph's recording.
-pub fn accept(root: &Path, number: usize) -> Result<()> {
-    let mut state = State::load(root);
-    let entry = state.paragraphs.entry(number).or_default();
-    let mut take = entry
-        .draft
-        .take()
-        .with_context(|| format!("Paragraph {number} has no new recording to accept"))?;
-    let file = take_file(number, false);
-    fs::rename(root.join(&take.file), root.join(&file))
-        .with_context(|| format!("Keeping {}", take.file))?;
-    take.file = file;
-    entry.accepted = Some(take);
-    state.save(root)
-}
-
-/// Throws the draft away, or with `all` the accepted recording too.
-pub fn discard(root: &Path, number: usize, all: bool) -> Result<()> {
-    let mut state = State::load(root);
-    if let Some(entry) = state.paragraphs.get_mut(&number) {
-        let gone = [
-            entry.draft.take(),
-            all.then(|| entry.accepted.take()).flatten(),
-        ];
-        for take in gone.into_iter().flatten() {
-            let _ = fs::remove_file(root.join(take.file));
+    State::update(root, |state| {
+        let take = keep(root, &take_file(number, !accept), &text, &cleaned)?;
+        let entry = state.paragraphs.entry(number).or_default();
+        if accept {
+            entry.accepted = Some(take);
+            entry.draft = None;
+        } else {
+            entry.draft = Some(take);
         }
-    }
-    state.save(root)
+        Ok(())
+    })
+}
+
+/// The draft becomes the paragraph's recording, as long as it was spoken for its current text.
+pub fn accept(root: &Path, number: usize) -> Result<()> {
+    let doc = read_doc(root)?;
+    let text = &paragraph(&doc, number)?.text;
+    State::update(root, |state| {
+        let entry = state.paragraphs.entry(number).or_default();
+        let mut take = entry
+            .draft
+            .take_if(|take| take.text == *text)
+            .with_context(|| {
+                format!("Paragraph {number} has no new recording of its current text to accept")
+            })?;
+        let file = take_file(number, false);
+        forget_transcript(root, &file);
+        fs::rename(root.join(&take.file), root.join(&file))
+            .with_context(|| format!("Keeping {}", take.file))?;
+        take.file = file;
+        entry.accepted = Some(take);
+        Ok(())
+    })
+}
+
+/// Throws a paragraph's draft away; its accepted recording stays.
+pub fn discard(root: &Path, number: usize) -> Result<()> {
+    State::update(root, |state| {
+        if let Some(draft) = state
+            .paragraphs
+            .get_mut(&number)
+            .and_then(|entry| entry.draft.take())
+        {
+            let _ = fs::remove_file(root.join(draft.file));
+        }
+        Ok(())
+    })
 }
 
 /// The file of a paragraph's draft or accepted recording, for listening back.
@@ -322,21 +345,22 @@ pub async fn whole(root: &Path, bytes: &[u8]) -> Result<()> {
                 .with_context(|| format!("Paragraph {} of the file", paragraph.number))?,
         );
     }
-    let mut state = State::load(root);
-    for (paragraph, cleaned) in doc.paragraphs.iter().zip(&cleaned) {
-        let take = keep(
-            root,
-            &take_file(paragraph.number, false),
-            &paragraph.text,
-            cleaned,
-        )?;
-        let entry = state.paragraphs.entry(paragraph.number).or_default();
-        if let Some(draft) = entry.draft.take() {
-            let _ = fs::remove_file(root.join(draft.file));
+    State::update(root, |state| {
+        for (paragraph, cleaned) in doc.paragraphs.iter().zip(&cleaned) {
+            let take = keep(
+                root,
+                &take_file(paragraph.number, false),
+                &paragraph.text,
+                cleaned,
+            )?;
+            let entry = state.paragraphs.entry(paragraph.number).or_default();
+            if let Some(draft) = entry.draft.take() {
+                let _ = fs::remove_file(root.join(draft.file));
+            }
+            entry.accepted = Some(take);
         }
-        entry.accepted = Some(take);
-    }
-    state.save(root)
+        Ok(())
+    })
 }
 
 fn text_weight(doc: &VoiceDoc, paragraph: &Paragraph) -> f64 {
@@ -414,7 +438,13 @@ fn cuts_from_transcript(
     let mut reference = Vec::new();
     let mut last_of = Vec::new();
     for paragraph in &doc.paragraphs {
-        reference.extend(align::reference(&paragraph.text, doc.syntax()));
+        let words = align::reference(&paragraph.text, doc.syntax());
+        ensure!(
+            !words.is_empty(),
+            "Paragraph {} of voice.md has no words to speak",
+            paragraph.number
+        );
+        reference.extend(words);
         last_of.push(reference.len());
     }
     let heard = align::hypothesis(&transcript.words, &doc.language);
@@ -452,7 +482,10 @@ fn state_of(entry: Option<&Entry>, text: &str) -> &'static str {
             accepted: Some(take),
             ..
         }) if take.text == text => "accepted",
-        Some(Entry { draft: Some(_), .. }) => "draft",
+        // A draft for a text that changed since is of no use.
+        Some(Entry {
+            draft: Some(take), ..
+        }) if take.text == text => "draft",
         Some(Entry {
             accepted: Some(_), ..
         }) => "stale",
@@ -463,6 +496,12 @@ fn state_of(entry: Option<&Entry>, text: &str) -> &'static str {
 /// Everything the recording view and `voice own` show: every paragraph with its recordings,
 /// and how the word times will be found.
 pub fn status(root: &Path) -> Result<Value> {
+    status_with(root, None)
+}
+
+/// `status`, told whether a key measures the word times; asked of the keys when `None`. A
+/// loop that waits for the user knows it from its first round and reads no keys after that.
+pub fn status_with(root: &Path, measured: Option<bool>) -> Result<Value> {
     let doc = &read_doc(root)?;
     let state = State::load(root);
     let paragraphs: Vec<Value> = doc
@@ -470,7 +509,6 @@ pub fn status(root: &Path) -> Result<Value> {
         .iter()
         .map(|p| {
             let entry = state.paragraphs.get(&p.number);
-            // A draft for a text that changed since is of no use.
             let draft = entry
                 .and_then(|e| e.draft.as_ref())
                 .filter(|take| take.text == p.text);
@@ -488,7 +526,10 @@ pub fn status(root: &Path) -> Result<Value> {
         .iter()
         .filter(|p| p["state"] == "accepted")
         .count();
-    let measured = transcriber(root, doc)?.is_some();
+    let measured = match measured {
+        Some(measured) => measured,
+        None => transcriber(root, doc)?.is_some(),
+    };
     Ok(json!({
         "source": doc.source,
         "paragraphs": paragraphs,
@@ -524,20 +565,28 @@ pub(super) fn accepted(root: &Path, doc: &VoiceDoc) -> Result<Vec<Take>> {
     Ok(takes)
 }
 
-/// The transcript of an accepted recording, when a key reaches the transcription model.
+/// The transcript of an accepted recording, when a key reaches the transcription model. A
+/// transcript written after the recording is used again: each costs a request of a daily quota.
 pub(super) async fn transcript(
     root: &Path,
     doc: &VoiceDoc,
     generators: &Generators,
     take: &Take,
 ) -> Result<Transcript> {
+    let audio = root.join(&take.file);
+    let saved = audio.with_extension("json");
+    let modified = |path: &Path| fs::metadata(path).and_then(|m| m.modified()).ok();
+    if modified(&saved) >= modified(&audio)
+        && let Some(transcript) = fs::read(&saved)
+            .ok()
+            .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+    {
+        return Ok(transcript);
+    }
     let (transcript, _) = generators
-        .transcribe_first(&root.join(&take.file), &doc.transcribers())
+        .transcribe_first(&audio, &doc.transcribers())
         .await?;
-    atomic_write(
-        &root.join(&take.file).with_extension("json"),
-        &serde_json::to_vec_pretty(&transcript)?,
-    )?;
+    atomic_write(&saved, &serde_json::to_vec_pretty(&transcript)?)?;
     Ok(transcript)
 }
 
@@ -665,24 +714,30 @@ fn spread(
     out
 }
 
-fn over_file(draft: bool, start_frame: u64) -> String {
-    if draft {
-        format!("{DIR}/over.draft.wav")
-    } else {
-        format!("{DIR}/over-{start_frame:06}.wav")
-    }
+const OVER_DRAFT: &str = "audio/own/over.draft.wav";
+
+/// A kept take's file: new for every take, even one from the same frame, because an undo in
+/// Studio brings back the clip of an earlier take, and it must still play that take.
+fn kept_over_file(root: &Path, start_frame: u64) -> String {
+    (1..)
+        .map(|n| match n {
+            1 => format!("{DIR}/over-{start_frame:06}.wav"),
+            n => format!("{DIR}/over-{start_frame:06}-{n}.wav"),
+        })
+        .find(|file| !root.join(file).exists())
+        .unwrap_or_default()
 }
 
 /// A take spoken over the picture, cleaned without touching its start: its first sample
 /// belongs to `start_frame`. It waits as a draft until the user keeps it.
 pub async fn over_record(root: &Path, start_frame: u64, bytes: &[u8]) -> Result<Over> {
     let cleaned = clean(&decode(bytes).await?, audio::RATE, true)?;
-    let take = keep(root, &over_file(true, start_frame), "", &cleaned)?;
-    let over = Over { start_frame, take };
-    let mut state = State::load(root);
-    state.over = Some(over.clone());
-    state.save(root)?;
-    Ok(over)
+    State::update(root, |state| {
+        let take = keep(root, OVER_DRAFT, "", &cleaned)?;
+        let over = Over { start_frame, take };
+        state.over = Some(over.clone());
+        Ok(over)
+    })
 }
 
 /// The draft spoken over the picture, if there is one.
@@ -694,22 +749,23 @@ pub fn over_draft(root: &Path) -> Option<Over> {
 
 /// The draft becomes a file of its own, ready to be placed on the voice track.
 pub fn over_keep(root: &Path) -> Result<Over> {
-    let mut state = State::load(root);
-    let mut over = state.over.take().context("There is no recording to keep")?;
-    let file = over_file(false, over.start_frame);
-    fs::rename(root.join(&over.take.file), root.join(&file))
-        .with_context(|| format!("Keeping {}", over.take.file))?;
-    over.take.file = file;
-    state.save(root)?;
-    Ok(over)
+    State::update(root, |state| {
+        let mut over = state.over.take().context("There is no recording to keep")?;
+        let file = kept_over_file(root, over.start_frame);
+        fs::rename(root.join(&over.take.file), root.join(&file))
+            .with_context(|| format!("Keeping {}", over.take.file))?;
+        over.take.file = file;
+        Ok(over)
+    })
 }
 
 pub fn over_discard(root: &Path) -> Result<()> {
-    let mut state = State::load(root);
-    if let Some(over) = state.over.take() {
-        let _ = fs::remove_file(root.join(over.take.file));
-    }
-    state.save(root)
+    State::update(root, |state| {
+        if let Some(over) = state.over.take() {
+            let _ = fs::remove_file(root.join(over.take.file));
+        }
+        Ok(())
+    })
 }
 
 /// The track the voice sits on, as the mix knows it.
@@ -1057,8 +1113,36 @@ mod tests {
         let error = accepted(root, &doc).unwrap_err().to_string();
         assert!(error.contains("[2]"), "{error}");
 
-        discard(root, 1, true).unwrap();
-        assert!(!root.join(take_file(1, false)).exists());
-        assert!(audio_file(root, 1, false).is_none());
+        // A new draft thrown away leaves the accepted recording alone.
+        let mut state = State::load(root);
+        state.paragraphs.entry(1).or_default().draft =
+            Some(keep(root, &take_file(1, true), "Eins.", &cleaned).unwrap());
+        state.save(root).unwrap();
+        discard(root, 1).unwrap();
+        assert!(!root.join(take_file(1, true)).exists());
+        assert!(audio_file(root, 1, true).is_none());
+        assert!(audio_file(root, 1, false).unwrap().is_file());
+
+        // A draft spoken for a text that changed since is neither shown nor accepted.
+        let mut state = State::load(root);
+        state.paragraphs.entry(2).or_default().draft =
+            Some(keep(root, &take_file(2, true), "Old words.", &cleaned).unwrap());
+        state.save(root).unwrap();
+        assert_eq!(
+            state_of(State::load(root).paragraphs.get(&2), "New words."),
+            "empty"
+        );
+        assert!(accept(root, 2).is_err());
+    }
+
+    #[test]
+    fn every_kept_take_over_the_picture_has_a_file_of_its_own() {
+        let folder = tempfile::tempdir().unwrap();
+        let root = folder.path();
+        fs::create_dir_all(root.join(DIR)).unwrap();
+        let first = kept_over_file(root, 90);
+        assert_eq!(first, "audio/own/over-000090.wav");
+        fs::write(root.join(&first), b"").unwrap();
+        assert_eq!(kept_over_file(root, 90), "audio/own/over-000090-2.wav");
     }
 }

@@ -178,20 +178,20 @@ export const en = {
   'setup.openai.euRefused':
     'If your OpenAI project says "Project Residency: Global", eu.api.openai.com does not take it: turn "Process in the EU" off.',
   'setup.openai.saved': 'OpenAI now goes to {address}',
-  'setup.models.title': 'Models',
+  'setup.models.title': 'AI models',
   'setup.models.why':
     'For pros: which model does which job. Empty fields keep the usual models, chosen by your keys.',
   'setup.models.usual': 'The usual models',
   'setup.models.usualWhy': 'The usual models of the providers you have an API key for.',
   'setup.models.usualVoice': '{voice} (usual)',
   'setup.models.own': 'Your choice',
-  'setup.models.change': 'Choose models',
+  'setup.models.change': 'Choose AI models',
   'setup.models.field.narration': 'Voice: model',
   'setup.models.field.voice': 'Voice: name',
   'setup.models.hint':
     "IDs as the provider writes them. gemini-… and lyria-… are Google's, through Google Cloud while its key is here, else AI Studio. vendor/model goes through OpenRouter. gpt-… is OpenAI's, for dictation and new styles only. They apply to new films; a film can still name others.",
   'setup.models.reset': 'Back to the usual models',
-  'setup.models.saved': 'Models saved',
+  'setup.models.saved': 'AI models saved',
   'setup.key.source.app': 'Saved on this computer.',
   'setup.key.source.google':
     'Signed in with your Google account (Application Default Credentials). To sign out: gcloud auth application-default revoke',
@@ -224,7 +224,7 @@ export const en = {
   'setup.browser.lacks': 'Missing in {agents}.',
   'setup.browser.copy': 'Copy the task',
   'setup.browser.task':
-    'Please set up Chrome DevTools MCP for yourself ({url}), so you can open websites and take screenshots for Superint Video. It needs Node.js LTS with npx; install it if it is missing (on Windows: winget install --id OpenJS.NodeJS.LTS). Add the server for all projects, with --no-usage-statistics so no usage data goes to Google. Claude Code: claude mcp add chrome-devtools --scope user -- npx -y chrome-devtools-mcp@latest --no-usage-statistics. ChatGPT Codex: codex mcp add chrome-devtools -- npx -y chrome-devtools-mcp@latest --no-usage-statistics. Google Antigravity: in ~/.gemini/config/mcp_config.json under mcpServers an entry chrome-devtools with command npx and the args -y, chrome-devtools-mcp@latest, --no-usage-statistics. On Windows npx runs through cmd /c (command cmd, the args start with /c and npx); Codex also needs, in ~/.codex/config.toml, env with SystemRoot = C:\\Windows and PROGRAMFILES = C:\\Program Files, and startup_timeout_ms = 20000. Then check that the tools navigate_page and take_screenshot are there, and tell me whether you need a restart for them.',
+    'Please set up Chrome DevTools MCP for yourself ({url}), so you can open websites and take screenshots for Superint Video. It needs Node.js LTS with npx; install it if it is missing (on Windows: winget install --id OpenJS.NodeJS.LTS). Add the server for all projects, with --no-usage-statistics and --no-performance-crux so neither usage data nor trace URLs go to Google. Claude Code: claude mcp add chrome-devtools --scope user -- npx -y chrome-devtools-mcp@latest --no-usage-statistics --no-performance-crux. ChatGPT Codex: codex mcp add chrome-devtools -- npx -y chrome-devtools-mcp@latest --no-usage-statistics --no-performance-crux. Google Antigravity: in ~/.gemini/config/mcp_config.json under mcpServers an entry chrome-devtools with command npx and the args -y, chrome-devtools-mcp@latest, --no-usage-statistics, --no-performance-crux. On Windows npx runs through cmd /c (command cmd, the args start with /c and npx); Codex also needs, in ~/.codex/config.toml, env with SystemRoot = C:\\Windows and PROGRAMFILES = C:\\Program Files, and startup_timeout_ms = 20000. Then check that the tools navigate_page and take_screenshot are there, and tell me whether you need a restart for them.',
   'voice.sound.bright': 'bright',
   'voice.sound.upbeat': 'upbeat',
   'voice.sound.informative': 'informative',

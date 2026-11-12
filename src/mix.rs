@@ -293,18 +293,23 @@ async fn speech(root: &Path, manifest: &Manifest) -> Result<(Intervals, Vec<Stri
         false => None,
     };
     clips.sort_by_key(|c| c.start_frame);
+    // Where each file speaks, worked out once: a narration may be split into many clips.
+    let mut heard: BTreeMap<&str, Intervals> = BTreeMap::new();
     let mut spans: Vec<(f64, f64)> = Vec::new();
     for clip in clips {
         let offset = manifest.fps.seconds(clip.source_offset_frames);
         let start = manifest.fps.seconds(clip.start_frame);
         let end = manifest.fps.seconds(clip.end_frame());
-        let spoken = match &words {
-            Some(words) if clip.src == NARRATION => {
-                words.iter().map(|word| (word.start, word.end)).collect()
-            }
-            _ => spoken(&audio::decode(&safe_path(root, &clip.src)?, RATE).await?),
-        };
-        for (from, to) in spoken {
+        if !heard.contains_key(clip.src.as_str()) {
+            let found = match &words {
+                Some(words) if clip.src == NARRATION => {
+                    words.iter().map(|word| (word.start, word.end)).collect()
+                }
+                _ => spoken(&audio::decode(&safe_path(root, &clip.src)?, RATE).await?),
+            };
+            heard.insert(&clip.src, found);
+        }
+        for &(from, to) in &heard[clip.src.as_str()] {
             let (a, b) = (start + from - offset, start + to - offset);
             if b > start && a < end {
                 spans.push((a.max(start), b.min(end)));
