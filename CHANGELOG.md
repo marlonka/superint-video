@@ -1,6 +1,6 @@
 # Versionsverlauf
 
-## Unveröffentlicht
+## 0.4.0 — 2026-11-12
 
 - **Neuer Film wählt passend zum Thema:** Stil und Länge stehen zuerst auf „Passend zum Thema“, und der Prompt bittet den Coding-Agenten, beides nach dem Thema zu wählen. Ein Standard-Stil steht weiter vorne, „Frag mich vorher“ ist die letzte Wahl. Das Format ist 16:9, bis jemand ein anderes wählt. Die Sprache folgt dem Thema: Die App erkennt sie an Schrift und kleinen Wörtern und nennt sie im Prompt („Deutsch (wie das Thema)“); zur Wahl stehen 46 Sprachen statt 9. Die Länge ist ein Feld mit einer Vorschlagsliste, die aussieht und aufgeht wie die Listen daneben und sich mit den Pfeiltasten bedienen lässt, Vorschläge von 15 Sekunden bis 60 Minuten; Getipptes wird beim Verlassen ordentlich geschrieben („90 s“ wird „1 min 30 s“).
 - **Startseite neu geordnet:** Neuer Film, Stile, Filme. Die Einrichtung ist eine eigene Seite hinter dem Knopf „Einrichtung“ oben rechts, mit einem Punkt, wenn dort etwas fehlt, statt einer zugeklappten Zeile mit „Anzeigen“. Zu ihr gehören jetzt auch der Speicherort für Filme, der Wechsel zu neuen Filmen, das eigene Fenster und der Einstellungsordner. Die Versionsnummer steht oben links neben dem Namen; die Fußzeile entfällt.
