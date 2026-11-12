@@ -1,7 +1,8 @@
 /**
- * The microphone for dictation. It records the user, says how loud they are while they speak
- * (for the waveform), and hands back the recording as 16 kHz mono WAV, the one format every
- * transcription model takes. The recording lives in this page until it is sent once.
+ * The microphone. It records the user, says how loud they are while they speak (for the
+ * waveform or the level meter), and hands back the recording as mono WAV: 16 kHz for dictation,
+ * the one format every transcription model takes, or the full rate of the device for a voice
+ * that goes into a film. The recording lives in this page until it is sent once.
  */
 
 /** Why the microphone did not start. The page words it. */
@@ -21,14 +22,26 @@ export interface Recording {
   level(): number;
   /** Seconds since the recording began. */
   elapsed(): number;
-  /** Ends the recording and returns it as WAV. The microphone is free again at once. */
-  stop(): Promise<Blob>;
+  /** Ends the recording and returns it as WAV, without its first `skip` seconds. The
+   * microphone is free again at once. */
+  stop(skip?: number): Promise<Blob>;
   /** Ends the recording and throws it away. */
   discard(): void;
 }
 
+/** What a recording is for. */
+export type Purpose =
+  /** Words to be written down: the browser may clean the signal, and 16 kHz is all a
+   * transcription model uses. */
+  | 'dictation'
+  /** A voice for a film: the signal as the microphone hears it, at the rate of the device.
+   * The browser's echo and noise filters are made for calls and can be heard on a voice. */
+  | 'narration';
+
 /** The rate transcription models are made for; more only makes the file larger. */
-const RATE = 16_000;
+const DICTATION_RATE = 16_000;
+/** Opus at this rate is past the point where a spoken voice gains from more. */
+const NARRATION_BITS = 256_000;
 /** The formats MediaRecorder may write, best first. Any of them decodes in the same browser. */
 const TYPES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
 
@@ -46,16 +59,17 @@ export function canRecord(): boolean {
  * Starts recording. Call it from the click that asks for it: the sound is only analysed in an
  * audio context the user started, so the context is made before the permission question.
  */
-export async function record(): Promise<Recording> {
+export async function record(purpose: Purpose = 'dictation'): Promise<Recording> {
   const context = new AudioContext();
+  const cleaned = purpose === 'dictation';
   let stream: MediaStream;
   try {
     stream = await navigator.mediaDevices.getUserMedia({
       audio: {
         channelCount: 1,
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
+        echoCancellation: cleaned,
+        noiseSuppression: cleaned,
+        autoGainControl: cleaned,
       },
     });
   } catch (cause) {
@@ -79,7 +93,10 @@ export async function record(): Promise<Recording> {
   const samples = new Float32Array(analyser.fftSize);
 
   const type = TYPES.find((candidate) => MediaRecorder.isTypeSupported(candidate));
-  const recorder = new MediaRecorder(stream, type ? { mimeType: type } : undefined);
+  const recorder = new MediaRecorder(stream, {
+    ...(type ? { mimeType: type } : {}),
+    ...(cleaned ? {} : { audioBitsPerSecond: NARRATION_BITS }),
+  });
   const chunks: Blob[] = [];
   recorder.ondataavailable = (event) => {
     if (event.data.size) chunks.push(event.data);
@@ -101,13 +118,15 @@ export async function record(): Promise<Recording> {
       return Math.min(1, Math.max(0, (decibels + 55) / 45));
     },
     elapsed: () => (performance.now() - started) / 1000,
-    stop() {
+    stop(skip = 0) {
       return new Promise<Blob>((resolve, reject) => {
         recorder.onstop = async () => {
           freeMicrophone();
           try {
             const blob = new Blob(chunks, { type: recorder.mimeType || type || 'audio/webm' });
-            resolve(await toWav(blob, context));
+            resolve(
+              await toWav(blob, context, cleaned ? DICTATION_RATE : context.sampleRate, skip),
+            );
           } catch (cause) {
             reject(cause);
           } finally {
@@ -127,21 +146,28 @@ export async function record(): Promise<Recording> {
   };
 }
 
-/** Decodes what MediaRecorder wrote and renders it again at 16 kHz in one channel. */
-async function toWav(recorded: Blob, context: BaseAudioContext): Promise<Blob> {
+/** Decodes what MediaRecorder wrote and renders it again at `rate` in one channel, from
+ * `skip` seconds in. */
+async function toWav(
+  recorded: Blob,
+  context: BaseAudioContext,
+  rate: number,
+  skip: number,
+): Promise<Blob> {
   const decoded = await context.decodeAudioData(await recorded.arrayBuffer());
-  const length = Math.max(1, Math.ceil(decoded.duration * RATE));
-  const offline = new OfflineAudioContext(1, length, RATE);
+  const from = Math.min(Math.max(0, skip), decoded.duration);
+  const length = Math.max(1, Math.ceil((decoded.duration - from) * rate));
+  const offline = new OfflineAudioContext(1, length, rate);
   const source = offline.createBufferSource();
   source.buffer = decoded;
   source.connect(offline.destination);
-  source.start();
+  source.start(0, from);
   const rendered = await offline.startRendering();
-  return new Blob([wav(rendered.getChannelData(0), RATE)], { type: 'audio/wav' });
+  return new Blob([wav(rendered.getChannelData(0), rate)], { type: 'audio/wav' });
 }
 
 /** 16-bit PCM in a WAV header. */
-export function wav(samples: Float32Array, rate: number): ArrayBuffer {
+function wav(samples: Float32Array, rate: number): ArrayBuffer {
   const bytes = new ArrayBuffer(44 + samples.length * 2);
   const view = new DataView(bytes);
   const text = (at: number, value: string) => {

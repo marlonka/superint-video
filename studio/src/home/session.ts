@@ -168,15 +168,16 @@ export async function copyText(text: string, done: string) {
   }
 }
 
-/** What has to be in place before a film can be made, in the order Setup asks for it. */
-export type SetupNeed = 'agent' | 'picture' | 'key';
+/** What has to be in place before a film can be made, in the order Setup asks for it. API
+ * keys are not among it: they add the AI voice, music and dictation to a film that works
+ * without them. */
+export type SetupNeed = 'agent' | 'picture';
 
 export function needs(state: Overview): SetupNeed[] {
   const { agents, can } = state.setup;
   const missing: SetupNeed[] = [];
   if (!agents.some((agent) => agent.ready)) missing.push('agent');
   if (!can.picture) missing.push('picture');
-  if (!can.voice) missing.push('key');
   return missing;
 }
 

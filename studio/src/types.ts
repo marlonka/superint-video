@@ -85,7 +85,8 @@ export interface LiveRender {
 }
 export interface Live {
   render: LiveRender | null;
-  running: { label: string; startedAt: number }[];
+  /** `asks`: the command waits for the user, e.g. `recording` for their own voice. */
+  running: { label: string; asks?: string | null; startedAt: number }[];
 }
 export interface Diagnostic {
   severity: string;
@@ -321,7 +322,10 @@ export interface Overview {
     keys: KeyRow[];
     can: {
       picture: boolean;
+      /** A key reaches a TTS model: the AI voice. The user's own voice needs none. */
       voice: boolean;
+      /** A key reaches a transcription model: word times are measured, not estimated. */
+      timings: boolean;
       music: boolean;
       soundEffects: boolean;
       /** Any key, OpenAI's too: the start page can write down what is said. */

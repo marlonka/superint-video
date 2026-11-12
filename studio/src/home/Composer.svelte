@@ -26,10 +26,18 @@
   const FIT = ':fit';
   const ASK = ':ask';
   const BASE = ':base';
+  /** Who speaks the film: a TTS model, the user themselves, or nobody. */
+  type Narration = 'ai' | 'own' | 'none';
+  const NARRATIONS: Narration[] = ['ai', 'own', 'none'];
 
   let topic = '';
   /** Empty is the first choice of a list: the default style, or the one the topic suits. */
-  let pick = { style: '', format: '', language: '' };
+  let pick: { style: string; format: string; language: string; narration: Narration | '' } = {
+    style: '',
+    format: '',
+    language: '',
+    narration: '',
+  };
   let seconds: number | null = null;
   let copied = false;
   let field: HTMLTextAreaElement;
@@ -83,6 +91,11 @@
   $: pictureFormat = formats.some((entry) => entry.value === pick.format)
     ? pick.format
     : usualFormat;
+  // The voice a film gets unless someone picks another: the AI voice when an API key reaches
+  // one, else the user's own, which needs no key.
+  $: aiVoice = overview.setup.can.voice;
+  $: usualNarration = (aiVoice ? 'ai' : 'own') as Narration;
+  $: narration = pick.narration || usualNarration;
   $: written = topicLanguage(topic);
   $: language = pick.language || written;
   // The languages by their names in the app's language, as a list is read.
@@ -103,6 +116,7 @@
     seconds,
     pictureFormat,
     language,
+    narration,
     program,
     $t,
     $format,
@@ -117,6 +131,7 @@
     seconds: number | null,
     picture: string,
     language: string | null,
+    narration: Narration,
     program: string | null,
     say: Translate,
     write: Formats,
@@ -146,6 +161,7 @@
     else if (fitStyle) lines.push(say('prompt.fitStyle'));
     else if (!seconds) lines.push(say('prompt.fitLength'));
     if (style === ASK) lines.push(say('prompt.askStyle'));
+    lines.push(say(`prompt.voice.${narration}`));
     if (program) lines.push(say('prompt.program', { path: program }));
     return lines.join('\n');
   }
@@ -223,6 +239,19 @@
               : $t('choice.topicLanguageOpen')}</option
           >
           {#each languages as entry (entry.code)}<option value={entry.code}>{entry.name}</option
+            >{/each}
+        </select>
+      </div>
+      <div class="composer-choice">
+        <label for="film-voice">{$t('field.voice')}</label>
+        <select id="film-voice" bind:value={pick.narration}>
+          <option value="">{$t(`choice.voice.${usualNarration}`)}</option>
+          {#each NARRATIONS.filter((entry) => entry !== usualNarration) as entry (entry)}<option
+              value={entry}
+              disabled={entry === 'ai' && !aiVoice}
+              >{$t(
+                entry === 'ai' && !aiVoice ? 'choice.voice.aiNeedsKey' : `choice.voice.${entry}`,
+              )}</option
             >{/each}
         </select>
       </div>

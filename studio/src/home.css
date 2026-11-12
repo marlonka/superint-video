@@ -258,6 +258,25 @@
   background: var(--text);
   color: var(--page);
 }
+/* What a film can do without an API key, and what a key adds: two plain statements at the
+   size of body text, above the keys they explain. */
+.setup-what {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 40px;
+  margin: 8px 0 20px;
+}
+.setup-what dt {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.setup-what dd {
+  margin: 4px 0 0;
+  max-width: 44ch;
+  font-size: 16px;
+  line-height: 1.5;
+}
 .setup-list {
   display: grid;
   gap: 20px;
@@ -685,7 +704,7 @@
 /* The style names are the longest choices. */
 .composer-options {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1.25fr) repeat(4, minmax(0, 1fr));
   gap: 12px 16px;
 }
 .composer-choice {
@@ -1219,7 +1238,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-@container application (max-width: 760px) {
+@container application (max-width: 1000px) {
   .composer-options {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
@@ -1227,6 +1246,9 @@
 @container application (max-width: 620px) {
   .home-page {
     padding-inline: 16px;
+  }
+  .setup-what {
+    grid-template-columns: minmax(0, 1fr);
   }
   .first-run > h1 {
     font-size: 26px;

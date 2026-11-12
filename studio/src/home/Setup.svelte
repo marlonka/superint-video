@@ -35,7 +35,7 @@
   export let onclose: (() => void) | null = null;
 
   type Location = 'eu' | 'us' | 'global';
-  type Step = 'agent' | 'tools' | 'keys';
+  type Step = 'agent' | 'tools';
   type ModelSetting =
     | 'narrationModel'
     | 'narrationVoice'
@@ -90,19 +90,19 @@
   $: missing = needs(overview);
   $: required = setup.tools.filter((tool) => !tool.optional);
   $: optional = setup.tools.filter((tool) => tool.optional);
-  // Three steps before the first film: an agent with the skills, the tools, a key. What comes
-  // after them is optional and has no number.
+  // Two steps before the first film: an agent with the skills, and the tools. What comes
+  // after them is optional and has no number, API keys included: a film works without one.
   $: steps = {
     agent: !missing.includes('agent'),
     tools: required.every((tool) => tool.ok),
-    keys: setup.can.voice,
   };
   $: total = Object.keys(steps).length;
   $: done = Object.values(steps).filter(Boolean).length;
   $: current = (Object.keys(steps) as Step[]).find((step) => !steps[step]);
   $: next = first ? nextItem(setup, missing) : '';
-  $: readyParts = (['picture', 'voice', 'music', 'soundEffects'] as const)
-    .filter((part) => setup.can[part])
+  // The user's own voice is ready whenever a film is: it needs a microphone or a file, no key.
+  $: readyParts = (['picture', 'ownVoice', 'voice', 'music', 'soundEffects'] as const)
+    .filter((part) => (part === 'ownVoice' ? setup.can.picture : setup.can[part]))
     .map((part) => $t(`setup.part.${part}`));
   $: readyAgents = setup.agents.filter((agent) => agent.ready).map((agent) => agent.title);
   $: behind = skillsBehind(setup).map((agent) => agent.title);
@@ -120,9 +120,7 @@
       return `agent-${(waiting ?? state.agents[0]).id}`;
     }
     const tool = state.tools.find((item) => !item.optional && !item.ok);
-    if (tool) return `tool-${tool.id}`;
-    if (!open.includes('key')) return '';
-    return `key-${(state.keys.find((key) => key.recommended) ?? state.keys[0]).name}`;
+    return tool ? `tool-${tool.id}` : '';
   }
 
   function installSkills(agent: Agent) {
@@ -563,8 +561,18 @@
     </section>
 
     <section class="setup-group" aria-labelledby="setup-keys">
-      {@render heading('keys', 'setup-keys', $t('setup.key.title'), $t('setup.key.why'))}
+      {@render heading(null, 'setup-keys', $t('setup.key.title'), $t('setup.key.why'))}
       <div class="setup-keys">
+        <dl class="setup-what">
+          <div>
+            <dt>{$t('setup.without.title')}</dt>
+            <dd>{$t('setup.without.what')}</dd>
+          </div>
+          <div>
+            <dt>{$t('setup.with.title')}</dt>
+            <dd>{$t('setup.with.what')}</dd>
+          </div>
+        </dl>
         <ul class="setup-list">
           {#each mainKeys as key (key.name)}{@render keyItem(key)}{/each}
         </ul>

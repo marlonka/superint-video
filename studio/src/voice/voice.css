@@ -1,0 +1,397 @@
+/* The user's own voice: one page over the editor. The text to read is the largest thing on it;
+   controls sit in one row under it and never move; the only colour is the microphone while it
+   listens. */
+.voice-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  background: var(--page);
+  animation: voice-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes voice-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.voice-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+.voice-page {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  display: flex;
+  flex-direction: column;
+}
+.voice-empty {
+  width: min(100%, 560px);
+  margin: 14vh auto 0;
+  padding-inline: 24px;
+  color: var(--secondary);
+  font-size: 16px;
+  line-height: 1.5;
+}
+.voice-empty h2 {
+  margin: 0 0 8px;
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 500;
+}
+.voice-empty p {
+  margin: 0 0 20px;
+}
+
+/* Reading aloud. */
+.voice-prompter {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 28px;
+  width: min(100%, 880px);
+  margin-inline: auto;
+  padding: 24px 32px 0;
+}
+.voice-steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.voice-step {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--divider);
+  border-radius: 50%;
+  color: var(--secondary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  transition:
+    background-color 140ms ease-out,
+    border-color 140ms ease-out,
+    color 140ms ease-out;
+}
+.voice-step:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--text);
+}
+.voice-step.done {
+  border-color: var(--border);
+  color: var(--text);
+}
+.voice-step.current {
+  border-color: var(--text);
+  background: var(--selected);
+  color: var(--text);
+}
+.voice-steps-count {
+  margin-left: auto;
+  padding-left: 12px;
+  color: var(--secondary);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.voice-reading {
+  flex: 1;
+}
+/* The paragraph to read, at a size that is read from a step back from the screen. */
+.voice-line {
+  max-width: 30em;
+  margin: 0;
+  font-size: clamp(24px, 2.5vw + 6px, 36px);
+  font-weight: 450;
+  line-height: 1.42;
+  text-wrap: pretty;
+  animation: voice-line-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.voice-line.next {
+  margin-top: 32px;
+  color: var(--secondary);
+  font-size: clamp(17px, 1vw + 8px, 21px);
+  font-weight: 400;
+  line-height: 1.5;
+  opacity: 0.75;
+  animation-delay: 40ms;
+  animation-fill-mode: backwards;
+  transition: opacity 200ms ease-out;
+}
+/* While the microphone listens, only the text being read asks for the eye. */
+.voice-reading.live .voice-line.next {
+  opacity: 0.35;
+}
+@keyframes voice-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* What is under the text: the level, one row of controls, what the keys do, the fine print.
+   It stays in sight when a long paragraph scrolls. */
+.voice-dock {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  gap: 12px;
+  padding: 16px 0 24px;
+  background: var(--page);
+}
+.voice-dock > p {
+  margin: 0;
+}
+.voice-meter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 20px;
+  opacity: 0.45;
+  transition: opacity 160ms ease-out;
+}
+.voice-meter.open {
+  opacity: 1;
+}
+.voice-meter-track {
+  flex: 1;
+  max-width: 420px;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--divider);
+}
+.voice-meter-track > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--text);
+  transform-origin: left;
+}
+.voice-meter.loud .voice-meter-track > span {
+  background: var(--error);
+}
+.voice-meter-note {
+  color: var(--error);
+  font-size: 14px;
+}
+.voice-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+}
+.voice-controls > .button {
+  min-width: 172px;
+  min-height: 48px;
+  font-size: 16px;
+}
+/* The microphone while it is open: the one coloured thing, counting in, then a stop square. */
+.voice-record {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--live);
+  color: var(--live-text);
+  transition: transform 160ms ease-out;
+}
+.voice-record:active {
+  transform: scale(0.97);
+  transition-duration: 0ms;
+}
+.voice-count {
+  font-size: 26px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.voice-stop {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: currentColor;
+}
+.voice-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+.voice-keys,
+.voice-fine {
+  color: var(--secondary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.voice-keys {
+  min-height: 21px;
+}
+.voice-fine {
+  max-width: 78ch;
+}
+.voice-fine > strong {
+  display: block;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 600;
+}
+.voice-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+}
+.voice-note {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.voice-reading > .voice-note {
+  margin-top: 20px;
+  color: var(--secondary);
+}
+.voice-problem {
+  display: flex;
+  gap: 10px;
+  color: var(--error);
+  font-size: 15px;
+  line-height: 1.45;
+}
+.voice-problem > svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+/* Speaking over the film: the picture, where the take begins, the script as cues. */
+.voice-over {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  flex: 1;
+  align-content: start;
+  gap: 8px 32px;
+  width: min(100%, 1180px);
+  margin-inline: auto;
+  padding: 24px 32px 0;
+}
+.voice-over:has(.voice-over-cues) {
+  grid-template-columns: minmax(0, 1.7fr) minmax(240px, 1fr);
+}
+.voice-over > .voice-dock {
+  grid-column: 1 / -1;
+}
+/* As wide as its column, in the film's own shape, and never taller than half the window. */
+.voice-over-stage {
+  display: grid;
+  place-items: center;
+  max-width: 100%;
+  max-height: min(50vh, 540px);
+  margin-inline: auto;
+}
+.voice-over-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #000;
+}
+.voice-over-frame > iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 0;
+  transform-origin: top left;
+}
+.voice-over-count {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 45%);
+  color: #fff;
+  font-size: 96px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  animation: voice-count-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes voice-count-in {
+  from {
+    opacity: 0.4;
+    transform: scale(0.94);
+  }
+}
+.voice-over-place {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.voice-over-place > input {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  accent-color: var(--text);
+}
+/* A long script scrolls beside the picture, so the picture stays where it is. */
+.voice-over-cues {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  max-height: calc(min(50vh, 540px) + 40px);
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.voice-over-cues button {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 12px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: var(--secondary);
+  font-size: 15px;
+  line-height: 1.45;
+  text-align: left;
+  transition:
+    background-color 140ms ease-out,
+    color 140ms ease-out;
+}
+.voice-over-cues button:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--text);
+}
+.voice-over-cues .due > button {
+  background: var(--selected);
+  color: var(--text);
+}
+@container application (max-width: 860px) {
+  .voice-prompter,
+  .voice-over {
+    padding-inline: 16px;
+  }
+  .voice-over:has(.voice-over-cues) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .voice-over-stage {
+    max-height: min(40vh, 420px);
+  }
+  .voice-over-cues {
+    max-height: 30vh;
+  }
+  .voice-controls > .button {
+    flex: 1;
+    min-width: 0;
+  }
+}
