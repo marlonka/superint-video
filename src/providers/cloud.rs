@@ -148,6 +148,17 @@ async fn generate(g: &Generators, model: &str, body: &Value, timeout: Duration) 
     Ok(value)
 }
 
+/// A style: the model looks at the pictures and writes.
+pub(super) async fn write(
+    g: &Generators,
+    model: &str,
+    request: &super::StyleRequest<'_>,
+) -> Result<String> {
+    let body = super::gemini_style_body(request);
+    let value = generate(g, model, &body, super::STYLE_TIMEOUT).await?;
+    super::gemini_text(Provider::GoogleCloud, &value)
+}
+
 /// The parts of the first candidate.
 fn parts(value: &Value) -> Vec<&Value> {
     value["candidates"][0]["content"]["parts"]

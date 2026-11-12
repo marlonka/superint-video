@@ -37,7 +37,7 @@ html, body {
   background: var(--ground);
   color: var(--ink);
   font-family: var(--font);
-  font-weight: 600;
+  font-weight: var(--weight-text, 600);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -58,21 +58,21 @@ html, body {
   margin: 0;
   max-width: 86vw;
   font-size: 9vmin;
-  font-weight: 700;
+  font-weight: var(--weight-display, 700);
   line-height: 1.02;
-  letter-spacing: -0.035em;
+  letter-spacing: var(--tracking, -0.035em);
   text-wrap: balance;
 }
 .statement {
   margin: 0;
   max-width: 82vw;
   font-size: 6.4vmin;
-  font-weight: 650;
+  font-weight: var(--weight-display, 650);
   line-height: 1.1;
-  letter-spacing: -0.025em;
+  letter-spacing: calc(var(--tracking, -0.035em) * 0.7);
   text-wrap: balance;
 }
-.label { font-size: 3.2vmin; font-weight: 600; line-height: 1.15; }
+.label { font-size: 3.2vmin; font-weight: var(--weight-text, 600); line-height: 1.15; }
 .small { font-size: 2.2vmin; font-weight: 500; color: var(--muted); }
 em { font-style: normal; color: var(--accent); }
 

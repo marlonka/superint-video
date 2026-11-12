@@ -251,7 +251,12 @@ impl Preset {
         Self::builtin(name)
     }
 
-    fn builtin(name: &str) -> Result<Self> {
+    /// A preset from files that are not on disk yet, checked like any other.
+    pub(crate) fn from_files(files: BTreeMap<String, Vec<u8>>, location: &str) -> Result<Self> {
+        Self::load(files, Source::User, location.into())
+    }
+
+    pub(crate) fn builtin(name: &str) -> Result<Self> {
         let dir = BUILTIN.get_dir(name).context("Missing built-in preset")?;
         let mut files = BTreeMap::new();
         collect_builtin(dir, dir.path(), &mut files);
@@ -338,7 +343,7 @@ impl Preset {
     }
 
     /// Puts a changed configuration back among the files, as `preset.json`.
-    fn keep_config(&mut self) -> Result<()> {
+    pub(crate) fn keep_config(&mut self) -> Result<()> {
         let mut config = serde_json::to_vec_pretty(&self.config)?;
         config.push(b'\n');
         self.files.insert(CONFIG.into(), config);
@@ -432,10 +437,15 @@ pub struct Summary {
     pub location: String,
 }
 
+/// Whether a name can be a file in a preset's references folder: one plain file name.
+pub fn reference_file_name(file: &str) -> bool {
+    !(file.is_empty() || file.starts_with('.') || file.contains(['/', '\\', ':']))
+}
+
 /// One reference picture of a preset, without loading the rest of it.
 pub fn reference(name: &str, file: &str) -> Result<Vec<u8>> {
     valid_name(name)?;
-    if file.is_empty() || file.starts_with('.') || file.contains(['/', '\\', ':']) {
+    if !reference_file_name(file) {
         bail!("Not a reference file name");
     }
     // The same order as `resolve` and `builtin`: the user's style, else what the user added to
@@ -639,19 +649,26 @@ pub fn import(bytes: &[u8]) -> Result<Imported> {
     import_into(bytes, &styles)
 }
 
-/// Adds the style in a style file to `styles`. A name that is taken, by one of the user's
-/// styles or a built-in one, gets a number, in the title too, so nothing is replaced or hidden.
-pub fn import_into(bytes: &[u8], styles: &Path) -> Result<Imported> {
-    let mut preset = Preset::load(unpack(bytes)?, Source::User, "the style file".into())?;
-    let base = preset.config.name.clone();
+/// A name for a new style in `styles` that no style has: `base`, else `base-2`, `base-3` … and
+/// the number it got (1 for `base` itself). A built-in name counts as taken, so nothing is
+/// replaced or hidden.
+pub fn free_name(base: &str, styles: &Path) -> (String, u32) {
     let taken = |name: &str| styles.join(name).exists() || BUILTIN.get_dir(name).is_some();
-    let mut name = base.clone();
+    let mut name = base.to_string();
     let mut copy = 1;
     while taken(&name) {
         copy += 1;
         let number = format!("-{copy}");
         name = format!("{}{number}", &base[..base.len().min(64 - number.len())]);
     }
+    (name, copy)
+}
+
+/// Adds the style in a style file to `styles`. A name that is taken, by one of the user's
+/// styles or a built-in one, gets a number, in the title too, so nothing is replaced or hidden.
+pub fn import_into(bytes: &[u8], styles: &Path) -> Result<Imported> {
+    let mut preset = Preset::load(unpack(bytes)?, Source::User, "the style file".into())?;
+    let (name, copy) = free_name(&preset.config.name, styles);
     if copy > 1 {
         let numbered = |title: &str| format!("{title} ({copy})");
         preset.config.name = name.clone();

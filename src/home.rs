@@ -73,6 +73,9 @@ pub struct Settings {
     /// What writes down what the user says into the start page; unset, the first provider
     /// with a key.
     pub dictation_model: Option<String>,
+    /// What looks at reference pictures and writes a new style's rules; unset, the first
+    /// provider with a key.
+    pub style_model: Option<String>,
     /// Google Cloud: the project a standard key belongs to. Unset is express mode.
     pub google_cloud_project: Option<String>,
     /// Google Cloud: `eu` (unset), `us` or `global`. Applies with a project.
@@ -94,6 +97,7 @@ impl Default for Settings {
             transcription_model: None,
             music_model: None,
             dictation_model: None,
+            style_model: None,
             google_cloud_project: None,
             google_cloud_location: None,
             open_ai_region: None,
@@ -146,6 +150,7 @@ impl Settings {
             &mut self.transcription_model,
             &mut self.music_model,
             &mut self.dictation_model,
+            &mut self.style_model,
         ] {
             *value = value
                 .take()
@@ -157,6 +162,7 @@ impl Settings {
             &mut self.transcription_model,
             &mut self.music_model,
             &mut self.dictation_model,
+            &mut self.style_model,
         ] {
             *model = model
                 .take()
@@ -201,6 +207,7 @@ impl Settings {
             (&self.transcription_model, true),
             (&self.music_model, true),
             (&self.dictation_model, false),
+            (&self.style_model, false),
         ] {
             if let Some(model) = model {
                 check_model(model, film)?;
@@ -255,6 +262,7 @@ impl Settings {
             "transcription": self.transcription_model,
             "music": self.music_model,
             "dictation": self.dictation_model,
+            "style": self.style_model,
             "rule": "Chosen in Setup for new films; they beat the style's preset, and voice.md or music-prompt.md beat them. Unset follows the preset, then the usual Google models",
         })
     }
@@ -286,6 +294,7 @@ impl Settings {
             "transcriptionModel" => self.transcription_model = text,
             "musicModel" => self.music_model = text,
             "dictationModel" => self.dictation_model = text,
+            "styleModel" => self.style_model = text,
             "googleCloudProject" => self.google_cloud_project = text,
             "googleCloudLocation" => self.google_cloud_location = text,
             "openAiRegion" => self.open_ai_region = text,
@@ -947,6 +956,15 @@ mod tests {
                 .set("transcriptionModel", "whisper-1")
                 .is_err()
         );
+        // A style can be written by any provider's model.
+        for model in [
+            "gpt-6.1-sol",
+            "gemini-4-hydrogen",
+            "google/gemini-4-hydrogen",
+        ] {
+            settings.clone().set("styleModel", model).unwrap();
+        }
+        assert!(settings.clone().set("styleModel", "gemini 4").is_err());
         assert!(settings.clone().set("narrationVoice", "Kore!").is_err());
         assert!(
             settings
@@ -965,7 +983,7 @@ mod tests {
         assert_eq!(settings.preset, None);
         // Every field of the file is set by its name, so none can be left out of `set`.
         let keys = setting_keys();
-        assert_eq!(keys.len(), 13);
+        assert_eq!(keys.len(), 14);
         for key in keys {
             Settings::default().set(&key, "").unwrap();
         }

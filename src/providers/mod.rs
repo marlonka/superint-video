@@ -53,6 +53,15 @@ pub const DICTATION_OPENROUTER: &str = OPENROUTER.transcription;
 /// The longest dictation the start page sends.
 pub const MOST_DICTATION_SECONDS: f64 = 600.0;
 
+/// The models that look at reference pictures and write a style's rules when the user chose
+/// none (IDs read from the providers' own model lists on 2026-11-12): Google's on its ways and
+/// as its twin on OpenRouter, OpenAI's with an OpenAI key alone. Setup can name another
+/// (`styleModel`).
+pub const STYLE_GOOGLE: &str = "gemini-4-hydrogen";
+pub const STYLE_OPENAI: &str = "gpt-6.1-sol";
+/// Google's style model under its name on OpenRouter.
+pub const STYLE_OPENROUTER: &str = "google/gemini-4-hydrogen";
+
 /// Model IDs that begin like this are OpenAI's.
 const OPENAI_PREFIXES: &[&str] = &["gpt-", "whisper-", "tts-"];
 
@@ -139,8 +148,26 @@ pub fn usual_dictation(ready: impl Fn(Provider) -> bool) -> &'static str {
         .map_or(DICTATION_GOOGLE, |(_, model)| model)
 }
 
+/// The ways a style is written when the user chose no model, in order, with each one's model.
+/// OpenRouter carries Google's model, so a daily limit at Google hands over to the same model.
+const STYLE_ORDER: &[(Provider, &str)] = &[
+    (Provider::GoogleCloud, STYLE_GOOGLE),
+    (Provider::AiStudio, STYLE_GOOGLE),
+    (Provider::OpenRouter, STYLE_GOOGLE),
+    (Provider::OpenAi, STYLE_OPENAI),
+];
+
+/// The style model when the user chose none: the one of the first way that is ready.
+pub fn usual_style(ready: impl Fn(Provider) -> bool) -> &'static str {
+    STYLE_ORDER
+        .iter()
+        .find(|(route, _)| ready(*route))
+        .map_or(STYLE_GOOGLE, |(_, model)| model)
+}
+
 /// The models a way is used with unless the user, a style or a film names others, by job
-/// (`voice`, `timings`, `music`, `dictation`). OpenAI writes down dictations only.
+/// (`voice`, `timings`, `music`, `dictation`, `style`). OpenAI writes down dictations and
+/// writes styles; it makes no part of a film.
 pub fn usual_models(route: Provider) -> Vec<(&'static str, String)> {
     let on = |model: &str| Generators::model_on(route, model);
     let mut models = Vec::new();
@@ -151,6 +178,9 @@ pub fn usual_models(route: Provider) -> Vec<(&'static str, String)> {
     }
     if let Some((_, model)) = DICTATION_ORDER.iter().find(|(way, _)| *way == route) {
         models.push(("dictation", on(model)));
+    }
+    if let Some((_, model)) = STYLE_ORDER.iter().find(|(way, _)| *way == route) {
+        models.push(("style", on(model)));
     }
     models
 }
@@ -197,6 +227,28 @@ pub struct Dictation {
     pub route: Provider,
 }
 
+/// A picture as a model is shown it.
+#[derive(Debug, Clone)]
+pub struct Picture {
+    pub mime: &'static str,
+    pub bytes: Vec<u8>,
+}
+
+/// What a style model is asked: the rules it follows, the material in words, and the pictures.
+pub struct StyleRequest<'a> {
+    pub instructions: &'a str,
+    pub material: &'a str,
+    pub pictures: &'a [Picture],
+}
+
+/// What a model wrote, with the model and the way that carried it.
+#[derive(Debug, Clone)]
+pub struct Written {
+    pub text: String,
+    pub model: String,
+    pub route: Provider,
+}
+
 pub struct Generated {
     pub bytes: Vec<u8>,
     pub cached: bool,
@@ -218,6 +270,14 @@ pub fn openrouter_twin(model: &str) -> Option<String> {
 
 fn is_rate_limit(error: &anyhow::Error) -> bool {
     error.to_string().contains(" returned 429")
+}
+
+/// A provider turning this key or this model away: not signed in for it, not allowed, not there.
+fn is_refusal(error: &anyhow::Error) -> bool {
+    let text = error.to_string();
+    [" returned 401", " returned 403", " returned 404"]
+        .iter()
+        .any(|status| text.contains(status))
 }
 
 /// A music model answering without music now and then: no audio at all, or Google's
@@ -628,6 +688,57 @@ impl Generators {
         Ok(Dictation { text, model, route })
     }
 
+    /// The ways a style is written, best first, each with its model: the user's model on its
+    /// ways, else the usual model of each way that is ready (`STYLE_ORDER`).
+    pub fn style_tries(&self, chosen: Option<&str>) -> Vec<(Provider, String)> {
+        if let Some(model) = chosen {
+            return self.ways(model);
+        }
+        let tries: Vec<(Provider, String)> = STYLE_ORDER
+            .iter()
+            .filter(|(route, _)| self.ready(*route))
+            .map(|(route, model)| (*route, Self::model_on(*route, model)))
+            .collect();
+        if tries.is_empty() {
+            return vec![(Provider::AiStudio, STYLE_GOOGLE.into())];
+        }
+        tries
+    }
+
+    /// Shows a model the pictures and the material and returns what it wrote. A way that is at
+    /// its limit or refuses this key or model (a sign-in without the rights, a model a key does
+    /// not see) hands over to the next one: a style is asked for by a person who is waiting,
+    /// and any of their keys will do. When every way fails, the first failure is the answer.
+    /// Nothing is cached: asking again is how the user gets another take on the same pictures.
+    pub async fn write_style(
+        &self,
+        request: &StyleRequest<'_>,
+        chosen: Option<&str>,
+    ) -> Result<Written> {
+        let mut first = None;
+        for (route, model) in self.style_tries(chosen) {
+            let written = match route {
+                Provider::GoogleCloud => cloud::write(self, &model, request).await,
+                Provider::AiStudio => aistudio::write(self, &model, request).await,
+                Provider::OpenAi => openai::write(self, &model, request).await,
+                Provider::OpenRouter => openrouter::write(self, &model, request).await,
+            };
+            match written {
+                Ok(text) => return Ok(Written { text, model, route }),
+                Err(error) if is_rate_limit(&error) || is_refusal(&error) => {
+                    eprintln!(
+                        "style: {} did not take {model} ({}); trying the next way",
+                        route.label(),
+                        format!("{error:#}").chars().take(160).collect::<String>()
+                    );
+                    first.get_or_insert(error);
+                }
+                Err(error) => return Err(error),
+            }
+        }
+        Err(first.unwrap_or_else(|| anyhow!("No way to reach a style model")))
+    }
+
     pub fn music_key(model: &str, prompt: &str, variant: u32) -> String {
         Cache::key(&json!({"job": "music", "model": model, "prompt": prompt, "variant": variant}))
     }
@@ -767,6 +878,93 @@ impl Generators {
     }
 }
 
+/// Room for the model's thinking and a whole look contract.
+pub(crate) const STYLE_MOST_TOKENS: u32 = 24_000;
+/// A style model looks at up to a dozen pictures and thinks before it writes.
+pub(crate) const STYLE_TIMEOUT: Duration = Duration::from_secs(360);
+
+/// A style request as Google's `generateContent` takes it, on AI Studio and Google Cloud alike.
+pub(crate) fn gemini_style_body(request: &StyleRequest<'_>) -> Value {
+    use base64::{Engine, engine::general_purpose::STANDARD as B64};
+    let mut parts = vec![json!({"text": request.material})];
+    parts.extend(request.pictures.iter().map(|picture| {
+        json!({"inlineData": {"mimeType": picture.mime, "data": B64.encode(&picture.bytes)}})
+    }));
+    json!({
+        "systemInstruction": {"parts": [{"text": request.instructions}]},
+        "contents": [{"role": "user", "parts": parts}],
+        "generationConfig": {"maxOutputTokens": STYLE_MOST_TOKENS},
+    })
+}
+
+/// The text of a `generateContent` answer without the model's thinking, or why there is none.
+pub(crate) fn gemini_text(provider: Provider, value: &Value) -> Result<String> {
+    if let Some(reason) = value["promptFeedback"]["blockReason"].as_str() {
+        bail!("{} blocked the request: {reason}", provider.label());
+    }
+    let candidate = &value["candidates"][0];
+    let text: String = candidate["content"]["parts"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|part| part["thought"] != true)
+        .filter_map(|part| part["text"].as_str())
+        .collect();
+    if text.trim().is_empty() {
+        let reason = candidate["finishReason"]
+            .as_str()
+            .unwrap_or("no reason given");
+        bail!("{} returned no text ({reason})", provider.label());
+    }
+    Ok(text)
+}
+
+/// A style request as a chat completion, the shape OpenAI and OpenRouter share.
+pub(crate) fn chat_style_body(model: &str, request: &StyleRequest<'_>) -> Value {
+    use base64::{Engine, engine::general_purpose::STANDARD as B64};
+    let mut content = vec![json!({"type": "text", "text": request.material})];
+    content.extend(request.pictures.iter().map(|picture| {
+        let url = format!(
+            "data:{};base64,{}",
+            picture.mime,
+            B64.encode(&picture.bytes)
+        );
+        json!({"type": "image_url", "image_url": {"url": url}})
+    }));
+    json!({
+        "model": model,
+        "messages": [
+            {"role": "system", "content": request.instructions},
+            {"role": "user", "content": content},
+        ],
+    })
+}
+
+/// The text of a chat completion, or why there is none.
+pub(crate) fn chat_text(provider: Provider, value: &Value) -> Result<String> {
+    let choice = &value["choices"][0];
+    let message = &choice["message"];
+    if let Some(refusal) = message["refusal"].as_str().filter(|r| !r.is_empty()) {
+        bail!("{} declined: {refusal}", provider.label());
+    }
+    // Text comes as one string, or as parts of which some are text.
+    let text = match &message["content"] {
+        Value::String(text) => text.clone(),
+        Value::Array(parts) => parts
+            .iter()
+            .filter_map(|part| part["text"].as_str())
+            .collect(),
+        _ => String::new(),
+    };
+    if text.trim().is_empty() {
+        let reason = choice["finish_reason"]
+            .as_str()
+            .unwrap_or("no reason given");
+        bail!("{} returned no text ({reason})", provider.label());
+    }
+    Ok(text)
+}
+
 /// Whether the keys reach a model on a way, asked as cheaply as each provider allows: AI Studio
 /// and OpenAI look it up, Google Cloud gets an empty request, OpenRouter's public catalog is
 /// read. None where nothing free can be asked: Lyria on Google Cloud answers only when it makes
@@ -805,7 +1003,12 @@ pub async fn doctor(start: &Path, online: bool) -> Result<(Value, bool)> {
         (
             "aiStudio",
             Provider::AiStudio,
-            vec![AI_STUDIO.speech, AI_STUDIO.transcription, AI_STUDIO.music],
+            vec![
+                AI_STUDIO.speech,
+                AI_STUDIO.transcription,
+                AI_STUDIO.music,
+                STYLE_GOOGLE,
+            ],
             AI_STUDIO.voice,
         ),
         (
@@ -815,6 +1018,7 @@ pub async fn doctor(start: &Path, online: bool) -> Result<(Value, bool)> {
                 AI_STUDIO.speech,
                 AI_STUDIO.transcription,
                 cloud::model(AI_STUDIO.music),
+                STYLE_GOOGLE,
             ],
             AI_STUDIO.voice,
         ),
@@ -825,10 +1029,16 @@ pub async fn doctor(start: &Path, online: bool) -> Result<(Value, bool)> {
                 OPENROUTER.speech,
                 OPENROUTER.transcription,
                 OPENROUTER.music,
+                STYLE_OPENROUTER,
             ],
             OPENROUTER.voice,
         ),
-        ("openAi", Provider::OpenAi, vec![DICTATION_OPENAI], ""),
+        (
+            "openAi",
+            Provider::OpenAi,
+            vec![DICTATION_OPENAI, STYLE_OPENAI],
+            "",
+        ),
     ];
     for (name, provider, models, voice) in ways {
         let present = generators.ready(provider);
@@ -880,7 +1090,7 @@ pub async fn doctor(start: &Path, online: bool) -> Result<(Value, bool)> {
         }
         match provider {
             Provider::OpenAi => {
-                report["use"] = json!("dictation only");
+                report["use"] = json!("dictation and styles only");
                 report["base"] = json!(generators.openai);
             }
             Provider::GoogleCloud => {
@@ -933,9 +1143,14 @@ pub async fn doctor(start: &Path, online: bool) -> Result<(Value, bool)> {
 /// is facts, not a sentence: the page words it in its own language.
 /// `state`: `none` (no key), `works`, `partial` (works, but the `missing` models are out of
 /// reach) or `refused` (with the provider's answer as `detail`).
-/// The models are those the key serves, with the dictation model the user chose when it is
-/// one of this key's.
-pub async fn try_key(start: &Path, name: &str, dictation: Option<&str>) -> Result<Value> {
+/// The models are those the key serves, with the dictation and the style model the user chose
+/// when they are this key's.
+pub async fn try_key(
+    start: &Path,
+    name: &str,
+    dictation: Option<&str>,
+    style: Option<&str>,
+) -> Result<Value> {
     let keys = Keys::load(start)?;
     // Google Cloud is reached with the user's Google sign-in as well as with a key.
     let signed_in = name == env::GOOGLE_CLOUD && gauth::find().is_some();
@@ -944,12 +1159,14 @@ pub async fn try_key(start: &Path, name: &str, dictation: Option<&str>) -> Resul
     }
     let generators = Generators::new(keys, std::env::temp_dir().join("superint-video-doctor"))?;
     let refused = |error: anyhow::Error| json!({"ok": false, "state": "refused", "detail": error.to_string()});
-    let dictation_of = |provider: Provider, usual: &'static str| -> String {
-        dictation
+    let own = |chosen: Option<&str>, provider: Provider, usual: &'static str| -> String {
+        chosen
             .filter(|model| Provider::of(model) == provider)
             .unwrap_or(usual)
             .to_string()
     };
+    let dictation_of = |provider, usual| own(dictation, provider, usual);
+    let style_of = |provider, usual| own(style, provider, usual);
     let checked = |missing: Vec<String>| {
         if missing.is_empty() {
             json!({"ok": true, "state": "works"})
@@ -964,28 +1181,34 @@ pub async fn try_key(start: &Path, name: &str, dictation: Option<&str>) -> Resul
         };
         // The catalog is public: a model it does not list cannot be reached with any key.
         // When the catalog cannot be read, the key still works and the model is not judged.
-        let model = dictation_of(Provider::OpenRouter, DICTATION_OPENROUTER);
-        let listed = match openrouter::catalog(&generators).await {
-            Ok(catalog) => catalog.iter().any(|m| m["id"] == model.as_str()),
-            Err(_) => true,
+        let models = [
+            dictation_of(Provider::OpenRouter, DICTATION_OPENROUTER),
+            style_of(Provider::OpenRouter, STYLE_OPENROUTER),
+        ];
+        let missing: Vec<String> = match openrouter::catalog(&generators).await {
+            Ok(catalog) => models
+                .into_iter()
+                .filter(|model| !catalog.iter().any(|m| m["id"] == model.as_str()))
+                .collect(),
+            Err(_) => Vec::new(),
         };
-        let mut answer = json!({
-            "ok": true,
-            "state": if listed { "works" } else { "partial" },
-            "creditLeft": credits["limitRemaining"].as_f64(),
-        });
-        if !listed {
-            answer["missing"] = json!([model]);
-        }
+        let mut answer = checked(missing);
+        answer["creditLeft"] = json!(credits["limitRemaining"].as_f64());
         return Ok(answer);
     }
     if name == env::OPENAI {
-        let model = dictation_of(Provider::OpenAi, DICTATION_OPENAI);
-        return Ok(match openai::visible(&generators, &model).await {
-            Ok(true) => checked(Vec::new()),
-            Ok(false) => checked(vec![model]),
-            Err(error) => refused(error),
-        });
+        let mut missing = Vec::new();
+        for model in [
+            dictation_of(Provider::OpenAi, DICTATION_OPENAI),
+            style_of(Provider::OpenAi, STYLE_OPENAI),
+        ] {
+            match openai::visible(&generators, &model).await {
+                Ok(true) => {}
+                Ok(false) => missing.push(model),
+                Err(error) => return Ok(refused(error)),
+            }
+        }
+        return Ok(checked(missing));
     }
     let cloud = name == env::GOOGLE_CLOUD;
     let mut models = vec![
@@ -996,9 +1219,13 @@ pub async fn try_key(start: &Path, name: &str, dictation: Option<&str>) -> Resul
     if !cloud {
         models.push(AI_STUDIO.music.to_string());
     }
-    let own = dictation_of(Provider::AiStudio, DICTATION_GOOGLE);
-    if !models.contains(&own) {
-        models.push(own);
+    for model in [
+        dictation_of(Provider::AiStudio, DICTATION_GOOGLE),
+        style_of(Provider::AiStudio, STYLE_GOOGLE),
+    ] {
+        if !models.contains(&model) {
+            models.push(model);
+        }
     }
     let mut missing = Vec::new();
     for model in models {
@@ -1230,6 +1457,10 @@ mod twin_tests {
             Some(OPENROUTER.music)
         );
         assert_eq!(openrouter_twin("elevenlabs/eleven-v4-turbo"), None);
+        assert_eq!(
+            openrouter_twin(STYLE_GOOGLE).as_deref(),
+            Some(STYLE_OPENROUTER)
+        );
     }
 
     #[test]
@@ -1284,7 +1515,22 @@ mod twin_tests {
             only_cloud.dictation_tries(None),
             [(Provider::GoogleCloud, DICTATION_GOOGLE.to_string())]
         );
+        // A style is written by Google's model wherever it can be reached, else by OpenAI's.
+        assert_eq!(
+            only_openrouter.style_tries(None),
+            [(Provider::OpenRouter, STYLE_OPENROUTER.to_string())]
+        );
+        assert_eq!(
+            only_google.style_tries(None),
+            [(Provider::AiStudio, STYLE_GOOGLE.to_string())]
+        );
+        assert_eq!(usual_style(|route| only_google.ready(route)), STYLE_GOOGLE);
         let only_openai = with(Some(env::OPENAI));
+        assert_eq!(
+            only_openai.style_tries(None),
+            [(Provider::OpenAi, STYLE_OPENAI.to_string())]
+        );
+        assert_eq!(usual_style(|route| only_openai.ready(route)), STYLE_OPENAI);
         // OpenAI writes down dictations, but a film needs another key.
         assert!(only_openai.reachable(AI_STUDIO.speech).is_err());
         assert!(
@@ -1385,6 +1631,24 @@ mod twin_tests {
             all.dictation_tries(Some("gpt-transcribe")),
             [(Provider::OpenAi, "gpt-transcribe".to_string())]
         );
+        let tries: Vec<Provider> = all.style_tries(None).into_iter().map(|t| t.0).collect();
+        assert_eq!(
+            tries,
+            [
+                Provider::GoogleCloud,
+                Provider::AiStudio,
+                Provider::OpenRouter,
+                Provider::OpenAi
+            ]
+        );
+        assert_eq!(
+            all.style_tries(Some("gpt-6.1-terra")),
+            [(Provider::OpenAi, "gpt-6.1-terra".to_string())]
+        );
+        assert_eq!(
+            all.style_tries(Some("openai/gpt-6.1-sol")),
+            [(Provider::OpenRouter, "openai/gpt-6.1-sol".to_string())]
+        );
         // A cached result counts under any of the model's names.
         assert_eq!(
             Generators::cached(AI_STUDIO.music, |name| {
@@ -1428,11 +1692,63 @@ mod twin_tests {
     }
 
     #[test]
+    fn a_style_request_carries_rules_words_and_pictures_and_its_answer_is_read() {
+        let pictures = [Picture {
+            mime: "image/jpeg",
+            bytes: vec![1, 2, 3],
+        }];
+        let request = StyleRequest {
+            instructions: "rules",
+            material: "words",
+            pictures: &pictures,
+        };
+        let gemini = gemini_style_body(&request);
+        assert_eq!(gemini["systemInstruction"]["parts"][0]["text"], "rules");
+        assert_eq!(gemini["contents"][0]["parts"][0]["text"], "words");
+        assert_eq!(
+            gemini["contents"][0]["parts"][1]["inlineData"]["data"],
+            "AQID"
+        );
+        let chat = chat_style_body("gpt-6.1-sol", &request);
+        assert_eq!(chat["messages"][0]["content"], "rules");
+        assert_eq!(
+            chat["messages"][1]["content"][1]["image_url"]["url"],
+            "data:image/jpeg;base64,AQID"
+        );
+        // Thinking is left out; an empty or blocked answer says why.
+        let answer = json!({"candidates": [{"content": {"parts": [
+            {"text": "thinking", "thought": true}, {"text": "the "}, {"text": "style"}]}}]});
+        assert_eq!(
+            gemini_text(Provider::AiStudio, &answer).unwrap(),
+            "the style"
+        );
+        let blocked = json!({"promptFeedback": {"blockReason": "SAFETY"}});
+        let error = gemini_text(Provider::AiStudio, &blocked).unwrap_err();
+        assert!(error.to_string().contains("SAFETY"));
+        let cut = json!({"candidates": [{"finishReason": "MAX_TOKENS"}]});
+        let error = gemini_text(Provider::GoogleCloud, &cut).unwrap_err();
+        assert!(error.to_string().contains("MAX_TOKENS"));
+        let chat = json!({"choices": [{"message": {"content": "the style"}}]});
+        assert_eq!(chat_text(Provider::OpenAi, &chat).unwrap(), "the style");
+        let parts = json!({"choices": [{"message": {"content": [{"type": "text", "text": "a"}]}}]});
+        assert_eq!(chat_text(Provider::OpenRouter, &parts).unwrap(), "a");
+        let refused = json!({"choices": [{"message": {"refusal": "no", "content": null}}]});
+        assert!(chat_text(Provider::OpenAi, &refused).is_err());
+    }
+
+    #[test]
     fn only_a_429_counts_as_the_limit() {
         assert!(is_rate_limit(&anyhow!(
             "Google AI Studio returned 429 Too Many Requests: quota"
         )));
         assert!(!is_rate_limit(&anyhow!(
+            "Google AI Studio returned 400 Bad Request: no"
+        )));
+        // A way that turns the key away hands a style over; a bad request does not.
+        assert!(is_refusal(&anyhow!(
+            "Google Cloud returned 403 Forbidden: Permission denied on resource project x."
+        )));
+        assert!(!is_refusal(&anyhow!(
             "Google AI Studio returned 400 Bad Request: no"
         )));
     }

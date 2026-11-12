@@ -109,6 +109,30 @@ pub(super) async fn music(g: &Generators, model: &str, prompt: &str) -> Result<V
     audio(&interact(g, &body, Duration::from_secs(900)).await?)
 }
 
+/// A style: the model looks at the pictures and writes (`generateContent`).
+pub(super) async fn write(
+    g: &Generators,
+    model: &str,
+    request: &super::StyleRequest<'_>,
+) -> Result<String> {
+    let key = g.keys.require(env::GEMINI)?;
+    let url = format!("{BASE}/v1beta/models/{model}:generateContent");
+    let body = super::gemini_style_body(request);
+    let value: Value = g
+        .send(Provider::AiStudio, || {
+            g.http
+                .post(&url)
+                .header("x-goog-api-key", key.expose())
+                .json(&body)
+                .timeout(super::STYLE_TIMEOUT)
+        })
+        .await?
+        .json()
+        .await
+        .map_err(|e| g.transport(e))?;
+    super::gemini_text(Provider::AiStudio, &value)
+}
+
 /// Whether this key sees a model (`GET /v1beta/models/{model}`).
 pub async fn visible(g: &Generators, model: &str) -> Result<bool> {
     let key = g.keys.require(env::GEMINI)?;

@@ -48,6 +48,22 @@ export const FORMATS: { value: string; label: MessageKey }[] = [
 ];
 export const USUAL_FORMAT = '16:9';
 
+/**
+ * Text with dictated words put where the cursor was, else at its end, with a space where one
+ * is due, and where the cursor stands afterwards.
+ */
+export function spliceSpoken(text: string, caret: [number, number] | null, spoken: string) {
+  const [from, to] = caret ?? [text.length, text.length];
+  const before = text.slice(0, from);
+  const after = text.slice(to);
+  const lead = before && !/\s$/.test(before) ? ' ' : '';
+  const tail = after && !/^\s/.test(after) ? ' ' : '';
+  return {
+    text: `${before}${lead}${spoken}${tail}${after}`,
+    at: before.length + lead.length + spoken.length,
+  };
+}
+
 /** A style's title and description in the app's language, where the style has them. */
 export function styleText(style: Style, locale: string) {
   const own = style.translations[locale];

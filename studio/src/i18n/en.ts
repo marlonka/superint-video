@@ -127,10 +127,11 @@ export const en = {
   'setup.models.timings': 'Word timings',
   'setup.models.music': 'Music',
   'setup.models.dictation': 'Dictation',
+  'setup.models.style': 'New styles',
   'setup.key.GOOGLE_CLOUD_API_KEY.why':
     'The same Google models through your Google Cloud project (Gemini Enterprise Agent Platform), billed there and under its terms. Once it is set up, it takes the place of AI Studio.',
   'setup.key.OPENAI_API_KEY.why':
-    'Only for speaking instead of typing, with gpt-transcribe. A film needs one of the other keys.',
+    'For speaking instead of typing (gpt-transcribe) and for creating styles (gpt-6.1-sol). A film needs one of the other keys.',
   'setup.more.toggle': 'More providers: {providers}',
   'setup.cloud.signIn': 'Sign in with Google (ADC)',
   'setup.cloud.signInWhy':
@@ -170,7 +171,7 @@ export const en = {
   'setup.models.field.narration': 'Voice: model',
   'setup.models.field.voice': 'Voice: name',
   'setup.models.hint':
-    "IDs as the provider writes them. gemini-… and lyria-… are Google's, through Google Cloud while its key is here, else AI Studio. vendor/model goes through OpenRouter. gpt-… is OpenAI's, for dictation only. They apply to new films; a film can still name others.",
+    "IDs as the provider writes them. gemini-… and lyria-… are Google's, through Google Cloud while its key is here, else AI Studio. vendor/model goes through OpenRouter. gpt-… is OpenAI's, for dictation and new styles only. They apply to new films; a film can still name others.",
   'setup.models.reset': 'Back to the usual models',
   'setup.models.saved': 'Models saved',
   'setup.key.source.app': 'Saved on this computer.',
@@ -186,7 +187,8 @@ export const en = {
     'The API key works: voice, word timings, music and dictation are reachable.',
   'setup.key.check.worksCloud':
     'The API key works: voice, word timings and dictation are reachable. Music is only asked when it is made.',
-  'setup.key.check.worksDictation': 'The API key works: dictation is reachable.',
+  'setup.key.check.worksDictation':
+    'The API key works: dictation and the model for new styles are reachable.',
   'setup.key.check.credit': 'The API key works. {amount} of its limit is left.',
   'setup.key.check.partial': 'The API key works, but it does not reach {models}.',
   'setup.key.check.refused': 'The provider did not accept the API key: {detail}',
@@ -258,6 +260,7 @@ export const en = {
   'films.title': 'Your films',
   'films.startFrom': 'Use as a base',
   'films.duplicate': 'Duplicate',
+  'films.makeStyle': 'Make a style from it',
   'films.copyName': '{name} (copy)',
   'films.copied': 'Copy made: {name}',
   'films.open': 'Open {name}',
@@ -275,6 +278,42 @@ export const en = {
   'styles.lead': 'How your films look.',
   'styles.folder': 'Your styles folder',
   'style.yours': 'your own style',
+  'style.new.title': 'Create a style',
+  'style.new.card': 'From pictures you like and a few words of your own: a style that is yours.',
+  'style.new.drop': 'Drop pictures here or pick them',
+  'style.new.open': 'Create a style',
+  'maker.lead':
+    'Show pictures whose look you like and say how your films should look. Either one is enough; both together work best.',
+  'maker.filmTitle': 'A style from “{name}”',
+  'maker.filmLead':
+    'The look of this film becomes a style for new films: its rules, its kit, its reference pictures and stills. What belongs to its topic stays behind. The film itself is not changed.',
+  'maker.pictures': 'Reference pictures',
+  'maker.add': 'Add pictures',
+  'maker.addMore': 'More pictures',
+  'maker.remove': 'Remove {name}',
+  'maker.describe':
+    'Describe the look: colours, shapes, light, mood. What should it never be? You can also drop or paste pictures here.',
+  'maker.describeLabel': 'How the style should look',
+  'maker.filmDescribe': 'What should the style keep, and what not? You can leave this empty.',
+  'maker.dictateHint': 'Say how the style should look instead of typing it',
+  'maker.dictateListening': 'Recording. Say how the style should look.',
+  'maker.name': 'Name',
+  'maker.namePlaceholder': 'Left empty, the model suggests one',
+  'maker.create': 'Create style',
+  'maker.who':
+    '{model} looks at your pictures and your description and writes the rules of the style. Both go to {provider}, with your API key.',
+  'maker.filmWho':
+    "{model} reads the film's rules and looks at its stills. They go to {provider}, with your API key.",
+  'maker.needsKey': 'Creating a style needs an API key under Setup.',
+  'maker.working':
+    '{model} is looking at your pictures and writing the rules. This takes a minute or two.',
+  'maker.filmWorking':
+    '{model} is looking at the film and writing the rules. This takes a minute or two.',
+  'maker.stopped': 'Stopped. No style was created.',
+  'maker.done': 'Style “{name}” created, written by {model}',
+  'maker.tooMany': 'A style takes up to {count} pictures. Keep the ones that show the look best.',
+  'maker.notPicture': '{name} is not a PNG, JPEG or WebP picture.',
+  'maker.tooLarge': '{name} is larger than 20 MB.',
   'style.about': 'about {length}',
   'style.voice': 'voice {name}',
   'style.music': 'music',

@@ -125,10 +125,11 @@ export const de: Catalog = {
   'setup.models.timings': 'Wort-Zeitpunkte',
   'setup.models.music': 'Musik',
   'setup.models.dictation': 'Diktat',
+  'setup.models.style': 'Neue Stile',
   'setup.key.GOOGLE_CLOUD_API_KEY.why':
     'Dieselben Google-Modelle über dein Google-Cloud-Projekt (Gemini Enterprise Agent Platform), dort abgerechnet und zu dessen Bedingungen. Ist es eingerichtet, nimmt es den Platz von AI Studio ein.',
   'setup.key.OPENAI_API_KEY.why':
-    'Nur zum Sprechen statt Tippen, mit gpt-transcribe. Für einen Film braucht es einen der anderen Schlüssel.',
+    'Zum Sprechen statt Tippen (gpt-transcribe) und zum Erstellen von Stilen (gpt-6.1-sol). Für einen Film braucht es einen der anderen Schlüssel.',
   'setup.more.toggle': 'Weitere Anbieter: {providers}',
   'setup.cloud.signIn': 'Mit Google anmelden (ADC)',
   'setup.cloud.signInWhy':
@@ -168,7 +169,7 @@ export const de: Catalog = {
   'setup.models.field.narration': 'Stimme: Modell',
   'setup.models.field.voice': 'Stimme: Name',
   'setup.models.hint':
-    'IDs so, wie der Anbieter sie schreibt. gemini-… und lyria-… sind von Google, über Google Cloud, solange dessen Schlüssel da ist, sonst über AI Studio. anbieter/modell geht über OpenRouter. gpt-… ist von OpenAI und nur fürs Diktat. Gilt für neue Filme; ein Film kann trotzdem andere nennen.',
+    'IDs so, wie der Anbieter sie schreibt. gemini-… und lyria-… sind von Google, über Google Cloud, solange dessen Schlüssel da ist, sonst über AI Studio. anbieter/modell geht über OpenRouter. gpt-… ist von OpenAI und nur fürs Diktat und für neue Stile. Gilt für neue Filme; ein Film kann trotzdem andere nennen.',
   'setup.models.reset': 'Zurück zu den Standardmodellen',
   'setup.models.saved': 'Modelle gespeichert',
   'setup.key.source.app': 'Auf diesem Rechner gespeichert.',
@@ -183,7 +184,8 @@ export const de: Catalog = {
     'Der API-Schlüssel funktioniert: Stimme, Wort-Zeitpunkte, Musik und Diktat sind erreichbar.',
   'setup.key.check.worksCloud':
     'Der API-Schlüssel funktioniert: Stimme, Wort-Zeitpunkte und Diktat sind erreichbar. Musik wird erst gefragt, wenn sie entsteht.',
-  'setup.key.check.worksDictation': 'Der API-Schlüssel funktioniert: Diktat ist erreichbar.',
+  'setup.key.check.worksDictation':
+    'Der API-Schlüssel funktioniert: Diktat und das Modell für neue Stile sind erreichbar.',
   'setup.key.check.credit': 'Der API-Schlüssel funktioniert. Vom Limit sind noch {amount} übrig.',
   'setup.key.check.partial': 'Der API-Schlüssel funktioniert, erreicht aber {models} nicht.',
   'setup.key.check.refused': 'Der Anbieter hat den API-Schlüssel nicht angenommen: {detail}',
@@ -256,6 +258,7 @@ export const de: Catalog = {
   'films.title': 'Erstellte Filme',
   'films.startFrom': 'Als Vorlage nutzen',
   'films.duplicate': 'Duplizieren',
+  'films.makeStyle': 'Daraus einen Stil machen',
   'films.copyName': '{name} (Kopie)',
   'films.copied': 'Kopie angelegt: {name}',
   'films.open': '{name} öffnen',
@@ -273,6 +276,44 @@ export const de: Catalog = {
   'styles.lead': 'So sehen deine Filme aus.',
   'styles.folder': 'Ordner deiner Stile',
   'style.yours': 'eigener Stil',
+  'style.new.title': 'Neuen Stil erstellen',
+  'style.new.card':
+    'Aus Bildern, die dir gefallen, und ein paar eigenen Worten: ein Stil, der deiner ist.',
+  'style.new.drop': 'Bilder hierher ziehen oder auswählen',
+  'style.new.open': 'Stil erstellen',
+  'maker.lead':
+    'Zeig Bilder, deren Look dir gefällt, und sag, wie deine Filme aussehen sollen. Eins von beiden genügt, beides zusammen wirkt am besten.',
+  'maker.filmTitle': 'Stil aus „{name}“',
+  'maker.filmLead':
+    'Der Look dieses Films wird ein Stil für neue Filme: seine Regeln, sein Kit, seine Referenzbilder und Standbilder. Was zu seinem Thema gehört, bleibt zurück. Der Film selbst bleibt, wie er ist.',
+  'maker.pictures': 'Referenzbilder',
+  'maker.add': 'Bilder hinzufügen',
+  'maker.addMore': 'Weitere Bilder',
+  'maker.remove': '{name} entfernen',
+  'maker.describe':
+    'Beschreib den Look: Farben, Formen, Licht, Stimmung. Was soll er auf keinen Fall sein? Bilder kannst du auch hierher ziehen oder einfügen.',
+  'maker.describeLabel': 'Wie der Stil aussehen soll',
+  'maker.filmDescribe': 'Was soll der Stil behalten, was nicht? Du kannst das Feld leer lassen.',
+  'maker.dictateHint': 'Sag, wie der Stil aussehen soll, statt es zu tippen',
+  'maker.dictateListening': 'Aufnahme läuft. Sag, wie der Stil aussehen soll.',
+  'maker.name': 'Name',
+  'maker.namePlaceholder': 'Bleibt das leer, schlägt das Modell einen vor',
+  'maker.create': 'Stil erstellen',
+  'maker.who':
+    '{model} sieht sich deine Bilder und deine Beschreibung an und schreibt die Regeln des Stils. Beides geht dafür mit deinem API-Schlüssel an {provider}.',
+  'maker.filmWho':
+    '{model} liest die Regeln des Films und sieht sich seine Standbilder an. Sie gehen dafür mit deinem API-Schlüssel an {provider}.',
+  'maker.needsKey': 'Zum Erstellen braucht es einen API-Schlüssel unter Einrichtung.',
+  'maker.working':
+    '{model} sieht sich deine Bilder an und schreibt die Regeln. Das dauert ein bis zwei Minuten.',
+  'maker.filmWorking':
+    '{model} sieht sich den Film an und schreibt die Regeln. Das dauert ein bis zwei Minuten.',
+  'maker.stopped': 'Abgebrochen. Es wurde kein Stil erstellt.',
+  'maker.done': 'Stil „{name}“ erstellt, geschrieben von {model}',
+  'maker.tooMany':
+    'Ein Stil nimmt bis zu {count} Bilder. Behalte die, die den Look am besten zeigen.',
+  'maker.notPicture': '{name} ist kein PNG-, JPEG- oder WebP-Bild.',
+  'maker.tooLarge': '{name} ist größer als 20 MB.',
   'style.about': 'etwa {length}',
   'style.voice': 'Stimme {name}',
   'style.music': 'Musik',

@@ -10,12 +10,13 @@ use crate::{
     providers::{self, Provider},
     server::{ApiError, ApiResult, bytes_response},
     skills::{self, Agent},
+    style,
 };
 use anyhow::{Context, Result, bail};
 use axum::{
     Json, Router,
     body::Bytes,
-    extract::{DefaultBodyLimit, Path as RoutePath, Query, State},
+    extract::{DefaultBodyLimit, Multipart, Path as RoutePath, Query, State},
     http::StatusCode,
     response::Response,
     routing::{get, post, put},
@@ -42,6 +43,8 @@ const PICTURE_WIDTH: u32 = 640;
 const MOST_STYLE_BYTES: usize = 256 * 1024 * 1024;
 /// The largest dictation: ten minutes of 16 kHz mono 16-bit WAV, and room for its header.
 const MOST_DICTATION_BYTES: usize = 20 * 1024 * 1024;
+/// The most a new style's reference pictures weigh together, with room for the form around them.
+const MOST_REFERENCES_BYTES: usize = 96 * 1024 * 1024;
 /// Where the skills an update replaced are kept, below the user folder.
 const REPLACED_SKILLS: &str = "replaced-skills";
 
@@ -120,7 +123,12 @@ pub fn routes(state: AppState) -> Router {
         .route("/api/app/films/{id}/duplicate", post(duplicate_film))
         .route("/api/app/films/{id}/reveal", post(reveal_film))
         .route("/api/app/films/{id}/picture", get(film_picture))
+        .route("/api/app/films/{id}/style", post(style_from_film))
         .route("/api/app/styles", post(copy_style))
+        .route(
+            "/api/app/styles/create",
+            post(create_style).layer(DefaultBodyLimit::max(MOST_REFERENCES_BYTES)),
+        )
         .route(
             "/api/app/styles/import",
             post(import_style).layer(DefaultBodyLimit::max(MOST_STYLE_BYTES)),
@@ -177,7 +185,7 @@ async fn payload(state: &AppState, fresh: bool) -> Result<Value> {
             place,
         } = Access::load(&state)?;
         let reaches = |route| providers::ready(&keys, sign_in.as_ref(), &place, route);
-        // OpenAI writes down dictations only; a film needs one of the others.
+        // OpenAI writes down dictations and styles; a film needs one of the others.
         let film_key = [
             Provider::AiStudio,
             Provider::GoogleCloud,
@@ -185,6 +193,21 @@ async fn payload(state: &AppState, fresh: bool) -> Result<Value> {
         ]
         .into_iter()
         .any(reaches);
+        let any_key = film_key || reaches(Provider::OpenAi);
+        let setup_keys = key_rows(&keys, &settings, sign_in.as_ref(), &place);
+        let models = usual_models(reaches);
+        // The model a style would be written with now, and the provider it would go to.
+        let style_model = settings.style_model.clone();
+        let generators = providers::Generators::with(
+            keys,
+            std::env::temp_dir().join("superint-video-style"),
+            &settings,
+            sign_in,
+        )?;
+        let writes = generators
+            .style_tries(style_model.as_deref())
+            .into_iter()
+            .next();
         let project = state.project.as_ref().map(|root| {
             let manifest = home::read_json(&root.join("video.json"));
             json!({"name": manifest.and_then(|m| m["name"].as_str().map(str::to_owned))})
@@ -200,11 +223,18 @@ async fn payload(state: &AppState, fresh: bool) -> Result<Value> {
                     "voice": film_key,
                     "music": film_key,
                     "soundEffects": ready(&tools, "earshot"),
-                    "dictate": film_key || reaches(Provider::OpenAi),
+                    "dictate": any_key,
+                    "style": writes.as_ref().is_some_and(|(route, _)| generators.ready(*route)),
                 },
                 "tools": tools,
-                "keys": key_rows(&keys, &settings, sign_in.as_ref(), &place),
-                "models": usual_models(reaches),
+                "keys": setup_keys,
+                "models": models,
+                // Whose model it is: Google on either of its ways, as one of them steps in
+                // for the other.
+                "style": writes.map(|(route, model)| json!({
+                    "model": model,
+                    "provider": if route.google() { "Google" } else { route.label() },
+                })),
                 "agents": agents(&state, fresh),
             },
             "cli": cli(),
@@ -579,7 +609,8 @@ fn usual_models(ready: impl Fn(Provider) -> bool) -> Value {
     let usual = providers::AI_STUDIO;
     json!({
         "narration": usual.speech, "voice": usual.voice, "transcription": usual.transcription,
-        "music": usual.music, "dictation": providers::usual_dictation(ready),
+        "music": usual.music, "dictation": providers::usual_dictation(&ready),
+        "style": providers::usual_style(&ready),
     })
 }
 
@@ -667,7 +698,13 @@ async fn test_key(
     let name = known_key(&name)?;
     let settings = Settings::load(&state.home)?;
     Ok(Json(
-        providers::try_key(state.start(), name, settings.dictation_model.as_deref()).await?,
+        providers::try_key(
+            state.start(),
+            name,
+            settings.dictation_model.as_deref(),
+            settings.style_model.as_deref(),
+        )
+        .await?,
     ))
 }
 
@@ -832,6 +869,100 @@ async fn import_style(State(state): State<AppState>, body: Bytes) -> ApiResult<J
         "title": imported.title,
         "styles": styles(&state)?,
     })))
+}
+
+/// What a style is written with: the generators with the user's keys, the model they chose, if
+/// any, and the folder their styles live in.
+fn style_maker(state: &AppState) -> Result<(providers::Generators, Option<String>, PathBuf)> {
+    let Access {
+        keys,
+        settings,
+        sign_in,
+        ..
+    } = Access::load(state)?;
+    let generators = providers::Generators::with(
+        keys,
+        std::env::temp_dir().join("superint-video-style"),
+        &settings,
+        sign_in,
+    )?;
+    let styles = preset::user_dir().context("No user folder for styles")?;
+    std::fs::create_dir_all(&styles)?;
+    Ok((generators, settings.style_model, styles))
+}
+
+/// The answer to a style that was made: what it is called, who wrote it, and every style.
+fn made_style(state: &AppState, made: style::Made) -> Result<Json<Value>> {
+    state.styles.clear();
+    Ok(Json(json!({
+        "name": made.name,
+        "title": made.title,
+        "model": made.model,
+        "route": made.route,
+        "styles": styles(state)?,
+    })))
+}
+
+/// Makes a style from the pictures and the description the start page sends as a form:
+/// `name` and `describe` as text, each picture as a `reference` file. The pictures and the
+/// words go to the provider whose key the user saved, and nowhere else.
+async fn create_style(
+    State(state): State<AppState>,
+    mut form: Multipart,
+) -> ApiResult<Json<Value>> {
+    let mut wish = style::Wish::default();
+    while let Some(field) = form.next_field().await? {
+        match field.name() {
+            Some("name") => wish.name = Some(field.text().await?),
+            Some("describe") => wish.describe = field.text().await?,
+            Some("language") => wish.language = Some(field.text().await?),
+            Some("reference") => {
+                if wish.references.len() >= style::MOST_PICTURES {
+                    return Err(ApiError::bad("A style is made from at most 12 pictures"));
+                }
+                let name = field.file_name().unwrap_or("picture").to_string();
+                let bytes = field.bytes().await?.to_vec();
+                wish.references.push(style::Reference { name, bytes });
+            }
+            _ => {}
+        }
+    }
+    let (generators, model, styles) = style_maker(&state)?;
+    let made = style::from_references(&generators, model.as_deref(), wish, &styles).await?;
+    Ok(made_style(&state, made)?)
+}
+
+#[derive(Deserialize)]
+struct FilmStyle {
+    #[serde(default)]
+    name: String,
+    #[serde(default)]
+    describe: String,
+}
+
+/// Makes a style from a film on the list: its look contract, kit, references and stills,
+/// generalised by the model so nothing of the film's topic stays.
+async fn style_from_film(
+    State(state): State<AppState>,
+    RoutePath(id): RoutePath<String>,
+    Json(body): Json<FilmStyle>,
+) -> ApiResult<Json<Value>> {
+    let root = film_root(&state, &id)?;
+    if !root.join("video.json").is_file() {
+        return Err(ApiError::bad("The folder of this film is gone"));
+    }
+    let (generators, model, styles) = style_maker(&state)?;
+    let name = Some(body.name.trim()).filter(|name| !name.is_empty());
+    let made = style::from_film(
+        &generators,
+        model.as_deref(),
+        &root,
+        name,
+        &body.describe,
+        &styles,
+    )
+    .await?;
+    Ok(made_style(&state, made)?)
 }
 
 // --------------------------------------------------------------------------------------- films
@@ -1192,7 +1323,10 @@ mod tests {
         assert!(rows.contains(r#""music":"lyria-3-pro-preview""#));
         assert!(rows.contains(r#""dictation":"microsoft/mai-transcribe-2""#));
         // OpenAI only writes down dictations; it and Google Cloud are folded away.
-        assert!(rows.contains(r#""models":{"dictation":"gpt-transcribe"}"#));
+        assert!(rows.contains(r#""models":{"dictation":"gpt-transcribe","style":"gpt-6.1-sol"}"#));
+        // A style is written by the same model whichever way reaches Google.
+        assert!(rows.contains(r#""style":"gemini-4-hydrogen""#));
+        assert!(rows.contains(r#""style":"google/gemini-4-hydrogen""#));
         assert!(rows.contains(r#""region":"eu""#));
         assert_eq!(rows.matches(r#""more":true"#).count(), 2);
     }

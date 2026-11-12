@@ -1,12 +1,25 @@
 <script lang="ts">
   // The styles a film can take: what each looks like, which one is the default, and copies,
-  // exports and imports of them.
+  // exports and imports of them. The first place belongs to a style of one's own: made from
+  // pictures the user likes, or from a film in the list below.
+  import { tick } from 'svelte';
   import Icon from '../Icon.svelte';
   import MoreMenu from '../MoreMenu.svelte';
   import { format, lengthLabel, locale, t } from '../i18n';
-  import type { Overview, Style } from '../types';
+  import type { Film, Overview, Style } from '../types';
   import { styleText } from './choices';
-  import { announce, busy, call, fail, patch, reveal, run, saveSettings } from './session';
+  import {
+    announce,
+    busy,
+    call,
+    fail,
+    patch,
+    reveal,
+    run,
+    saveSettings,
+    styleFilm,
+  } from './session';
+  import StyleMaker from './StyleMaker.svelte';
 
   export let overview: Overview;
 
@@ -19,8 +32,73 @@
   let picker: HTMLInputElement;
   /** A style file the user picked and has not confirmed yet. */
   let incoming: File | null = null;
+  /** The form that makes a style is open: from pictures, or from the film named here. */
+  let making = false;
+  let makingFrom: Film | null = null;
+  /** Pictures dropped on the card, on their way into the form. */
+  let dropped: File[] = [];
+  /** Pictures are being dragged over the card. */
+  let over = false;
+  /** The style that was just made stands first among the user's own. */
+  let fresh = '';
+  let section: HTMLElement;
+  let opener: HTMLButtonElement | undefined;
+
+  /** The style without a look of its own: what a new style starts from. It comes last. */
+  const NEUTRAL = 'blank';
 
   $: settings = overview.settings;
+  // The user's own styles first, the one just made before the others, then the ones that come
+  // with the app, the neutral one last.
+  $: ordered = [...overview.styles].sort((a, b) => rank(a, fresh) - rank(b, fresh));
+  // A film chosen in the films' menu opens the form for it, once.
+  $: if ($styleFilm) {
+    const film = overview.films.find((entry) => entry.id === $styleFilm?.id && entry.exists);
+    styleFilm.set(null);
+    if (film) openMaker(film);
+  }
+
+  function rank(style: Style, first: string) {
+    if (style.name === first) return 0;
+    if (style.own) return 1;
+    return style.name === NEUTRAL ? 3 : 2;
+  }
+  function openMaker(film: Film | null = null, files: File[] = []) {
+    // One form at a time: a second wish replaces the first only while nothing is being made.
+    if (making) {
+      section.querySelector('.style-maker')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    makingFrom = film;
+    dropped = files;
+    making = true;
+  }
+  async function closeMaker() {
+    making = false;
+    makingFrom = null;
+    dropped = [];
+    await tick();
+    opener?.focus({ preventScroll: true });
+  }
+  /** The new style takes the first place; its button gets the focus, so it is in view. */
+  async function made(name: string) {
+    fresh = name;
+    making = false;
+    makingFrom = null;
+    dropped = [];
+    await tick();
+    const card = section.querySelector<HTMLElement>(`[data-style="${name}"]`);
+    card?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    card?.querySelector<HTMLButtonElement>('.style-actions > .button')?.focus({
+      preventScroll: true,
+    });
+  }
+  function dropOnCard(event: DragEvent) {
+    if (!event.dataTransfer?.types.includes('Files')) return;
+    event.preventDefault();
+    over = false;
+    openMaker(null, [...event.dataTransfer.files]);
+  }
 
   function facts(style: Style) {
     return [
@@ -105,7 +183,7 @@
 
 <svelte:window onkeydowncapture={onKey} />
 
-<section class="home-section" aria-labelledby="styles-title">
+<section class="home-section" aria-labelledby="styles-title" bind:this={section}>
   <div class="home-heading">
     <h2 id="styles-title">{$t('styles.title')}</h2>
     <p class="home-summary">{$t('styles.lead')}</p>
@@ -130,11 +208,41 @@
       <button class="button quiet" onclick={() => (incoming = null)}>{$t('common.cancel')}</button>
     </div>
   {/if}
+  {#if making}
+    {#key makingFrom?.id}
+      <StyleMaker {overview} film={makingFrom} first={dropped} onclose={closeMaker} ondone={made} />
+    {/key}
+  {/if}
   <ul class="style-grid">
-    {#each overview.styles as style (style.name)}
+    {#if !making}
+      <li
+        class="style style-new"
+        class:over
+        ondragover={(event) => {
+          if (!event.dataTransfer?.types.includes('Files')) return;
+          event.preventDefault();
+          over = true;
+        }}
+        ondragleave={() => (over = false)}
+        ondrop={dropOnCard}
+      >
+        <button class="style-pictures" tabindex="-1" aria-hidden="true" onclick={() => openMaker()}
+          ><Icon name="plus" size={28} /></button
+        >
+        <strong class="style-title">{$t('style.new.title')}</strong>
+        <p class="style-description">{$t('style.new.card')}</p>
+        <span class="style-facts">{$t('style.new.drop')}</span>
+        <div class="style-actions">
+          <button class="button" bind:this={opener} onclick={() => openMaker()}
+            >{$t('style.new.open')}</button
+          >
+        </div>
+      </li>
+    {/if}
+    {#each ordered as style (style.name)}
       {@const chosen = settings.preset === style.name}
       {@const text = styleText(style, $locale)}
-      <li class="style" class:chosen>
+      <li class="style" class:chosen data-style={style.name}>
         <div class="style-pictures">
           {#each style.references.slice(0, 3) as reference (reference)}<img
               src={`/api/app/styles/${style.name}/reference/${encodeURIComponent(reference)}`}
