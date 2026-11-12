@@ -148,7 +148,7 @@ Alle Befehle und Optionen stehen im [Handbuch](docs/HANDBUCH.md) und in `superin
 - **Deutsch und Englisch:** App und Studio folgen der Sprache deines Systems, der Globus oben rechts stellt um. Die Texte liegen in einem Katalog je Sprache; Zahlen, Zeiten und Aufzählungen schreibt der Browser so, wie die Sprache es verlangt.
 - **Szenen sind HTML:** Jeder Frame sieht gleich aus, ob vorwärts, rückwärts oder nach einem Sprung abgespielt. `video.json` speichert alle Zeiten als ganze Frames.
 - **Rendering:** Chrome nimmt die Bilder auf, mehrere Browser parallel; FFmpeg kodiert HEVC oder H.264 und prüft das Ergebnis.
-- **Ton:** Der Anbieter ist Konfiguration: Google AI Studio (`gemini-3.8-flash-tts`, `gemini-3.5-transcribe`, `lyria-3.5`) oder OpenRouter. Jede Anfrage wird zwischengespeichert, und die API-Keys liegen verschlüsselt in der App oder in einer `.env`.
+- **Ton:** Der Anbieter ist Konfiguration: Google AI Studio (`gemini-3.8-flash-tts`, `gemini-3.5-transcribe`, `lyria-3.5`), dieselben Modelle über Google Cloud, oder OpenRouter. Jede Anfrage wird zwischengespeichert, und die API-Keys liegen verschlüsselt in der App oder in einer `.env`.
 - **Geprüft:** Über 100 Tests. `scripts/build.ps1` baut und prüft alles lokal.
 
 ## Loslegen
@@ -175,7 +175,7 @@ Aus dem Quellcode: `git clone`, dann `.\scripts\build.ps1`. Dafür brauchst du R
 
 ## Datenschutz und KI-Inhalte
 
-Superint Video sammelt keine Nutzungsdaten und braucht kein Konto. Bild, Studio und Render bleiben auf deinem Rechner. Für Stimme, Transkription und Musik gehen die Texte und Aufnahmen, die dein Agent dafür schreibt, an den Anbieter, den du eingerichtet hast (Google AI Studio oder OpenRouter), zu dessen Bedingungen. Bei der kostenlosen Stufe der Gemini API darf Google sie zur Verbesserung seiner Produkte nutzen. Was dein Coding-Agent mit deinen Dateien macht, regelt dessen Anbieter.
+Superint Video sammelt keine Nutzungsdaten und braucht kein Konto. Bild, Studio und Render bleiben auf deinem Rechner. Für Stimme, Transkription und Musik gehen die Texte und Aufnahmen, die dein Agent dafür schreibt, an den Anbieter, den du eingerichtet hast (Google AI Studio, Google Cloud oder OpenRouter, fürs Diktat auch OpenAI), zu dessen Bedingungen. Bei der kostenlosen Stufe der Gemini API darf Google sie zur Verbesserung seiner Produkte nutzen. Was dein Coding-Agent mit deinen Dateien macht, regelt dessen Anbieter.
 
 Stimme und Musik kommen meist aus generativen Modellen. Jedes exportierte MP4 sagt das in seinen Metadaten. Kennzeichne deine Filme beim Veröffentlichen auch sichtbar als KI-gestützt, und bilde echte Stimmen nur mit Einwilligung nach. Mehr dazu im [Handbuch](docs/HANDBUCH.md#datenschutz-und-ki-kennzeichnung).
 

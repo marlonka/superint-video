@@ -170,7 +170,8 @@ async fn payload(state: &AppState, fresh: bool) -> Result<Value> {
     tokio::task::spawn_blocking(move || {
         let keys = Keys::load(state.start())?;
         let settings = Settings::load(&state.home)?;
-        let any_key = env::KNOWN.iter().any(|name| keys.get(name).is_some());
+        // OpenAI's key writes down dictations only; a film needs one of the others.
+        let film_key = keys.any(providers::FILM_KEYS);
         let project = state.project.as_ref().map(|root| {
             let manifest = home::read_json(&root.join("video.json"));
             json!({"name": manifest.and_then(|m| m["name"].as_str().map(str::to_owned))})
@@ -183,12 +184,14 @@ async fn payload(state: &AppState, fresh: bool) -> Result<Value> {
             "setup": {
                 "can": {
                     "picture": ready(&tools, "chrome") && ready(&tools, "ffmpeg"),
-                    "voice": any_key,
-                    "music": any_key,
+                    "voice": film_key,
+                    "music": film_key,
                     "soundEffects": ready(&tools, "earshot"),
+                    "dictate": keys.any(env::KNOWN),
                 },
                 "tools": tools,
                 "keys": key_rows(&keys, &settings),
+                "models": usual_models(&keys),
                 "agents": agents(&state, fresh),
             },
             "filmsFolder": home::films_dir(&settings),
@@ -360,47 +363,81 @@ fn open_terminal(_title: &str, _command: &str) -> Result<()> {
 }
 
 /// One row per provider. Never a value: only whether a key is there, where it comes from and
-/// the models it is used with unless a style or a film names others. Those are the same three
-/// on both routes: with an OpenRouter key alone they are reached through OpenRouter. Dictation
-/// is the exception: each route has a model of its own, which the user may change.
+/// the models it is used with unless the user, a style or a film names others. With an
+/// OpenRouter key alone, Google's models are reached through OpenRouter, and Google Cloud
+/// reaches the same models as AI Studio; OpenAI writes down dictations only. Rows marked
+/// `more` are for few users and are folded away in Setup until they hold a key.
 fn key_rows(keys: &Keys, settings: &Settings) -> Vec<Value> {
     let status = keys.status();
     let usual = providers::AI_STUDIO;
-    let (ai_studio, open_router) = settings.dictation();
-    let row = |name: &str,
-               title: &str,
-               get: &str,
-               model: &dyn Fn(&'static str) -> String,
-               dictation: (&str, &str, &str)| {
+    let row = |name: &str, title: &str, get: &str, more: bool, models: Value| {
         let found = status.iter().find(|s| s.name == name);
-        let (chosen, normal, setting) = dictation;
         json!({
             "name": name, "title": title, "recommended": name == env::GEMINI, "get": get,
+            "more": more,
             "present": found.is_some_and(|s| s.present),
             "source": found.and_then(|s| s.source.as_ref()).map(env::Source::kind),
-            "models": {
-                "voice": model(usual.speech), "timings": model(usual.transcription),
-                "music": model(usual.music), "dictation": chosen,
-            },
-            "dictation": {"usual": normal, "setting": setting, "own": chosen != normal},
+            "models": models,
         })
     };
+    let twin = |model: &str| providers::openrouter_twin(model).unwrap_or_else(|| model.into());
+    let place = providers::cloud::Place::of(keys, settings);
+    let mut cloud = row(
+        env::GOOGLE_CLOUD,
+        "Google Cloud",
+        "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/start/api-keys",
+        true,
+        json!({
+            "voice": usual.speech, "timings": usual.transcription,
+            "music": providers::cloud::model(usual.music), "dictation": providers::DICTATION_GOOGLE,
+        }),
+    );
+    cloud["place"] = json!({
+        "project": place.project, "location": place.location, "servedIn": place.served_in(),
+        // Set outside the app (GOOGLE_CLOUD_PROJECT, GOOGLE_CLOUD_LOCATION), so Setup shows it.
+        "fixed": keys.cloud_project.is_some() || keys.cloud_location.is_some(),
+    });
+    let mut openai = row(
+        env::OPENAI,
+        "OpenAI",
+        "https://platform.openai.com/api-keys",
+        true,
+        json!({"dictation": providers::DICTATION_OPENAI}),
+    );
+    openai["region"] = json!(settings.open_ai_region.as_deref().unwrap_or("global"));
     vec![
         row(
             env::GEMINI,
             "Google AI Studio",
             "https://aistudio.google.com/apikey",
-            &|model| model.into(),
-            (&ai_studio, providers::DICTATION.0, "dictationAiStudio"),
+            false,
+            json!({
+                "voice": usual.speech, "timings": usual.transcription, "music": usual.music,
+                "dictation": providers::DICTATION_GOOGLE,
+            }),
         ),
         row(
             env::OPENROUTER,
             "OpenRouter",
             "https://openrouter.ai/settings/keys",
-            &|model| providers::openrouter_twin(model).unwrap_or_else(|| model.into()),
-            (&open_router, providers::DICTATION.1, "dictationOpenRouter"),
+            false,
+            json!({
+                "voice": twin(usual.speech), "timings": twin(usual.transcription),
+                "music": twin(usual.music), "dictation": providers::DICTATION_OPENROUTER,
+            }),
         ),
+        cloud,
+        openai,
     ]
+}
+
+/// The models a film and a dictation use when the user names none, for Setup's models form.
+fn usual_models(keys: &Keys) -> Value {
+    let usual = providers::AI_STUDIO;
+    json!({
+        "narration": usual.speech, "voice": usual.voice, "transcription": usual.transcription,
+        "music": usual.music, "dictation": providers::usual_dictation(keys),
+    })
 }
 
 // ---------------------------------------------------------------------------------------- keys
@@ -448,14 +485,9 @@ async fn test_key(
     RoutePath(name): RoutePath<String>,
 ) -> ApiResult<Json<Value>> {
     let name = known_key(&name)?;
-    let (ai_studio, open_router) = Settings::load(&state.home)?.dictation();
-    let dictation = if name == env::GEMINI {
-        ai_studio
-    } else {
-        open_router
-    };
+    let settings = Settings::load(&state.home)?;
     Ok(Json(
-        providers::try_key(state.start(), name, &dictation).await?,
+        providers::try_key(state.start(), name, settings.dictation_model.as_deref()).await?,
     ))
 }
 
@@ -478,11 +510,11 @@ async fn dictate(State(state): State<AppState>, body: Bytes) -> ApiResult<Json<V
             "Dictation needs an API key: add one under Setup",
         ));
     }
-    let (ai_studio, open_router) = Settings::load(&state.home)?.dictation();
+    let settings = Settings::load(&state.home)?;
     let generators =
         providers::Generators::new(keys, std::env::temp_dir().join("superint-video-dictation"))?;
     let dictation = generators
-        .dictate(body.to_vec(), &ai_studio, &open_router)
+        .dictate(body.to_vec(), settings.dictation_model.as_deref())
         .await?;
     Ok(Json(json!(dictation)))
 }
@@ -495,13 +527,32 @@ async fn save_settings(
 ) -> ApiResult<Json<Value>> {
     // Model IDs are pasted from the provider's pages: `models/` in front and spaces come along.
     for model in [
-        &mut settings.dictation_ai_studio,
-        &mut settings.dictation_open_router,
+        &mut settings.narration_model,
+        &mut settings.transcription_model,
+        &mut settings.music_model,
+        &mut settings.dictation_model,
     ] {
         *model = model
             .take()
             .map(|m| home::model_id(&m))
             .filter(|m| !m.is_empty());
+    }
+    for value in [
+        &mut settings.narration_voice,
+        &mut settings.google_cloud_project,
+        &mut settings.google_cloud_location,
+        &mut settings.open_ai_region,
+    ] {
+        *value = value
+            .take()
+            .map(|v| v.trim().to_string())
+            .filter(|v| !v.is_empty());
+    }
+    for value in [
+        &mut settings.google_cloud_location,
+        &mut settings.open_ai_region,
+    ] {
+        *value = value.take().map(|v| v.to_lowercase());
     }
     settings.save(&state.home)?;
     Ok(Json(json!({"settings": settings})))
@@ -917,9 +968,7 @@ mod tests {
             .unwrap();
         let keys = Keys::load_with(project.path(), Some(home.path())).unwrap();
         let mut settings = Settings::default();
-        settings
-            .set("dictationOpenRouter", "google/gemini-3.5-transcribe")
-            .unwrap();
+        settings.set("openAiRegion", "eu").unwrap();
         let rows = json!(key_rows(&keys, &settings)).to_string();
         assert!(!rows.contains("value-that-must-not-leak-01"));
         assert!(rows.contains("aistudio.google.com"));
@@ -927,9 +976,11 @@ mod tests {
         assert!(rows.contains(r#""voice":"gemini-3.8-flash-tts""#));
         assert!(rows.contains(r#""voice":"google/gemini-3.8-flash-tts""#));
         assert!(rows.contains(r#""music":"google/lyria-3-pro-preview""#));
-        // Dictation has a model per route, and the user's choice shows as their own.
-        assert!(rows.contains(r#""dictation":"gemini-3.5-transcribe""#));
-        assert!(rows.contains(r#""dictation":"google/gemini-3.5-transcribe""#));
-        assert!(rows.contains(r#""own":true"#) && rows.contains(r#""own":false"#));
+        assert!(rows.contains(r#""music":"lyria-3-pro-preview""#));
+        assert!(rows.contains(r#""dictation":"microsoft/mai-transcribe-2""#));
+        // OpenAI only writes down dictations; it and Google Cloud are folded away.
+        assert!(rows.contains(r#""models":{"dictation":"gpt-transcribe"}"#));
+        assert!(rows.contains(r#""region":"eu""#));
+        assert_eq!(rows.matches(r#""more":true"#).count(), 2);
     }
 }

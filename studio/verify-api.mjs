@@ -281,14 +281,17 @@ try {
   assert.equal(app.token, project.token);
   assert.equal(app.project.name, 'Externally edited project');
   assert.equal(app.setup.can.voice, false, 'no key yet');
+  assert.equal(app.setup.can.dictate, false, 'no key yet');
   assert.deepEqual(
     app.setup.keys.map((key) => [key.name, key.present]),
     [
       ['GEMINI_API_KEY', false],
       ['OPENROUTER_API_KEY', false],
+      ['GOOGLE_CLOUD_API_KEY', false],
+      ['OPENAI_API_KEY', false],
     ],
   );
-  for (const key of app.setup.keys)
+  for (const key of app.setup.keys.filter((key) => key.models.voice))
     for (const role of ['voice', 'timings', 'music'])
       assert.equal(
         key.models[role].includes('/'),
@@ -373,22 +376,53 @@ try {
     (await send('/api/app/settings', 'PUT', { ...app.settings, uiLanguage: 'xx' })).status,
     400,
   );
-  // Dictation has a model per route, given as the provider writes it; `models/` is dropped.
-  const dictationModel = await send('/api/app/settings', 'PUT', {
+  // A pro names models per job, as the provider writes them; `models/` is dropped. The ID says
+  // the provider, and OpenAI's models write down dictations only.
+  const chosen = await send('/api/app/settings', 'PUT', {
     ...app.settings,
-    dictationAiStudio: ' models/gemini-4-transcribe ',
+    dictationModel: ' models/gemini-4-transcribe ',
+    musicModel: 'google/lyria-3-pro-preview',
+    googleCloudProject: 'my-films-123',
+    googleCloudLocation: 'US',
+    openAiRegion: 'eu',
   });
-  assert.equal(dictationModel.status, 200, await dictationModel.clone().text());
-  const withModel = await get('/api/app');
-  assert.equal(withModel.settings.dictationAiStudio, 'gemini-4-transcribe');
-  assert.equal(withModel.setup.keys[0].models.dictation, 'gemini-4-transcribe');
-  assert.equal(withModel.setup.keys[0].dictation.own, true);
-  assert.equal(withModel.setup.keys[1].models.dictation, 'microsoft/mai-transcribe-2');
-  assert.equal(
-    (await send('/api/app/settings', 'PUT', { ...app.settings, dictationOpenRouter: 'no-vendor' }))
-      .status,
-    400,
+  assert.equal(chosen.status, 200, await chosen.clone().text());
+  const withModels = await get('/api/app');
+  assert.equal(withModels.settings.dictationModel, 'gemini-4-transcribe');
+  assert.equal(withModels.settings.musicModel, 'google/lyria-3-pro-preview');
+  assert.equal(withModels.settings.googleCloudLocation, 'us');
+  assert.deepEqual(
+    withModels.setup.keys.map((key) => [key.name, key.more]),
+    [
+      ['GEMINI_API_KEY', false],
+      ['OPENROUTER_API_KEY', false],
+      ['GOOGLE_CLOUD_API_KEY', true],
+      ['OPENAI_API_KEY', true],
+    ],
   );
+  const cloud = withModels.setup.keys[2];
+  assert.equal(cloud.models.music, 'lyria-3-pro-preview');
+  if (!cloud.place.fixed) {
+    assert.deepEqual(
+      [cloud.place.project, cloud.place.location, cloud.place.servedIn],
+      ['my-films-123', 'us', 'us'],
+    );
+  }
+  assert.deepEqual(withModels.setup.keys[3].models, { dictation: 'gpt-transcribe' });
+  assert.equal(withModels.setup.keys[3].region, 'eu');
+  assert.equal(withModels.setup.models.narration, 'gemini-3.8-flash-tts');
+  for (const refused of [
+    { narrationModel: 'gpt-4o-mini-tts' },
+    { dictationModel: 'gemini 4' },
+    { googleCloudProject: 'My_Project' },
+    { googleCloudLocation: 'europe-west4' },
+    { openAiRegion: 'jp' },
+  ]) {
+    const answer = await send('/api/app/settings', 'PUT', { ...app.settings, ...refused });
+    assert.equal(answer.status, 400, JSON.stringify(refused));
+  }
+  const usual = await send('/api/app/settings', 'PUT', app.settings);
+  assert.equal(usual.status, 200, await usual.clone().text());
   // A dictation is a WAV recording, and without a key it never leaves the computer.
   const dictate = (bytes, headers = {}) =>
     fetch(`${origin}/api/app/dictate`, {

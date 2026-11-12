@@ -324,10 +324,24 @@
 .key-form > .text-link {
   justify-self: start;
 }
-/* A dictation model: the field and Save in line with the key's, what to type and the ways out
-   under the field. */
-.model-form > .model-hint,
-.model-form > .setup-links {
+/* Google Cloud's project and region: the fields and Save in line with a key's, what to type
+   and the way out under the fields. */
+.place-fields {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+.place-fields > input {
+  flex: 1;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 15px;
+}
+.place-fields > select {
+  flex: none;
+  font-size: 15px;
+}
+.place-form > .model-hint,
+.place-form > .setup-links {
   grid-column: 1;
 }
 .model-hint {
@@ -335,8 +349,71 @@
   font-size: 14px;
   line-height: 1.45;
 }
-.model-form > input {
+.setup-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  color: var(--text);
+  font-size: 15px;
+}
+/* The providers few people need, folded away under one line. */
+.setup-keys {
+  display: grid;
+  gap: 20px;
+}
+.setup-more {
+  justify-self: start;
+  margin-left: 34px;
+  font-size: 15px;
+}
+/* The models a pro chose: one line that says whether they are the usual ones, and the form. */
+/* In line with the text of the items above it. */
+.setup-models-choice {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  padding: 8px 0 0 34px;
+}
+.setup-models-choice > p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.models-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+  justify-self: stretch;
+}
+.models-form > label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.models-form > label > span {
+  color: var(--secondary);
+  font-size: 14px;
+}
+.models-form input {
+  width: 100%;
+  font-size: 15px;
+}
+.models-form input.model-id {
   font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+}
+.models-form > .model-hint,
+.models-actions {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.models-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 20px;
 }
 .setup-foot {
   display: flex;
@@ -798,6 +875,18 @@
   }
   .setup-item > .key-form {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .models-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .place-fields {
+    flex-wrap: wrap;
+  }
+  .setup-more {
+    margin-left: 0;
+  }
+  .setup-models-choice {
+    padding-left: 0;
   }
   .setup-foot > .button {
     width: 100%;

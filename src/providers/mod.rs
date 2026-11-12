@@ -1,11 +1,14 @@
-//! Media generators behind Google AI Studio and OpenRouter. Claude writes every text and prompt;
-//! these calls send it unchanged and add only the transport fields each API needs.
+//! Media generators behind Google AI Studio, Google Cloud, OpenRouter and OpenAI. Claude writes
+//! every text and prompt; these calls send it unchanged and add only the transport fields each
+//! API needs.
 pub mod aistudio;
 pub mod cache;
+pub mod cloud;
+pub mod openai;
 pub mod openrouter;
 
 use crate::env::{self, Keys};
-use anyhow::{Result, anyhow};
+use anyhow::{Result, anyhow, bail};
 use cache::Cache;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -40,38 +43,86 @@ pub const OPENROUTER: Route = Route {
     music: "google/lyria-3-pro-preview",
 };
 
-/// The models that write down what the user says into the start page, AI Studio's and
-/// OpenRouter's. The user may name others in Setup (`dictationAiStudio`, `dictationOpenRouter`).
-pub const DICTATION: (&str, &str) = (AI_STUDIO.transcription, OPENROUTER.transcription);
+/// The models that write down what the user says into the start page when the user chose
+/// none, in the order they are tried: Google's (through Google Cloud or AI Studio), OpenAI's,
+/// OpenRouter's. Setup can name another (`dictationModel`).
+pub const DICTATION_GOOGLE: &str = AI_STUDIO.transcription;
+pub const DICTATION_OPENAI: &str = "gpt-transcribe";
+pub const DICTATION_OPENROUTER: &str = OPENROUTER.transcription;
 /// The longest dictation the start page sends.
 pub const MOST_DICTATION_SECONDS: f64 = 600.0;
 
+/// Model IDs that begin like this are OpenAI's.
+const OPENAI_PREFIXES: &[&str] = &["gpt-", "whisper-", "tts-"];
+
+/// Who carries a request. `of` names the provider a model ID belongs to, where Google's
+/// models are `AiStudio`; `GoogleCloud` is the other way to the same models, taken when its
+/// key is saved.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Provider {
     AiStudio,
     OpenRouter,
+    GoogleCloud,
+    OpenAi,
 }
 impl Provider {
-    /// OpenRouter IDs name their vendor (`vendor/model`); AI Studio IDs do not.
+    /// OpenRouter IDs name their vendor (`vendor/model`), OpenAI IDs begin with `gpt-`,
+    /// `whisper-` or `tts-`, and every other ID is Google's.
     pub fn of(model: &str) -> Self {
         if model.contains('/') {
             Self::OpenRouter
+        } else if OPENAI_PREFIXES
+            .iter()
+            .any(|prefix| model.starts_with(prefix))
+        {
+            Self::OpenAi
         } else {
             Self::AiStudio
         }
+    }
+    /// One of Google's two ways to its own models.
+    pub fn google(self) -> bool {
+        matches!(self, Self::AiStudio | Self::GoogleCloud)
     }
     pub fn key(self) -> &'static str {
         match self {
             Self::AiStudio => env::GEMINI,
             Self::OpenRouter => env::OPENROUTER,
+            Self::GoogleCloud => env::GOOGLE_CLOUD,
+            Self::OpenAi => env::OPENAI,
         }
     }
     pub fn label(self) -> &'static str {
         match self {
             Self::AiStudio => "Google AI Studio",
             Self::OpenRouter => "OpenRouter",
+            Self::GoogleCloud => "Google Cloud",
+            Self::OpenAi => "OpenAI",
         }
+    }
+}
+
+/// The keys a film can be made with: OpenAI's key writes down dictations only.
+pub const FILM_KEYS: &[&str] = &[env::GEMINI, env::GOOGLE_CLOUD, env::OPENROUTER];
+
+/// Why an OpenAI model cannot speak or time a film (checked 2026-11-12).
+pub fn openai_for_film(model: &str) -> anyhow::Error {
+    anyhow!(
+        "{model} is an OpenAI model. OpenAI only writes down dictations here: its speech models end on 2027-01-06, and only whisper-1, ending 2027-02-26, gives word timings. Use a Google or OpenRouter model for the film"
+    )
+}
+
+/// The dictation model when the user chose none: the first provider with a key.
+pub fn usual_dictation(keys: &Keys) -> &'static str {
+    if keys.any(&[env::GOOGLE_CLOUD, env::GEMINI]) {
+        DICTATION_GOOGLE
+    } else if keys.any(&[env::OPENAI]) {
+        DICTATION_OPENAI
+    } else if keys.any(&[env::OPENROUTER]) {
+        DICTATION_OPENROUTER
+    } else {
+        DICTATION_GOOGLE
     }
 }
 
@@ -120,13 +171,13 @@ pub struct Dictation {
 pub struct Generated {
     pub bytes: Vec<u8>,
     pub cached: bool,
-    /// The route that made it. OpenRouter for an AI Studio model that was at its limit.
+    /// The way that made it: another one than the model's own when that was at its limit.
     pub route: Provider,
 }
 
-/// The same model through OpenRouter, for when AI Studio is at its daily limit.
+/// The same model through OpenRouter, for when Google is at its daily limit.
 pub fn openrouter_twin(model: &str) -> Option<String> {
-    if Provider::of(model) == Provider::OpenRouter {
+    if Provider::of(model) != Provider::AiStudio {
         return None;
     }
     Some(if model.starts_with("lyria") {
@@ -144,7 +195,11 @@ pub struct Generators {
     http: reqwest::Client,
     pub keys: Keys,
     cache: Cache,
-    /// AI Studio models that hit their limit in this run: The next requests skip AI Studio.
+    /// Where requests to Google Cloud go.
+    pub cloud: cloud::Place,
+    /// OpenAI's address for the region chosen in Setup.
+    pub openai: &'static str,
+    /// Ways and models (`route model`) at their limit in this run: the next requests skip them.
     limited: Mutex<BTreeSet<String>>,
 }
 
@@ -154,15 +209,19 @@ impl Generators {
             .user_agent(concat!("superint-video/", env!("CARGO_PKG_VERSION")))
             .connect_timeout(Duration::from_secs(20))
             .build()?;
+        let settings = crate::home::Settings::current();
+        let cloud = cloud::Place::of(&keys, &settings);
         Ok(Self {
             http,
             keys,
             cache: Cache::new(cache_dir),
+            cloud,
+            openai: openai::base(settings.open_ai_region.as_deref()),
             limited: Mutex::new(BTreeSet::new()),
         })
     }
 
-    /// AI Studio models that were at their limit in this run.
+    /// Ways and models that were at their limit in this run.
     pub fn limited(&self) -> Vec<String> {
         self.limited
             .lock()
@@ -170,50 +229,102 @@ impl Generators {
             .unwrap_or_default()
     }
 
-    /// Whether to ask AI Studio at all: only for its own models, not once they hit the limit,
-    /// and not without its key when OpenRouter's key can reach the same model.
-    fn try_ai_studio(&self, model: &str) -> bool {
-        Provider::of(model) == Provider::AiStudio
-            && !self.limited.lock().is_ok_and(|set| set.contains(model))
-            && (self.keys.get(env::GEMINI).is_some() || self.keys.get(env::OPENROUTER).is_none())
+    fn is_limited(&self, route: Provider, model: &str) -> bool {
+        self.limited
+            .lock()
+            .is_ok_and(|set| set.contains(&format!("{route:?} {model}")))
     }
 
-    /// The route that will carry this model with the keys there are, or the error that says
+    /// The ways a model can go with the keys there are, best first: Google's models through
+    /// Google Cloud, then AI Studio, then their twin on OpenRouter, without the ways that hit
+    /// their limit in this run while another is left. Without a key, the model's own way,
+    /// whose request then fails with the message that names the missing key.
+    fn routes(&self, model: &str) -> Vec<Provider> {
+        let provider = Provider::of(model);
+        if !provider.google() {
+            return vec![provider];
+        }
+        let has = |name: &str| self.keys.get(name).is_some();
+        let mut routes: Vec<Provider> = [Provider::GoogleCloud, Provider::AiStudio]
+            .into_iter()
+            .filter(|route| has(route.key()))
+            .collect();
+        if has(env::OPENROUTER) && openrouter_twin(model).is_some() {
+            routes.push(Provider::OpenRouter);
+        }
+        let open: Vec<Provider> = routes
+            .iter()
+            .copied()
+            .filter(|&route| !self.is_limited(route, model))
+            .collect();
+        match (open.is_empty(), routes.is_empty()) {
+            (false, _) => open,
+            (true, false) => routes,
+            (true, true) => vec![Provider::AiStudio],
+        }
+    }
+
+    /// The model's ID on a way: its twin on OpenRouter, its Google Cloud name there.
+    fn model_on(route: Provider, model: &str) -> String {
+        match route {
+            Provider::OpenRouter => openrouter_twin(model).unwrap_or_else(|| model.to_string()),
+            Provider::GoogleCloud => cloud::model(model).to_string(),
+            Provider::AiStudio | Provider::OpenAi => model.to_string(),
+        }
+    }
+
+    /// The way that will carry this model with the keys there are, or the error that says
     /// which key is missing. Asked before any request, so a job fails before it costs anything.
     pub fn reachable(&self, model: &str) -> Result<Provider> {
-        let provider = Provider::of(model);
-        if self.keys.get(provider.key()).is_some() {
-            return Ok(provider);
+        if Provider::of(model) == Provider::OpenAi {
+            return Err(openai_for_film(model));
         }
-        if openrouter_twin(model).is_some() && self.keys.get(env::OPENROUTER).is_some() {
-            return Ok(Provider::OpenRouter);
-        }
-        self.keys.require(provider.key())?;
-        Ok(provider)
+        let route = self.routes(model)[0];
+        self.keys.require(route.key())?;
+        Ok(route)
     }
 
-    /// True when the failure was AI Studio's rate limit and OpenRouter can step in. After the
-    /// retries in `send`, a 429 means the day's quota, so waiting would only stop the film.
-    fn switch_after(&self, model: &str, error: &anyhow::Error) -> bool {
-        if !is_rate_limit(error) || self.keys.get(env::OPENROUTER).is_none() {
-            return false;
-        }
-        let Some(twin) = openrouter_twin(model) else {
+    /// True when the failure was a rate limit and another way is left. After the retries in
+    /// `send`, a 429 means the day's quota, so waiting would only stop the film.
+    fn move_on(
+        &self,
+        route: Provider,
+        model: &str,
+        error: &anyhow::Error,
+        next: Option<&Provider>,
+    ) -> bool {
+        let Some(&next) = next else {
             return false;
         };
+        if !is_rate_limit(error) {
+            return false;
+        }
         if let Ok(mut set) = self.limited.lock()
-            && set.insert(model.to_string())
+            && set.insert(format!("{route:?} {model}"))
         {
             eprintln!(
-                "Google AI Studio: {model} is at its limit, using {twin} through OpenRouter for the rest of this run"
+                "{}: {model} is at its limit, using {} through {} for the rest of this run",
+                route.label(),
+                Self::model_on(next, model),
+                next.label()
             );
         }
         true
     }
 
-    /// The model to ask on OpenRouter: the given one, or the AI Studio model's twin.
-    fn on_openrouter(model: &str) -> String {
-        openrouter_twin(model).unwrap_or_else(|| model.to_string())
+    /// The models a cached result may be under: the model's own and those of its other ways.
+    fn every_name(model: &str) -> Vec<(Provider, String)> {
+        let own = Provider::of(model);
+        let mut names = vec![(own, model.to_string())];
+        if own.google() {
+            for route in [Provider::GoogleCloud, Provider::OpenRouter] {
+                let name = Self::model_on(route, model);
+                if names.iter().all(|(_, known)| *known != name) {
+                    names.push((route, name));
+                }
+            }
+        }
+        names
     }
 
     pub fn speech_key(request: &SpeechRequest<'_>, take: u32) -> String {
@@ -233,50 +344,56 @@ impl Generators {
 
     /// One take of Claude's text, sent unchanged. Different take numbers are separate requests.
     pub async fn speech(&self, request: &SpeechRequest<'_>, take: u32) -> Result<Generated> {
-        let key = Self::speech_key(request, take);
-        if let Some(bytes) = self.cache.bytes(&key) {
-            return Ok(Generated {
-                bytes,
-                cached: true,
-                route: Provider::of(request.model),
-            });
-        }
-        let model = Self::on_openrouter(request.model);
-        let elsewhere = SpeechRequest {
-            model: &model,
-            voice: request.voice,
-            style: request.style,
-            text: request.text,
+        let asked = |model: &'_ str| -> String {
+            Self::speech_key(
+                &SpeechRequest {
+                    model,
+                    voice: request.voice,
+                    style: request.style,
+                    text: request.text,
+                },
+                take,
+            )
         };
-        let elsewhere_key = Self::speech_key(&elsewhere, take);
-        if let Some(bytes) = self.cache.bytes(&elsewhere_key) {
-            return Ok(Generated {
-                bytes,
-                cached: true,
-                route: Provider::OpenRouter,
-            });
+        for (route, model) in Self::every_name(request.model) {
+            if let Some(bytes) = self.cache.bytes(&asked(&model)) {
+                return Ok(Generated {
+                    bytes,
+                    cached: true,
+                    route,
+                });
+            }
         }
-        if self.try_ai_studio(request.model) {
-            match aistudio::speech(self, request).await {
+        let routes = self.routes(request.model);
+        for (index, &route) in routes.iter().enumerate() {
+            let model = Self::model_on(route, request.model);
+            let on_route = SpeechRequest {
+                model: &model,
+                voice: request.voice,
+                style: request.style,
+                text: request.text,
+            };
+            let result = match route {
+                Provider::GoogleCloud => cloud::speech(self, &on_route).await,
+                Provider::AiStudio => aistudio::speech(self, &on_route).await,
+                Provider::OpenRouter => openrouter::speech(self, &on_route).await,
+                Provider::OpenAi => Err(openai_for_film(&model)),
+            };
+            match result {
                 Ok(bytes) => {
-                    self.cache.put_bytes(&key, &bytes)?;
+                    self.cache.put_bytes(&asked(&model), &bytes)?;
                     return Ok(Generated {
                         bytes,
                         cached: false,
-                        route: Provider::AiStudio,
+                        route,
                     });
                 }
-                Err(error) if !self.switch_after(request.model, &error) => return Err(error),
-                Err(_) => {}
+                Err(error) if self.move_on(route, request.model, &error, routes.get(index + 1)) => {
+                }
+                Err(error) => return Err(error),
             }
         }
-        let bytes = openrouter::speech(self, &elsewhere).await?;
-        self.cache.put_bytes(&elsewhere_key, &bytes)?;
-        Ok(Generated {
-            bytes,
-            cached: false,
-            route: Provider::OpenRouter,
-        })
+        bail!("No way to reach {}", request.model)
     }
 
     pub async fn transcribe(
@@ -285,33 +402,48 @@ impl Generators {
         request: &TranscribeRequest<'_>,
     ) -> Result<(Transcript, bool)> {
         let bytes = std::fs::read(audio)?;
-        let key = Self::transcribe_key(request, &bytes);
-        if let Some(transcript) = self.cache.json(&key) {
-            return Ok((transcript, true));
-        }
-        let model = Self::on_openrouter(request.model);
-        let elsewhere = TranscribeRequest {
-            model: &model,
-            language: request.language,
-            terms: request.terms,
+        let key = |model: &'_ str| -> String {
+            Self::transcribe_key(
+                &TranscribeRequest {
+                    model,
+                    language: request.language,
+                    terms: request.terms,
+                },
+                &bytes,
+            )
         };
-        let elsewhere_key = Self::transcribe_key(&elsewhere, &bytes);
-        if let Some(transcript) = self.cache.json(&elsewhere_key) {
-            return Ok((transcript, true));
-        }
-        if self.try_ai_studio(request.model) {
-            match aistudio::transcribe(self, audio, bytes.clone(), request).await {
-                Ok(transcript) => {
-                    self.cache.put_json(&key, &transcript)?;
-                    return Ok((transcript, false));
-                }
-                Err(error) if !self.switch_after(request.model, &error) => return Err(error),
-                Err(_) => {}
+        for (_, model) in Self::every_name(request.model) {
+            if let Some(transcript) = self.cache.json(&key(&model)) {
+                return Ok((transcript, true));
             }
         }
-        let transcript = openrouter::transcribe(self, audio, &elsewhere).await?;
-        self.cache.put_json(&elsewhere_key, &transcript)?;
-        Ok((transcript, false))
+        let routes = self.routes(request.model);
+        for (index, &route) in routes.iter().enumerate() {
+            let model = Self::model_on(route, request.model);
+            let on_route = TranscribeRequest {
+                model: &model,
+                language: request.language,
+                terms: request.terms,
+            };
+            let result = match route {
+                Provider::GoogleCloud => cloud::transcribe(self, audio, &on_route).await,
+                Provider::AiStudio => {
+                    aistudio::transcribe(self, audio, bytes.clone(), &on_route).await
+                }
+                Provider::OpenRouter => openrouter::transcribe(self, audio, &on_route).await,
+                Provider::OpenAi => Err(openai_for_film(&model)),
+            };
+            match result {
+                Ok(transcript) => {
+                    self.cache.put_json(&key(&model), &transcript)?;
+                    return Ok((transcript, false));
+                }
+                Err(error) if self.move_on(route, request.model, &error, routes.get(index + 1)) => {
+                }
+                Err(error) => return Err(error),
+            }
+        }
+        bail!("No way to reach {}", request.model)
     }
 
     fn transcribe_key(request: &TranscribeRequest<'_>, bytes: &[u8]) -> String {
@@ -350,37 +482,67 @@ impl Generators {
         Err(failure)
     }
 
-    /// Writes down a recording of the user, a WAV file. AI Studio takes it when its key is
-    /// there, else OpenRouter; AI Studio at its limit hands over to OpenRouter, as for a film.
-    /// Each route has its own model, because a dictation is only text and any transcription
-    /// model of the provider will do. Nothing is cached: no two dictations are the same.
-    pub async fn dictate(
-        &self,
-        wav: Vec<u8>,
-        ai_studio: &str,
-        open_router: &str,
-    ) -> Result<Dictation> {
-        let openrouter = self.keys.get(env::OPENROUTER).is_some();
-        if self.keys.get(env::GEMINI).is_some() || !openrouter {
-            match aistudio::dictate(self, wav.clone(), ai_studio).await {
+    /// The ways a dictation goes, best first, each with its model: the user's model on its
+    /// ways, else the usual model of each provider that has a key (Google, OpenAI, OpenRouter).
+    pub fn dictation_tries(&self, chosen: Option<&str>) -> Vec<(Provider, String)> {
+        if let Some(model) = chosen {
+            return self
+                .routes(model)
+                .into_iter()
+                .map(|route| (route, Self::model_on(route, model)))
+                .collect();
+        }
+        let has = |name: &str| self.keys.get(name).is_some();
+        let mut tries: Vec<(Provider, String)> = self
+            .routes(DICTATION_GOOGLE)
+            .into_iter()
+            .filter(|route| route.google() && has(route.key()))
+            .map(|route| (route, Self::model_on(route, DICTATION_GOOGLE)))
+            .collect();
+        if has(env::OPENAI) {
+            tries.push((Provider::OpenAi, DICTATION_OPENAI.into()));
+        }
+        if has(env::OPENROUTER) {
+            tries.push((Provider::OpenRouter, DICTATION_OPENROUTER.into()));
+        }
+        if tries.is_empty() {
+            tries.push((Provider::AiStudio, DICTATION_GOOGLE.into()));
+        }
+        tries
+    }
+
+    /// Writes down a recording of the user, a WAV file. A rate limit hands over to the next
+    /// way, as for a film. Each provider has its own model, because a dictation is only text
+    /// and any transcription model will do. Nothing is cached: no two dictations are the same.
+    pub async fn dictate(&self, wav: Vec<u8>, chosen: Option<&str>) -> Result<Dictation> {
+        let tries = self.dictation_tries(chosen);
+        for (index, (route, model)) in tries.iter().enumerate() {
+            let result = match route {
+                Provider::GoogleCloud => cloud::dictate(self, &wav, model).await,
+                Provider::AiStudio => aistudio::dictate(self, wav.clone(), model).await,
+                Provider::OpenAi => openai::dictate(self, &wav, model).await,
+                Provider::OpenRouter => openrouter::dictate(self, &wav, model).await,
+            };
+            match result {
                 Ok(text) => {
                     return Ok(Dictation {
                         text,
-                        model: ai_studio.into(),
-                        route: Provider::AiStudio,
+                        model: model.clone(),
+                        route: *route,
                     });
                 }
-                Err(error) if !(openrouter && is_rate_limit(&error)) => return Err(error),
-                Err(_) => eprintln!(
-                    "Google AI Studio: {ai_studio} is at its limit, dictating with {open_router} through OpenRouter"
-                ),
+                Err(error) if index + 1 < tries.len() && is_rate_limit(&error) => {
+                    let (next, other) = &tries[index + 1];
+                    eprintln!(
+                        "{}: {model} is at its limit, dictating with {other} through {}",
+                        route.label(),
+                        next.label()
+                    );
+                }
+                Err(error) => return Err(error),
             }
         }
-        Ok(Dictation {
-            text: openrouter::dictate(self, &wav, open_router).await?,
-            model: open_router.into(),
-            route: Provider::OpenRouter,
-        })
+        bail!("No dictation model given")
     }
 
     pub fn music_key(model: &str, prompt: &str, variant: u32) -> String {
@@ -389,44 +551,39 @@ impl Generators {
 
     /// One variant of Claude's music prompt, sent unchanged.
     pub async fn music(&self, model: &str, prompt: &str, variant: u32) -> Result<Generated> {
-        let key = Self::music_key(model, prompt, variant);
-        if let Some(bytes) = self.cache.bytes(&key) {
-            return Ok(Generated {
-                bytes,
-                cached: true,
-                route: Provider::of(model),
-            });
+        for (route, name) in Self::every_name(model) {
+            if let Some(bytes) = self.cache.bytes(&Self::music_key(&name, prompt, variant)) {
+                return Ok(Generated {
+                    bytes,
+                    cached: true,
+                    route,
+                });
+            }
         }
-        let other = Self::on_openrouter(model);
-        let other_key = Self::music_key(&other, prompt, variant);
-        if let Some(bytes) = self.cache.bytes(&other_key) {
-            return Ok(Generated {
-                bytes,
-                cached: true,
-                route: Provider::OpenRouter,
-            });
-        }
-        if self.try_ai_studio(model) {
-            match aistudio::music(self, model, prompt).await {
+        let routes = self.routes(model);
+        for (index, &route) in routes.iter().enumerate() {
+            let name = Self::model_on(route, model);
+            let result = match route {
+                Provider::GoogleCloud => cloud::music(self, &name, prompt).await,
+                Provider::AiStudio => aistudio::music(self, &name, prompt).await,
+                Provider::OpenRouter => openrouter::music(self, &name, prompt).await,
+                Provider::OpenAi => Err(openai_for_film(&name)),
+            };
+            match result {
                 Ok(bytes) => {
-                    self.cache.put_bytes(&key, &bytes)?;
+                    self.cache
+                        .put_bytes(&Self::music_key(&name, prompt, variant), &bytes)?;
                     return Ok(Generated {
                         bytes,
                         cached: false,
-                        route: Provider::AiStudio,
+                        route,
                     });
                 }
-                Err(error) if !self.switch_after(model, &error) => return Err(error),
-                Err(_) => {}
+                Err(error) if self.move_on(route, model, &error, routes.get(index + 1)) => {}
+                Err(error) => return Err(error),
             }
         }
-        let bytes = openrouter::music(self, &other, prompt).await?;
-        self.cache.put_bytes(&other_key, &bytes)?;
-        Ok(Generated {
-            bytes,
-            cached: false,
-            route: Provider::OpenRouter,
-        })
+        bail!("No way to reach {model}")
     }
 
     /// Sends with up to three retries on rate limits, server errors and dropped connections.
@@ -511,12 +668,14 @@ impl Generators {
     }
 }
 
-/// Keys (names only) and, with `online`, which route models each key can reach, with live
-/// OpenRouter prices. Returns the report and whether every check that ran passed.
+/// Keys (names only) and, with `online`, which models each key can reach, with live
+/// OpenRouter prices, and the models the user chose in Setup. Returns the report and whether
+/// every check that ran passed.
 pub async fn doctor(start: &Path, online: bool) -> Result<(Value, bool)> {
     let keys = Keys::load(start)?;
     let file = keys.file.as_ref().map(|p| p.display().to_string());
     let status = keys.status();
+    let settings = crate::home::Settings::current();
     let generators = Generators::new(keys, std::env::temp_dir().join("superint-video-doctor"))?;
     let mut ok = true;
     let mut routes = Vec::new();
@@ -527,24 +686,47 @@ pub async fn doctor(start: &Path, online: bool) -> Result<(Value, bool)> {
     } else {
         Err("offline".into())
     };
-    for (name, route) in [("aiStudio", AI_STUDIO), ("openRouter", OPENROUTER)] {
-        let provider = Provider::of(route.speech);
+    let ways = [
+        (
+            "aiStudio",
+            Provider::AiStudio,
+            vec![AI_STUDIO.speech, AI_STUDIO.transcription, AI_STUDIO.music],
+            AI_STUDIO.voice,
+        ),
+        (
+            "googleCloud",
+            Provider::GoogleCloud,
+            vec![
+                AI_STUDIO.speech,
+                AI_STUDIO.transcription,
+                cloud::model(AI_STUDIO.music),
+            ],
+            AI_STUDIO.voice,
+        ),
+        (
+            "openRouter",
+            Provider::OpenRouter,
+            vec![
+                OPENROUTER.speech,
+                OPENROUTER.transcription,
+                OPENROUTER.music,
+            ],
+            OPENROUTER.voice,
+        ),
+        ("openAi", Provider::OpenAi, vec![DICTATION_OPENAI], ""),
+    ];
+    for (name, provider, models, voice) in ways {
         let present = generators.keys.get(provider.key()).is_some();
-        let mut models = Vec::new();
-        for model in [route.speech, route.transcription, route.music] {
+        let mut entries = Vec::new();
+        for model in models {
             let mut entry = json!({"model": model});
             if online && present {
-                match provider {
-                    Provider::AiStudio => match aistudio::visible(&generators, model).await {
-                        Ok(visible) => {
-                            ok &= visible;
-                            entry["visible"] = json!(visible);
-                        }
-                        Err(error) => {
-                            ok = false;
-                            entry["error"] = json!(error.to_string());
-                        }
-                    },
+                let seen = match provider {
+                    Provider::AiStudio => Some(aistudio::visible(&generators, model).await),
+                    // Lyria answers on the Interactions API only, which has no free probe.
+                    Provider::GoogleCloud if model.starts_with("lyria") => None,
+                    Provider::GoogleCloud => Some(cloud::visible(&generators, model).await),
+                    Provider::OpenAi => Some(openai::visible(&generators, model).await),
                     Provider::OpenRouter => {
                         if let Ok(catalog) = &catalog {
                             let found = catalog.iter().find(|m| m["id"] == model);
@@ -554,19 +736,44 @@ pub async fn doctor(start: &Path, online: bool) -> Result<(Value, bool)> {
                                 entry["pricing"] = found["pricing"].clone();
                             }
                         }
+                        None
                     }
+                };
+                match seen {
+                    Some(Ok(visible)) => {
+                        ok &= visible;
+                        entry["visible"] = json!(visible);
+                    }
+                    Some(Err(error)) => {
+                        ok = false;
+                        entry["error"] = json!(error.to_string());
+                    }
+                    None => {}
                 }
             }
-            models.push(entry);
+            entries.push(entry);
         }
         let mut report = json!({
             "route": name,
             "provider": provider,
             "key": provider.key(),
             "keyPresent": present,
-            "voice": route.voice,
-            "models": models,
+            "models": entries,
         });
+        if !voice.is_empty() {
+            report["voice"] = json!(voice);
+        }
+        match provider {
+            Provider::OpenAi => {
+                report["use"] = json!("dictation only");
+                report["base"] = json!(generators.openai);
+            }
+            Provider::GoogleCloud => {
+                report["place"] = json!(generators.cloud);
+                report["servedIn"] = json!(generators.cloud.served_in());
+            }
+            _ => {}
+        }
         if online && present && provider == Provider::OpenRouter {
             report["credits"] = match openrouter::credits(&generators).await {
                 Ok(credits) => credits,
@@ -593,6 +800,8 @@ pub async fn doctor(start: &Path, online: bool) -> Result<(Value, bool)> {
             "online": online,
             "routes": routes,
             "default": "aiStudio",
+            "google": "Google's models (gemini-…, lyria-…) go through Google Cloud when GOOGLE_CLOUD_API_KEY is there, else AI Studio, else their twin on OpenRouter",
+            "chosen": settings.models(),
         }),
         ok,
     ))
@@ -602,52 +811,85 @@ pub async fn doctor(start: &Path, online: bool) -> Result<(Value, bool)> {
 /// is facts, not a sentence: the page words it in its own language.
 /// `state`: `none` (no key), `works`, `partial` (works, but the `missing` models are out of
 /// reach) or `refused` (with the provider's answer as `detail`).
-/// `dictation` is the model this key writes down dictations with; it is checked too.
-pub async fn try_key(start: &Path, name: &str, dictation: &str) -> Result<Value> {
+/// The models are those the key serves, with the dictation model the user chose when it is
+/// one of this key's.
+pub async fn try_key(start: &Path, name: &str, dictation: Option<&str>) -> Result<Value> {
     let keys = Keys::load(start)?;
     if keys.get(name).is_none() {
         return Ok(json!({"ok": false, "state": "none"}));
     }
     let generators = Generators::new(keys, std::env::temp_dir().join("superint-video-doctor"))?;
     let refused = |error: anyhow::Error| json!({"ok": false, "state": "refused", "detail": error.to_string()});
-    if name == env::GEMINI {
-        let mut missing = Vec::new();
-        let mut models = vec![AI_STUDIO.speech, AI_STUDIO.transcription, AI_STUDIO.music];
-        if !models.contains(&dictation) {
-            models.push(dictation);
-        }
-        for model in models {
-            match aistudio::visible(&generators, model).await {
-                Ok(true) => {}
-                Ok(false) => missing.push(model),
-                Err(error) => return Ok(refused(error)),
-            }
-        }
-        return Ok(if missing.is_empty() {
+    let dictation_of = |provider: Provider, usual: &'static str| -> String {
+        dictation
+            .filter(|model| Provider::of(model) == provider)
+            .unwrap_or(usual)
+            .to_string()
+    };
+    let checked = |missing: Vec<String>| {
+        if missing.is_empty() {
             json!({"ok": true, "state": "works"})
         } else {
             json!({"ok": true, "state": "partial", "missing": missing})
+        }
+    };
+    if name == env::OPENROUTER {
+        let credits = match openrouter::credits(&generators).await {
+            Ok(credits) => credits,
+            Err(error) => return Ok(refused(error)),
+        };
+        // The catalog is public: a model it does not list cannot be reached with any key.
+        // When the catalog cannot be read, the key still works and the model is not judged.
+        let model = dictation_of(Provider::OpenRouter, DICTATION_OPENROUTER);
+        let listed = match openrouter::catalog(&generators).await {
+            Ok(catalog) => catalog.iter().any(|m| m["id"] == model.as_str()),
+            Err(_) => true,
+        };
+        let mut answer = json!({
+            "ok": true,
+            "state": if listed { "works" } else { "partial" },
+            "creditLeft": credits["limitRemaining"].as_f64(),
+        });
+        if !listed {
+            answer["missing"] = json!([model]);
+        }
+        return Ok(answer);
+    }
+    if name == env::OPENAI {
+        let model = dictation_of(Provider::OpenAi, DICTATION_OPENAI);
+        return Ok(match openai::visible(&generators, &model).await {
+            Ok(true) => checked(Vec::new()),
+            Ok(false) => checked(vec![model]),
+            Err(error) => refused(error),
         });
     }
-    let credits = match openrouter::credits(&generators).await {
-        Ok(credits) => credits,
-        Err(error) => return Ok(refused(error)),
-    };
-    // The catalog is public: a model it does not list cannot be reached with any key. When the
-    // catalog cannot be read, the key still works and the model is not judged.
-    let listed = match openrouter::catalog(&generators).await {
-        Ok(catalog) => catalog.iter().any(|m| m["id"] == dictation),
-        Err(_) => true,
-    };
-    let mut answer = json!({
-        "ok": true,
-        "state": if listed { "works" } else { "partial" },
-        "creditLeft": credits["limitRemaining"].as_f64(),
-    });
-    if !listed {
-        answer["missing"] = json!([dictation]);
+    let cloud = name == env::GOOGLE_CLOUD;
+    let mut models = vec![
+        AI_STUDIO.speech.to_string(),
+        AI_STUDIO.transcription.to_string(),
+    ];
+    // Lyria on Google Cloud answers on the Interactions API only, which has no free probe.
+    if !cloud {
+        models.push(AI_STUDIO.music.to_string());
     }
-    Ok(answer)
+    let own = dictation_of(Provider::AiStudio, DICTATION_GOOGLE);
+    if !models.contains(&own) {
+        models.push(own);
+    }
+    let mut missing = Vec::new();
+    for model in models {
+        let seen = if cloud {
+            cloud::visible(&generators, &model).await
+        } else {
+            aistudio::visible(&generators, &model).await
+        };
+        match seen {
+            Ok(true) => {}
+            Ok(false) => missing.push(model),
+            Err(error) => return Ok(refused(error)),
+        }
+    }
+    Ok(checked(missing))
 }
 
 /// How long a WAV file plays, or why it is not one the start page could have recorded.
@@ -786,8 +1028,23 @@ mod tests {
         let wav = pcm_wav(&vec![0; 32_000], 16_000, 1);
         assert_eq!(wav_seconds(&wav).unwrap(), 1.0);
         assert!(wav_seconds(b"OggS not a wav").is_err());
-        assert_eq!(Provider::of(DICTATION.0), Provider::AiStudio);
-        assert_eq!(Provider::of(DICTATION.1), Provider::OpenRouter);
+        assert_eq!(Provider::of(DICTATION_GOOGLE), Provider::AiStudio);
+        assert_eq!(Provider::of(DICTATION_OPENAI), Provider::OpenAi);
+        assert_eq!(Provider::of(DICTATION_OPENROUTER), Provider::OpenRouter);
+    }
+
+    #[test]
+    fn openai_ids_are_told_apart_from_google_and_openrouter_ones() {
+        for model in ["gpt-transcribe", "whisper-1", "tts-1-hd", "gpt-4o-mini-tts"] {
+            assert_eq!(Provider::of(model), Provider::OpenAi, "{model}");
+        }
+        for model in ["gemini-3.5-transcribe", "lyria-3.5", "gemma-4"] {
+            assert_eq!(Provider::of(model), Provider::AiStudio, "{model}");
+        }
+        assert_eq!(Provider::of("openai/gpt-transcribe"), Provider::OpenRouter);
+        assert!(Provider::GoogleCloud.google() && Provider::AiStudio.google());
+        assert!(!Provider::OpenAi.google());
+        assert_eq!(openrouter_twin("gpt-transcribe"), None);
     }
 }
 
@@ -842,17 +1099,119 @@ mod twin_tests {
             only_openrouter.reachable(AI_STUDIO.speech).unwrap(),
             Provider::OpenRouter
         );
-        assert!(!only_openrouter.try_ai_studio(AI_STUDIO.speech));
+        assert_eq!(
+            only_openrouter.routes(AI_STUDIO.speech),
+            [Provider::OpenRouter]
+        );
         let only_google = with(Some(env::GEMINI));
         assert_eq!(
             only_google.reachable(AI_STUDIO.music).unwrap(),
             Provider::AiStudio
         );
         assert!(only_google.reachable(OPENROUTER.speech).is_err());
+        let only_cloud = with(Some(env::GOOGLE_CLOUD));
+        assert_eq!(
+            only_cloud.reachable(AI_STUDIO.speech).unwrap(),
+            Provider::GoogleCloud
+        );
+        assert_eq!(
+            only_cloud.dictation_tries(None),
+            [(Provider::GoogleCloud, DICTATION_GOOGLE.to_string())]
+        );
+        let only_openai = with(Some(env::OPENAI));
+        // OpenAI writes down dictations, but a film needs another key.
+        assert!(only_openai.reachable(AI_STUDIO.speech).is_err());
+        assert!(
+            only_openai
+                .reachable("gpt-4o-mini-tts")
+                .unwrap_err()
+                .to_string()
+                .contains("dictations")
+        );
+        assert_eq!(
+            only_openai.dictation_tries(None),
+            [(Provider::OpenAi, DICTATION_OPENAI.to_string())]
+        );
         let none = with(None);
         let message = none.reachable(AI_STUDIO.speech).unwrap_err().to_string();
         assert!(message.contains(env::GEMINI) && message.contains("Setup"));
-        assert!(none.try_ai_studio(AI_STUDIO.speech));
+        assert_eq!(none.routes(AI_STUDIO.speech), [Provider::AiStudio]);
+    }
+
+    #[test]
+    fn google_cloud_goes_first_and_a_limit_hands_over() {
+        let home = tempfile::TempDir::new().unwrap();
+        let project = tempfile::TempDir::new().unwrap();
+        std::fs::write(project.path().join(".env"), "").unwrap();
+        if env::KNOWN
+            .iter()
+            .any(|name| std::env::var_os(name).is_some())
+            || std::env::var_os("GOOGLE_API_KEY").is_some()
+            || std::env::var_os("SUPERINT_ENV").is_some()
+        {
+            return;
+        }
+        let store = crate::home::KeyStore::at(home.path());
+        for name in env::KNOWN {
+            store.set(name, "a-key-for-this-test-02").unwrap();
+        }
+        let keys = Keys::load_with(project.path(), Some(home.path())).unwrap();
+        let all = Generators::new(keys, home.path().join("cache")).unwrap();
+        assert_eq!(
+            all.routes(AI_STUDIO.music),
+            [
+                Provider::GoogleCloud,
+                Provider::AiStudio,
+                Provider::OpenRouter
+            ]
+        );
+        assert_eq!(
+            Generators::model_on(Provider::GoogleCloud, AI_STUDIO.music),
+            "lyria-3-pro-preview"
+        );
+        assert_eq!(
+            Generators::model_on(Provider::OpenRouter, AI_STUDIO.speech),
+            "google/gemini-3.8-flash-tts"
+        );
+        let limit = anyhow!("Google Cloud returned 429 Too Many Requests: quota");
+        assert!(all.move_on(
+            Provider::GoogleCloud,
+            AI_STUDIO.speech,
+            &limit,
+            Some(&Provider::AiStudio)
+        ));
+        assert_eq!(
+            all.routes(AI_STUDIO.speech),
+            [Provider::AiStudio, Provider::OpenRouter]
+        );
+        // Without a way left, a limit stays the error it is.
+        assert!(!all.move_on(Provider::OpenRouter, AI_STUDIO.speech, &limit, None));
+        // The user's dictation model goes its own ways; without one, every provider in turn.
+        let tries: Vec<Provider> = all.dictation_tries(None).into_iter().map(|t| t.0).collect();
+        assert_eq!(
+            tries,
+            [
+                Provider::GoogleCloud,
+                Provider::AiStudio,
+                Provider::OpenAi,
+                Provider::OpenRouter
+            ]
+        );
+        assert_eq!(
+            all.dictation_tries(Some("gpt-transcribe")),
+            [(Provider::OpenAi, "gpt-transcribe".to_string())]
+        );
+        assert_eq!(
+            Generators::every_name(AI_STUDIO.music)
+                .into_iter()
+                .map(|(_, name)| name)
+                .collect::<Vec<_>>(),
+            [
+                "lyria-3.5",
+                "lyria-3-pro-preview",
+                "google/lyria-3-pro-preview"
+            ]
+        );
     }
 
     #[test]

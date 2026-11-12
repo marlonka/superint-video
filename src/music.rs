@@ -219,10 +219,15 @@ fn read(root: &Path) -> Result<(MusicDoc, String, Vec<String>)> {
             path.display()
         )
     })?;
-    let default_model = fs::read(root.join(crate::preset::CONFIG))
-        .ok()
-        .and_then(|bytes| crate::preset::PresetConfig::parse(&bytes).ok())
-        .and_then(|preset| preset.music.map(|m| m.model))
+    // The model the user chose in Setup, else the preset's, else the usual one.
+    let default_model = crate::home::Settings::current()
+        .music_model
+        .or_else(|| {
+            fs::read(root.join(crate::preset::CONFIG))
+                .ok()
+                .and_then(|bytes| crate::preset::PresetConfig::parse(&bytes).ok())
+                .and_then(|preset| preset.music.map(|m| m.model))
+        })
         .unwrap_or_else(|| AI_STUDIO.music.to_string());
     let doc = MusicDoc::parse(&text, &default_model)?;
     let topic = fs::read_to_string(root.join("brief.md"))

@@ -25,7 +25,7 @@ chromiumoxide = "0.9.1"
 futures = "0.3"
 tokio-stream = { version = "0.1", features = ["sync"] }
 image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
-reqwest = { version = "0.13", default-features = false, features = ["native-tls", "http2", "json", "stream"] }
+reqwest = { version = "0.13", default-features = false, features = ["native-tls", "http2", "json", "multipart", "stream"] }
 base64 = "0.22"
 hound = "3.5"
 ebur128 = "0.1.11"

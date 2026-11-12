@@ -11,9 +11,18 @@ use std::{
 
 pub const GEMINI: &str = "GEMINI_API_KEY";
 pub const OPENROUTER: &str = "OPENROUTER_API_KEY";
-pub const KNOWN: &[&str] = &[GEMINI, OPENROUTER];
-/// Other names the same key is commonly stored under, as (alias, canonical name).
-const ALIASES: &[(&str, &str)] = &[("GOOGLE_API_KEY", GEMINI)];
+pub const OPENAI: &str = "OPENAI_API_KEY";
+/// A Google Cloud API key for Gemini Enterprise Agent Platform (formerly Vertex AI).
+pub const GOOGLE_CLOUD: &str = "GOOGLE_CLOUD_API_KEY";
+pub const KNOWN: &[&str] = &[GEMINI, OPENROUTER, OPENAI, GOOGLE_CLOUD];
+/// Google's SDKs read their key from `GOOGLE_API_KEY` for both Google APIs and tell them apart
+/// by `GOOGLE_GENAI_USE_ENTERPRISE` (formerly `GOOGLE_GENAI_USE_VERTEXAI`): with it set, the
+/// key is a Google Cloud key, else an AI Studio key.
+const GOOGLE_ALIAS: &str = "GOOGLE_API_KEY";
+const ENTERPRISE: &[&str] = &["GOOGLE_GENAI_USE_ENTERPRISE", "GOOGLE_GENAI_USE_VERTEXAI"];
+/// The Google Cloud project and location, under the names Google's SDKs read.
+const CLOUD_PROJECT: &str = "GOOGLE_CLOUD_PROJECT";
+const CLOUD_LOCATION: &str = "GOOGLE_CLOUD_LOCATION";
 
 #[derive(Clone)]
 pub struct Secret(String);
@@ -79,6 +88,10 @@ pub struct Keys {
     pub file: Option<PathBuf>,
     /// The app's key store, when this computer has a user folder.
     pub store: Option<PathBuf>,
+    /// `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION` from the environment or the `.env`
+    /// file. They are not secrets; they win over the place saved in Setup.
+    pub cloud_project: Option<String>,
+    pub cloud_location: Option<String>,
 }
 
 impl Keys {
@@ -103,17 +116,22 @@ impl Keys {
             ),
             None => BTreeMap::new(),
         };
+        let given = |value: Option<&String>| value.filter(|v| !v.trim().is_empty()).cloned();
+        // A plain setting: the process environment, else the file.
+        let setting = |name: &str| {
+            given(std::env::var(name).ok().as_ref()).or_else(|| given(from_file.get(name)))
+        };
+        let enterprise = ENTERPRISE.iter().any(|&flag| {
+            setting(flag).is_some_and(|v| {
+                matches!(v.trim().to_ascii_lowercase().as_str(), "true" | "1" | "yes")
+            })
+        });
+        let alias_of = if enterprise { GOOGLE_CLOUD } else { GEMINI };
         let mut values = BTreeMap::new();
         for &name in KNOWN {
             let names: Vec<&'static str> = std::iter::once(name)
-                .chain(
-                    ALIASES
-                        .iter()
-                        .filter(|(_, canonical)| *canonical == name)
-                        .map(|(alias, _)| *alias),
-                )
+                .chain((name == alias_of).then_some(GOOGLE_ALIAS))
                 .collect();
-            let given = |value: Option<&String>| value.filter(|v| !v.trim().is_empty()).cloned();
             let found = names
                 .iter()
                 .find_map(|&n| {
@@ -133,7 +151,14 @@ impl Keys {
             values,
             file,
             store: store.map(|s| s.path().to_path_buf()),
+            cloud_project: setting(CLOUD_PROJECT).map(|v| v.trim().to_string()),
+            cloud_location: setting(CLOUD_LOCATION).map(|v| v.trim().to_string()),
         })
+    }
+
+    /// Whether any of the named keys is there.
+    pub fn any(&self, names: &[&str]) -> bool {
+        names.iter().any(|name| self.values.contains_key(name))
     }
 
     pub fn get(&self, name: &str) -> Option<&Secret> {
@@ -272,6 +297,47 @@ mod tests {
         assert!(message.contains("GEMINI_API_KEY"));
         assert!(message.contains(".env"));
         assert!(message.contains("superint-video app"));
+    }
+
+    #[test]
+    fn google_api_key_is_a_cloud_key_when_the_sdk_flag_says_enterprise() {
+        let names = [GOOGLE_ALIAS, CLOUD_PROJECT, CLOUD_LOCATION, "SUPERINT_ENV"];
+        if KNOWN
+            .iter()
+            .chain(&names)
+            .chain(ENTERPRISE)
+            .any(|name| std::env::var_os(name).is_some())
+        {
+            return;
+        }
+        let project = tempfile::TempDir::new().unwrap();
+        let home = tempfile::TempDir::new().unwrap();
+        let load = |text: &str| {
+            fs::write(project.path().join(".env"), text).unwrap();
+            Keys::load_with(project.path(), Some(home.path())).unwrap()
+        };
+        let plain = load(
+            "GOOGLE_API_KEY=studio-key-000001
+",
+        );
+        assert_eq!(plain.get(GEMINI).unwrap().expose(), "studio-key-000001");
+        assert!(plain.get(GOOGLE_CLOUD).is_none());
+        let cloud = load(
+            "GOOGLE_API_KEY=cloud-key-000002
+GOOGLE_GENAI_USE_ENTERPRISE=True
+GOOGLE_CLOUD_PROJECT=my-films-123
+GOOGLE_CLOUD_LOCATION=eu
+",
+        );
+        assert_eq!(
+            cloud.get(GOOGLE_CLOUD).unwrap().expose(),
+            "cloud-key-000002"
+        );
+        assert!(cloud.get(GEMINI).is_none());
+        assert_eq!(cloud.cloud_project.as_deref(), Some("my-films-123"));
+        assert_eq!(cloud.cloud_location.as_deref(), Some("eu"));
+        assert!(cloud.any(&[OPENAI, GOOGLE_CLOUD]));
+        assert!(!cloud.any(&[OPENAI, GEMINI]));
     }
 
     #[test]

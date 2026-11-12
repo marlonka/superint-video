@@ -130,11 +130,25 @@ pub async fn visible(g: &Generators, model: &str) -> Result<bool> {
 async fn interact(g: &Generators, body: &Value, timeout: Duration) -> Result<Value> {
     let key = g.keys.require(env::GEMINI)?;
     let url = format!("{BASE}/v1beta/interactions");
+    interact_at(g, Provider::AiStudio, &url, key.expose(), body, timeout).await
+}
+
+/// Creates an interaction at `url` and polls it until it settles. Google Cloud's Interactions
+/// API works the same way under its own address.
+pub(super) async fn interact_at(
+    g: &Generators,
+    provider: Provider,
+    url: &str,
+    key: &str,
+    body: &Value,
+    timeout: Duration,
+) -> Result<Value> {
+    let label = provider.label();
     let response = g
-        .send(Provider::AiStudio, || {
+        .send(provider, || {
             g.http
-                .post(&url)
-                .header("x-goog-api-key", key.expose())
+                .post(url)
+                .header("x-goog-api-key", key)
                 .json(body)
                 .timeout(timeout)
         })
@@ -145,26 +159,22 @@ async fn interact(g: &Generators, body: &Value, timeout: Duration) -> Result<Val
     while status(&value).is_some_and(pending) {
         if started.elapsed() > timeout {
             bail!(
-                "AI Studio did not finish within {} seconds",
+                "{label} did not finish within {} seconds",
                 timeout.as_secs()
             );
         }
         let id = value["id"]
             .as_str()
             .or(value["name"].as_str())
-            .context("Unfinished interaction without an id")?
-            .to_string();
-        let url = if id.starts_with("interactions/") {
-            format!("{BASE}/v1beta/{id}")
-        } else {
-            format!("{BASE}/v1beta/interactions/{id}")
-        };
+            .context("Unfinished interaction without an id")?;
+        // The id may come as `interactions/<id>` or as the whole resource name.
+        let poll = format!("{url}/{}", id.rsplit('/').next().unwrap_or(id));
         tokio::time::sleep(Duration::from_secs(2)).await;
         value = g
-            .send(Provider::AiStudio, || {
+            .send(provider, || {
                 g.http
-                    .get(&url)
-                    .header("x-goog-api-key", key.expose())
+                    .get(&poll)
+                    .header("x-goog-api-key", key)
                     .timeout(Duration::from_secs(60))
             })
             .await?
@@ -177,7 +187,7 @@ async fn interact(g: &Generators, body: &Value, timeout: Duration) -> Result<Val
             .as_str()
             .or(value["error"].as_str())
             .unwrap_or("no details");
-        bail!("AI Studio interaction {state}: {}", g.keys.redact(detail));
+        bail!("{label} interaction {state}: {}", g.keys.redact(detail));
     }
     Ok(value)
 }
@@ -303,7 +313,7 @@ fn collect<'a>(value: &'a Value, matches: &dyn Fn(&Value) -> bool, out: &mut Vec
     }
 }
 
-fn audio(response: &Value) -> Result<Vec<u8>> {
+pub(super) fn audio(response: &Value) -> Result<Vec<u8>> {
     let mut blocks = Vec::new();
     for scope in outputs(response) {
         collect(
@@ -313,19 +323,24 @@ fn audio(response: &Value) -> Result<Vec<u8>> {
         );
     }
     let block = blocks.last().context(
-        "AI Studio returned no audio. Check the model ID and the text against models.md",
+        "Google returned no audio. Check the model ID and the text against the provider file",
     )?;
-    let bytes = B64
-        .decode(block["data"].as_str().unwrap_or_default())
-        .context("AI Studio audio is not valid base64")?;
-    if sniff(&bytes) != "bin" {
-        return Ok(bytes);
-    }
-    // Headerless PCM (audio/l16): wrap it at the rate the MIME type names.
     let mime = block["mime_type"]
         .as_str()
         .or(block["mimeType"].as_str())
         .unwrap_or_default();
+    decode(block["data"].as_str().unwrap_or_default(), mime)
+}
+
+/// Base64 audio as a file: as it came when it has a header, else headerless PCM (audio/l16)
+/// wrapped at the rate its MIME type names.
+pub(super) fn decode(data: &str, mime: &str) -> Result<Vec<u8>> {
+    let bytes = B64
+        .decode(data)
+        .context("Google's audio is not valid base64")?;
+    if sniff(&bytes) != "bin" {
+        return Ok(bytes);
+    }
     let rate = mime
         .split(';')
         .find_map(|part| part.trim().strip_prefix("rate="))
@@ -367,7 +382,7 @@ fn transcript(response: &Value) -> (String, Vec<Word>) {
 }
 
 /// Durations come as "0.100s", as numbers or as {seconds, nanos}.
-fn offset(value: &Value) -> Option<f64> {
+pub(super) fn offset(value: &Value) -> Option<f64> {
     match value {
         Value::String(text) => text.trim().trim_end_matches('s').parse().ok(),
         Value::Number(number) => number.as_f64(),

@@ -140,22 +140,34 @@ export interface Tool {
   command?: string | null;
 }
 export interface KeyRow {
-  name: 'GEMINI_API_KEY' | 'OPENROUTER_API_KEY';
+  name: 'GEMINI_API_KEY' | 'OPENROUTER_API_KEY' | 'GOOGLE_CLOUD_API_KEY' | 'OPENAI_API_KEY';
   title: string;
   recommended: boolean;
   present: boolean;
   source: 'app' | 'file' | 'environment' | null;
   get: string;
-  /** The models this provider's key is used with by default; dictation as the user chose it. */
-  models: { voice: string; timings: string; music: string; dictation: string };
-  /** The dictation model: the usual one, the setting that changes it, and whether it did. */
-  dictation: { usual: string; setting: 'dictationAiStudio' | 'dictationOpenRouter'; own: boolean };
+  /** For few users: folded away in Setup until it holds a key. */
+  more: boolean;
+  /** The models this provider's key is used with by default; OpenAI's only dictates. */
+  models: { voice?: string; timings?: string; music?: string; dictation: string };
+  /** Google Cloud: where requests go. `fixed` when the environment or a .env file sets it. */
+  place?: { project: string | null; location: string; servedIn: string; fixed: boolean };
+  /** OpenAI: the region of its address. */
+  region?: 'global' | 'eu';
+}
+/** The models a film and a dictation use when the user names none. */
+export interface UsualModels {
+  narration: string;
+  voice: string;
+  transcription: string;
+  music: string;
+  dictation: string;
 }
 /** What a dictation came back as: the text, and the model and route that wrote it down. */
 export interface Dictation {
   text: string;
   model: string;
-  route: 'aiStudio' | 'openRouter';
+  route: 'aiStudio' | 'openRouter' | 'googleCloud' | 'openAi';
 }
 /** What asking the provider about a saved key found. */
 export interface KeyCheck {
@@ -192,9 +204,17 @@ export interface Settings {
   follow: boolean;
   /** The language of the app itself; null follows the system. */
   uiLanguage: string | null;
-  /** Model IDs for dictation, per route; null uses the usual one. */
-  dictationAiStudio: string | null;
-  dictationOpenRouter: string | null;
+  /** Models a pro chose; null keeps the usual ones. */
+  narrationModel: string | null;
+  narrationVoice: string | null;
+  transcriptionModel: string | null;
+  musicModel: string | null;
+  dictationModel: string | null;
+  /** Google Cloud: the project (null: express mode) and its region (null: eu). */
+  googleCloudProject: string | null;
+  googleCloudLocation: 'eu' | 'us' | 'global' | null;
+  /** OpenAI: null is global. */
+  openAiRegion: 'global' | 'eu' | null;
 }
 export interface Style {
   name: string;
@@ -234,7 +254,15 @@ export interface Overview {
   setup: {
     tools: Tool[];
     keys: KeyRow[];
-    can: { picture: boolean; voice: boolean; music: boolean; soundEffects: boolean };
+    can: {
+      picture: boolean;
+      voice: boolean;
+      music: boolean;
+      soundEffects: boolean;
+      /** Any key, OpenAI's too: the start page can write down what is said. */
+      dictate: boolean;
+    };
+    models: UsualModels;
     agents: Agent[];
   };
   settings: Settings;

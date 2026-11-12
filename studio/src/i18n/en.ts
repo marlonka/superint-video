@@ -107,16 +107,40 @@ export const en = {
   'setup.models.timings': 'Word timings',
   'setup.models.music': 'Music',
   'setup.models.dictation': 'Dictation',
-  'setup.dictation.own': '{model} (your choice)',
-  'setup.dictation.change': 'Change the dictation model',
-  'setup.dictation.changeFor': 'Change the dictation model for {provider}',
-  'setup.dictation.label': 'Dictation model for {provider}',
-  'setup.dictation.hint.GEMINI_API_KEY':
-    'A model ID as Google AI Studio writes it, such as {model}. Empty uses {model}.',
-  'setup.dictation.hint.OPENROUTER_API_KEY':
-    'A model ID as OpenRouter writes it, with its vendor, such as {model}. Empty uses {model}.',
-  'setup.dictation.usual': 'Use the usual model',
-  'setup.dictation.saved': 'Dictation now uses {model}',
+  'setup.key.GOOGLE_CLOUD_API_KEY.why':
+    'The same Google models through your Google Cloud project (Gemini Enterprise Agent Platform), billed there and under its terms. While this key is here, it takes the place of AI Studio.',
+  'setup.key.OPENAI_API_KEY.why':
+    'Only for speaking instead of typing, with gpt-transcribe. A film needs one of the other keys.',
+  'setup.more.toggle': 'More providers: {providers}',
+  'setup.cloud.express':
+    'Express mode: Google serves it globally. For the eu region, add the project ID.',
+  'setup.cloud.place': 'Project {project}, region {location}.',
+  'setup.cloud.fixed': 'Set by GOOGLE_CLOUD_PROJECT or GOOGLE_CLOUD_LOCATION.',
+  'setup.cloud.change': 'Project and region',
+  'setup.cloud.changeFor': 'Project and region for Google Cloud',
+  'setup.cloud.project': 'Project ID',
+  'setup.cloud.location': 'Region',
+  'setup.cloud.location.eu': 'eu: European Union',
+  'setup.cloud.location.us': 'us: United States',
+  'setup.cloud.location.global': 'global: anywhere',
+  'setup.cloud.hint':
+    'With a project, voice, word timings and dictation are made in the region. Without one, an express-mode key is served globally. Music (Lyria 3) is served globally only.',
+  'setup.cloud.saved': 'Google Cloud: saved',
+  'setup.openai.eu': 'Process in the EU (eu.api.openai.com)',
+  'setup.openai.euHint': 'For an OpenAI project with data residency in Europe.',
+  'setup.openai.saved': 'OpenAI now goes to {address}',
+  'setup.models.title': 'Models',
+  'setup.models.why':
+    'For pros: which model does which job. Empty fields keep the usual models, chosen by your keys.',
+  'setup.models.usual': 'The usual models.',
+  'setup.models.own': 'Your choice: {list}.',
+  'setup.models.change': 'Choose models',
+  'setup.models.field.narration': 'Voice: model',
+  'setup.models.field.voice': 'Voice: name',
+  'setup.models.hint':
+    "IDs as the provider writes them. gemini-… and lyria-… are Google's, through Google Cloud while its key is here, else AI Studio. vendor/model goes through OpenRouter. gpt-… is OpenAI's, for dictation only. They apply to new films; a film can still name others.",
+  'setup.models.reset': 'Back to the usual models',
+  'setup.models.saved': 'Models saved',
   'setup.key.source.app': 'Saved on this computer.',
   'setup.key.source.file': 'Found in a .env file. To change it, edit that file.',
   'setup.key.source.environment':
@@ -126,6 +150,9 @@ export const en = {
   'setup.key.check.works': 'The API key works.',
   'setup.key.check.worksAll':
     'The API key works: voice, word timings, music and dictation are reachable.',
+  'setup.key.check.worksCloud':
+    'The API key works: voice, word timings and dictation are reachable. Music is only asked when it is made.',
+  'setup.key.check.worksDictation': 'The API key works: dictation is reachable.',
   'setup.key.check.credit': 'The API key works. {amount} of its limit is left.',
   'setup.key.check.partial': 'The API key works, but it does not reach {models}.',
   'setup.key.check.refused': 'The provider did not accept the API key: {detail}',

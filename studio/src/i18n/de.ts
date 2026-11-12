@@ -105,16 +105,40 @@ export const de: Catalog = {
   'setup.models.timings': 'Wort-Zeitpunkte',
   'setup.models.music': 'Musik',
   'setup.models.dictation': 'Diktat',
-  'setup.dictation.own': '{model} (eigene Wahl)',
-  'setup.dictation.change': 'Diktiermodell ändern',
-  'setup.dictation.changeFor': 'Diktiermodell für {provider} ändern',
-  'setup.dictation.label': 'Diktiermodell für {provider}',
-  'setup.dictation.hint.GEMINI_API_KEY':
-    'Eine Modell-ID, wie Google AI Studio sie schreibt, etwa {model}. Leer nimmt {model}.',
-  'setup.dictation.hint.OPENROUTER_API_KEY':
-    'Eine Modell-ID, wie OpenRouter sie schreibt, mit Anbieter, etwa {model}. Leer nimmt {model}.',
-  'setup.dictation.usual': 'Standardmodell nehmen',
-  'setup.dictation.saved': 'Diktat nutzt jetzt {model}',
+  'setup.key.GOOGLE_CLOUD_API_KEY.why':
+    'Dieselben Google-Modelle über dein Google-Cloud-Projekt (Gemini Enterprise Agent Platform), dort abgerechnet und zu dessen Bedingungen. Solange dieser Schlüssel da ist, nimmt er den Platz von AI Studio ein.',
+  'setup.key.OPENAI_API_KEY.why':
+    'Nur zum Sprechen statt Tippen, mit gpt-transcribe. Für einen Film braucht es einen der anderen Schlüssel.',
+  'setup.more.toggle': 'Weitere Anbieter: {providers}',
+  'setup.cloud.express':
+    'Express-Modus: Google verarbeitet global. Für die Region eu die Projekt-ID eintragen.',
+  'setup.cloud.place': 'Projekt {project}, Region {location}.',
+  'setup.cloud.fixed': 'Vorgegeben durch GOOGLE_CLOUD_PROJECT oder GOOGLE_CLOUD_LOCATION.',
+  'setup.cloud.change': 'Projekt und Region',
+  'setup.cloud.changeFor': 'Projekt und Region für Google Cloud',
+  'setup.cloud.project': 'Projekt-ID',
+  'setup.cloud.location': 'Region',
+  'setup.cloud.location.eu': 'eu: Europäische Union',
+  'setup.cloud.location.us': 'us: USA',
+  'setup.cloud.location.global': 'global: weltweit',
+  'setup.cloud.hint':
+    'Mit Projekt entstehen Stimme, Wort-Zeitpunkte und Diktat in der Region. Ohne Projekt verarbeitet Google einen Schlüssel aus dem Express-Modus global. Musik (Lyria 3) gibt es nur global.',
+  'setup.cloud.saved': 'Google Cloud: gespeichert',
+  'setup.openai.eu': 'In der EU verarbeiten (eu.api.openai.com)',
+  'setup.openai.euHint': 'Für ein OpenAI-Projekt mit Datenresidenz in Europa.',
+  'setup.openai.saved': 'OpenAI geht jetzt an {address}',
+  'setup.models.title': 'Modelle',
+  'setup.models.why':
+    'Für Profis: welches Modell welche Aufgabe übernimmt. Leere Felder behalten die Standardmodelle, je nach Schlüssel.',
+  'setup.models.usual': 'Die Standardmodelle.',
+  'setup.models.own': 'Eigene Wahl: {list}.',
+  'setup.models.change': 'Modelle wählen',
+  'setup.models.field.narration': 'Stimme: Modell',
+  'setup.models.field.voice': 'Stimme: Name',
+  'setup.models.hint':
+    'IDs so, wie der Anbieter sie schreibt. gemini-… und lyria-… sind von Google, über Google Cloud, solange dessen Schlüssel da ist, sonst über AI Studio. anbieter/modell geht über OpenRouter. gpt-… ist von OpenAI und nur fürs Diktat. Gilt für neue Filme; ein Film kann trotzdem andere nennen.',
+  'setup.models.reset': 'Zurück zu den Standardmodellen',
+  'setup.models.saved': 'Modelle gespeichert',
   'setup.key.source.app': 'Auf diesem Rechner gespeichert.',
   'setup.key.source.file': 'In einer .env-Datei gefunden. Zum Ändern die Datei bearbeiten.',
   'setup.key.source.environment': 'Als Umgebungsvariable gesetzt. Zum Ändern die Variable ändern.',
@@ -123,6 +147,9 @@ export const de: Catalog = {
   'setup.key.check.works': 'Der API-Schlüssel funktioniert.',
   'setup.key.check.worksAll':
     'Der API-Schlüssel funktioniert: Stimme, Wort-Zeitpunkte, Musik und Diktat sind erreichbar.',
+  'setup.key.check.worksCloud':
+    'Der API-Schlüssel funktioniert: Stimme, Wort-Zeitpunkte und Diktat sind erreichbar. Musik wird erst gefragt, wenn sie entsteht.',
+  'setup.key.check.worksDictation': 'Der API-Schlüssel funktioniert: Diktat ist erreichbar.',
   'setup.key.check.credit': 'Der API-Schlüssel funktioniert. Vom Limit sind noch {amount} übrig.',
   'setup.key.check.partial': 'Der API-Schlüssel funktioniert, erreicht aber {models} nicht.',
   'setup.key.check.refused': 'Der Anbieter hat den API-Schlüssel nicht angenommen: {detail}',

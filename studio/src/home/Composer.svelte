@@ -104,7 +104,7 @@
         bind:this={field}
         bind:value={topic}
         onblur={() => (caret = [field.selectionStart, field.selectionEnd])}></textarea>
-      <Dictate available={overview.setup.can.voice} oninsert={insert} bind:active={dictating} />
+      <Dictate available={overview.setup.can.dictate} oninsert={insert} bind:active={dictating} />
     </div>
     <div class="composer-options">
       <label
