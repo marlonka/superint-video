@@ -1,6 +1,6 @@
 # Versionsverlauf
 
-## Unveröffentlicht
+## 0.5.0 — 2026-11-12
 
 - **Eigenen Stil erstellen:** Unter „Stile“ steht vorne „Neuen Stil erstellen“, an der Stelle der Karte „Neutral“; den neutralen Stil gibt es unter „Neuer Film“ weiter. Bis zu 12 Bilder hineinziehen, einfügen oder auswählen, den Look tippen oder einsprechen, einen Namen geben, „Stil erstellen“. Ein Modell deines API-Schlüssels sieht sich die Bilder an und schreibt den Look als Regeln auf: Farben, Schrift aus den mitgelieferten Schriften, Formen, Licht, Bewegung, Bildaufbau, was dazugehört und was nicht. Nach ein bis zwei Minuten steht der Stil als Karte bei deinen Stilen, mit den Bildern als Referenzen und mit „Als Standard“. Er hält fest, wie etwas aussieht, und übernimmt keine Motive, Logos oder Figuren.
 - **Aus einem Film einen Stil machen:** Das Menü „⋯“ eines Films hat „Daraus einen Stil machen“. Dasselbe Modell liest `STYLE.md`, `direction.md` und das Kit des Films, sieht sich seine Referenzen und Standbilder an und schreibt daraus einen Stil für andere Themen; was nur zum Thema des Films gehört, bleibt draußen. Kit, Zeichenbibliotheken und Bausteine des Films kommen mit.
