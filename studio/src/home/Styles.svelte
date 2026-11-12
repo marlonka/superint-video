@@ -20,6 +20,7 @@
     styleFilm,
   } from './session';
   import StyleMaker from './StyleMaker.svelte';
+  import StylePictures from './StylePictures.svelte';
 
   export let overview: Overview;
 
@@ -103,6 +104,15 @@
     openMaker(null, [...event.dataTransfer.files]);
   }
 
+  /** The pictures made for a style's card, else its first references. */
+  function pictures(style: Style) {
+    const [folder, files] = style.preview.length
+      ? ['preview', style.preview]
+      : ['reference', style.references];
+    return files.map(
+      (file) => `/api/app/styles/${style.name}/${folder}/${encodeURIComponent(file)}`,
+    );
+  }
   function facts(style: Style) {
     return [
       style.formats.join(', '),
@@ -247,18 +257,15 @@
     {#each ordered as style (style.name)}
       {@const chosen = settings.preset === style.name}
       {@const text = styleText(style, $locale)}
+      {@const sources = pictures(style)}
       <li class="style" class:chosen data-style={style.name}>
-        <div class="style-pictures">
-          {#each style.references.slice(0, 3) as reference (reference)}<img
-              src={`/api/app/styles/${style.name}/reference/${encodeURIComponent(reference)}`}
-              alt=""
-              loading="lazy"
-            />{:else}<button
+        <StylePictures {sources}
+          >{#if !sources.length}<button
               class="text-link"
               onclick={() => reveal(`/api/app/styles/${style.name}/reveal`)}
               >{$t('style.menu.references')}</button
-            >{/each}
-        </div>
+            >{/if}</StylePictures
+        >
         <strong class="style-title">{text.title}</strong>
         <p class="style-description">{text.description}</p>
         <span class="style-facts">{facts(style)}</span>

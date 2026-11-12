@@ -277,7 +277,10 @@ export interface Style {
   voice?: string | null;
   music: boolean;
   own: boolean;
+  /** Reference pictures, by file name. */
   references: string[];
+  /** The pictures made for the style's card, by file name; empty for most of the user's own. */
+  preview: string[];
 }
 export interface Film {
   id: string;

@@ -1,6 +1,6 @@
 # Style presets and references
 
-A preset is a folder that defines a look: format options, defaults, art direction (`STYLE.md`), helper code, ready-made scenes and reference stills. `superint-video new` copies the whole preset into the project, so later changes to the preset never alter existing projects.
+A preset is a folder that defines a look: format options, defaults, art direction (`STYLE.md`), helper code, ready-made scenes and reference stills. `superint-video new` copies the whole preset into the project, all but the pictures of its card in the app, so later changes to the preset never alter existing projects.
 
 A preset is only the look. How a film is planned, written and cut comes from the workflow skill, so one preset serves an explainer and a launch film alike, and one workflow works in any preset.
 
@@ -68,13 +68,14 @@ Ask the user for references when a preset has none. Screenshots of other people'
   video.json       # required: starter manifest (tracks, title clip, background)
   STYLE.md         # the look contract the agent follows
   references/      # stills and clips of the target look (optional)
+  preview/         # up to three 16:9 pictures for the style's card in the app (optional)
   kit/             # theme.css, kit.js, fonts/ (OFL or similar, local only)
   blocks/          # scenes to copy into scenes/
   scenes/          # scenes the starter manifest uses
   scenes/lib/      # drawing libraries the scenes import
 ```
 
-Any other files are copied as well.
+Any other files are copied as well, except `preview/`: those pictures only show the style in the app, take turns on its card and are never compared against. A style without them shows its first references there.
 
 ## preset.json
 

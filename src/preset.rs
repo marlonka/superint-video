@@ -23,6 +23,15 @@ const MOST_IMPORT_FILES: usize = 4000;
 const MOST_IMPORT_BYTES: u64 = 512 * 1024 * 1024;
 /// Folder of reference stills in a preset and in a project.
 pub const REFERENCES: &str = "references";
+/// Folder of the pictures on a style's card in the app, shown in turn. They are not references,
+/// so the agent never measures against them, and projects do not get them.
+pub const PREVIEW: &str = "preview";
+
+/// Whether a preset file lies in one of its top folders.
+fn in_folder(file: &str, folder: &str) -> bool {
+    file.strip_prefix(folder)
+        .is_some_and(|rest| rest.starts_with('/'))
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -350,9 +359,31 @@ impl Preset {
         Ok(())
     }
 
+    /// The pictures on the style's card, by file name, in order: the direct contents of
+    /// `preview/`. Empty for a style without its own; the app then shows its first references.
+    pub fn previews(&self) -> Vec<&str> {
+        self.files
+            .keys()
+            .filter_map(|file| file.strip_prefix(PREVIEW)?.strip_prefix('/'))
+            .filter(|file| !file.contains('/') && *file != "README.md")
+            .collect()
+    }
+
+    /// Leaves out the references and the card pictures: they show the look this preset came
+    /// with, and a style made from it brings its own.
+    pub(crate) fn drop_pictures(&mut self) {
+        self.files
+            .retain(|file, _| !in_folder(file, REFERENCES) && !in_folder(file, PREVIEW));
+    }
+
     /// Writes every preset file below `root`. Existing files are an error.
     pub fn write_to(&self, root: &Path) -> Result<()> {
-        for (relative, bytes) in &self.files {
+        self.write_where(root, |_| true)
+    }
+
+    /// Writes the preset files `keep` takes below `root`. Existing files are an error.
+    fn write_where(&self, root: &Path, keep: impl Fn(&str) -> bool) -> Result<()> {
+        for (relative, bytes) in self.files.iter().filter(|(file, _)| keep(file)) {
             let target = root.join(relative);
             if target.exists() {
                 bail!("Refusing to overwrite {}", target.display());
@@ -461,6 +492,22 @@ pub fn reference(name: &str, file: &str) -> Result<Vec<u8>> {
         .get_file(format!("{name}/{REFERENCES}/{file}"))
         .map(|found| found.contents().to_vec())
         .context("No such reference")
+}
+
+/// One picture of a style's card, without loading the rest of it: the user's style's own,
+/// else the built-in one's.
+pub fn preview(name: &str, file: &str) -> Result<Vec<u8>> {
+    valid_name(name)?;
+    if !reference_file_name(file) {
+        bail!("Not a preview file name");
+    }
+    if let Some(own) = user_dir().map(|d| d.join(name)).filter(|d| d.is_dir()) {
+        return fs::read(own.join(PREVIEW).join(file)).context("No such preview picture");
+    }
+    BUILTIN
+        .get_file(format!("{name}/{PREVIEW}/{file}"))
+        .map(|found| found.contents().to_vec())
+        .context("No such preview picture")
 }
 
 /// The folder where the user adds reference pictures to a preset; created if missing.
@@ -750,7 +797,8 @@ pub fn create_project(
     }
 
     fs::create_dir_all(directory)?;
-    preset.write_to(directory)?;
+    // The card pictures belong to the app's list of styles, not to a film.
+    preset.write_where(directory, |file| !in_folder(file, PREVIEW))?;
     copy_references(&brief.references, &directory.join(REFERENCES))?;
     let references = Preset::from_dir_files(&directory.join(REFERENCES))?;
     for folder in ["assets", "renders"] {
@@ -986,6 +1034,29 @@ mod tests {
     }
 
     #[test]
+    fn builtin_styles_show_three_pictures_of_their_own() {
+        for name in ["flat-explainer", "launch", "miniature-3d"] {
+            let mut preset = Preset::builtin(name).unwrap();
+            let previews = preset.previews();
+            assert_eq!(previews.len(), 3, "{name}");
+            for file in previews {
+                let bytes = &preset.files[&format!("{PREVIEW}/{file}")];
+                let picture = image::load_from_memory(bytes).unwrap();
+                assert_eq!(picture.width() * 9, picture.height() * 16, "{name}/{file}");
+                assert!(
+                    bytes.len() < 200 * 1024,
+                    "{name}/{file} is too heavy for a card"
+                );
+            }
+            // They are not references, so the agent never measures against them.
+            assert!(preset.references().iter().all(|r| !in_folder(r, PREVIEW)));
+            // A style made from this one shows its own pictures, not these.
+            preset.drop_pictures();
+            assert!(preset.previews().is_empty() && preset.references().is_empty());
+        }
+    }
+
+    #[test]
     fn new_project_applies_format_length_and_topic() {
         let dir = TempDir::new().unwrap();
         let root = dir.path().join("Projekt mit Ümlaut");
@@ -1025,6 +1096,8 @@ mod tests {
         // The user may have added references to the built-in preset; ours is among them.
         assert!(result["references"].as_u64().unwrap() >= 1);
         assert!(root.join("references/look.png").is_file());
+        // The style's card pictures stay with the style.
+        assert!(!root.join(PREVIEW).exists());
         assert!(brief.contains("## Must include\n\nDie Glymphatik"));
         assert!(brief.contains("## Message\n\nWer zu wenig schläft, räumt sein Gehirn nicht auf"));
         // 3 s of German narration at 140 words per minute.
