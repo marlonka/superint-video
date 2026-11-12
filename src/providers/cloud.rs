@@ -85,11 +85,12 @@ impl Place {
         }
     }
 
-    /// The Interactions API in `global`, where Lyria 3 is served.
+    /// The Interactions API in `global`, where Lyria 3 is served. `v1beta1`: on 2026-11-12 the
+    /// `v1` address answered Lyria with a completed interaction that carried no audio.
     pub fn interactions_url(&self) -> String {
         match &self.project {
             Some(project) => {
-                format!("https://{HOST}/v1/projects/{project}/locations/global/interactions")
+                format!("https://{HOST}/v1beta1/projects/{project}/locations/global/interactions")
             }
             None => format!("https://{HOST}/v1beta1/locations/global/interactions"),
         }
@@ -366,7 +367,7 @@ mod tests {
         // Lyria 3 is served globally only.
         assert_eq!(
             place(Some("films-1"), "eu").interactions_url(),
-            "https://aiplatform.googleapis.com/v1/projects/films-1/locations/global/interactions"
+            "https://aiplatform.googleapis.com/v1beta1/projects/films-1/locations/global/interactions"
         );
         assert_eq!(place(Some("films-1"), "us").served_in(), "us");
         assert_eq!(place(None, "eu").served_in(), "global");

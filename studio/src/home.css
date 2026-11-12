@@ -653,9 +653,18 @@
   font-size: 14px;
 }
 .composer-options select,
+.composer-options input[type='text'],
 .default-fields select,
 .default-fields input[type='text'] {
   width: 100%;
+}
+/* What a typed length is understood as, or how to write one. */
+.length-note {
+  color: var(--secondary);
+  font-size: 13px;
+}
+.length-note.failed {
+  color: var(--error);
 }
 .composer-prompt {
   display: flex;

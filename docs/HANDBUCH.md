@@ -65,7 +65,7 @@ Fehlt Chrome oder FFmpeg, öffnet „Installieren“ ein sichtbares Terminal-Fen
 Die Startseite hat vier Teile:
 
 - **Einrichtung** ist derselbe Teil, zusammengefaltet auf eine Zeile, sobald alles da ist.
-- **Neuer Film** baut den Prompt für den Coding-Agenten: Thema eintippen oder mit „Sprechen“ einsprechen, bei Bedarf Stil, Länge, Format und Sprache wählen, „Prompt kopieren“, in Claude Code oder ChatGPT Codex einfügen. Sobald der Agent den Film anlegt, wechselt die Startseite von selbst dorthin.
+- **Neuer Film** baut den Prompt für den Coding-Agenten: Thema eintippen oder über das Mikrofon einsprechen, bei Bedarf Stil, Länge, Format und Sprache wählen, „Prompt kopieren“, in Claude Code, ChatGPT Codex oder Google Antigravity einfügen. Die Länge tippst du frei oder wählst einen Vorschlag: „3 min“, „90 s“, „2:30“ oder nur eine Zahl für Minuten, bis 60 Minuten; darunter steht, wie die App sie versteht. Sobald der Agent den Film anlegt, wechselt die Startseite von selbst dorthin.
 - **Filme** listet die Filme auf diesem Rechner mit ihrem Stand: der aktuelle Schritt, ein laufender Render, fertig. Dazu gehört jeder Film, den der Agent anlegt oder dessen Studio einmal offen war, und alles, was im Filme-Ordner liegt. „Von der Liste nehmen“ nimmt einen Film nur von der Liste; der Ordner bleibt.
 - **Vorgaben** legt fest, womit ein neuer Film beginnt, wenn der Prompt es nicht sagt: Stil, Länge, Format, Sprache und der Filme-Ordner. Ein Prompt hat immer Vorrang. Jede Stil-Karte hat „Als Standard“ und ein Menü „⋯“: „Referenzbilder hinzufügen“ (öffnet den Ordner für eigene Referenzbilder), „Kopie anlegen“ (eine eigene Fassung zum Verändern) und „Als Datei exportieren“. „Stil importieren“ über den Karten nimmt eine solche Datei an.
 

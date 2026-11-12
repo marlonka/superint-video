@@ -2,6 +2,9 @@
 
 ## Unveröffentlicht
 
+- **Länge frei eingeben:** Unter „Neuer Film“ ist die Länge ein Feld mit Vorschlägen bis 20 Minuten statt einer festen Liste bis 5 Minuten. Es versteht „3 min“, „90 s“, „1 min 30 s“, „2:30“, „1,5 min“ und eine bloße Zahl als Minuten, bis 60 Minuten, und sagt darunter, wie es die Eingabe versteht.
+- **Musik über Google Cloud:** Lyria 3 Pro antwortet nur über die `v1beta1`-Adresse der Interactions API mit dem Audio; unter `v1` kam eine abgeschlossene Antwort ohne Ton. Live getestet mit Google-Anmeldung (ADC): Prüfung, Diktat, Stimme mit Stil, Wort-Zeitpunkte und Musik.
+
 - **Google Antigravity als Coding-Agent:** Die Einrichtung erkennt Antigravity (App oder CLI) und kopiert die Superint-Skills mit einem Klick nach `%USERPROFILE%\.gemini\config\skills`, wo App und CLI sie finden. Der Auftrag für Earshot heißt jetzt „Auftrag für deinen Coding-Agenten kopieren“.
 
 - **Google Cloud mit Google-Anmeldung:** „Mit Google anmelden (ADC)“ ist jetzt der empfohlene Weg zu Google Cloud, Googles Application Default Credentials statt eines API-Schlüssels. Ein Fenster holt bei Bedarf die Google Cloud CLI über winget und öffnet `gcloud auth application-default login` im Browser; die App holt sich danach kurzlebige Zugangsschlüssel für dein Konto und speichert selbst nichts davon. Gebraucht wird eine Projekt-ID (Einrichtung, `GOOGLE_CLOUD_PROJECT` oder das Abrechnungsprojekt der Anmeldung). Der API-Schlüssel bleibt als „Stattdessen einen API-Schlüssel eintragen“ und geht vor, wenn einer gespeichert ist.

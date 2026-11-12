@@ -5,7 +5,7 @@
   import { format, lengthLabel, locale, t, type Formats, type Translate } from '../i18n';
   import type { Overview } from '../types';
   import { tick } from 'svelte';
-  import { FILM_LANGUAGES, FORMATS, LENGTHS, styleText } from './choices';
+  import { FILM_LANGUAGES, FORMATS, LENGTHS, parseLength, styleText } from './choices';
   import Dictate from './Dictate.svelte';
   import { copyText, fail } from './session';
 
@@ -13,6 +13,10 @@
 
   let topic = '';
   let pick = { preset: '', seconds: '', format: '', language: '' };
+  /** The length as typed or picked; the prompt takes the seconds it stands for. */
+  let lengthText = '';
+  $: lengthSeconds = parseLength(lengthText);
+  $: pick.seconds = lengthSeconds ? String(lengthSeconds) : '';
   let copied = false;
   let field: HTMLTextAreaElement;
   /** Where the cursor was when the field was left: dictated text goes there. */
@@ -122,17 +126,32 @@
       >
       <label
         ><span>{$t('field.length')}</span>
-        <select bind:value={pick.seconds}>
-          <option value=""
-            >{inherited(
-              settings.seconds ? lengthLabel(settings.seconds) : null,
-              pickedStyle ? lengthLabel(pickedStyle.seconds) : null,
-            )}</option
-          >
-          {#each LENGTHS as seconds (seconds)}<option value={String(seconds)}
-              >{lengthLabel(seconds)}</option
-            >{/each}
-        </select></label
+        <!-- Typed or picked: "3 min", "90 s", "2:30", or minutes alone. Empty keeps the default. -->
+        <input
+          type="text"
+          list="film-lengths"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder={inherited(
+            settings.seconds ? lengthLabel(settings.seconds) : null,
+            pickedStyle ? lengthLabel(pickedStyle.seconds) : null,
+          )}
+          aria-invalid={!!lengthText.trim() && !lengthSeconds}
+          aria-describedby="length-note"
+          bind:value={lengthText}
+        />
+        <datalist id="film-lengths"
+          >{#each LENGTHS as seconds (seconds)}<option value={lengthLabel(seconds)}
+            ></option>{/each}</datalist
+        >
+        {#if lengthText.trim() && (!lengthSeconds || lengthLabel(lengthSeconds) !== lengthText.trim())}<small
+            id="length-note"
+            class="length-note"
+            class:failed={!lengthSeconds}
+            >{lengthSeconds
+              ? $t('compose.lengthIs', { length: lengthLabel(lengthSeconds) })
+              : $t('compose.lengthHelp')}</small
+          >{/if}</label
       >
       <label
         ><span>{$t('field.format')}</span>

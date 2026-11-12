@@ -56,6 +56,8 @@ await writeFile(path.join(tempRoot, 'empty.env'), '');
 const isolated = {
   ...process.env,
   SUPERINT_HOME: homePath,
+  // A Google sign-in on this machine would count as a Google Cloud key; point at none.
+  GOOGLE_APPLICATION_CREDENTIALS: path.join(tempRoot, 'no-google-sign-in.json'),
   SUPERINT_ENV: path.join(tempRoot, 'empty.env'),
   SUPERINT_FILMS: path.join(tempRoot, 'films'),
   SUPERINT_PRESETS: path.join(tempRoot, 'styles'),
@@ -63,6 +65,9 @@ const isolated = {
   GEMINI_API_KEY: '',
   GOOGLE_API_KEY: '',
   OPENROUTER_API_KEY: '',
+  OPENAI_API_KEY: '',
+  GOOGLE_CLOUD_API_KEY: '',
+  GOOGLE_CLOUD_PROJECT: '',
 };
 const server = spawn(binary, ['studio', projectPath, '--port', '0', '--no-open'], {
   windowsHide: true,

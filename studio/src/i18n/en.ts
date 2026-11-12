@@ -192,6 +192,8 @@ export const en = {
   'compose.title': 'New film',
   'compose.lead': 'Describe the film, copy the prompt and paste it into {agents}.',
   'compose.placeholder': 'What should the film be about? One or two sentences are enough.',
+  'compose.lengthIs': 'So {length}',
+  'compose.lengthHelp': 'For example 3 min, 90 s or 2:30, at most 60 min',
   'compose.topicLabel': 'What the film is about',
   'compose.style.ask': 'Let the agent ask',
   'compose.promptLabel': 'The prompt for your coding agent',

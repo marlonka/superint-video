@@ -189,6 +189,8 @@ export const de: Catalog = {
   'compose.title': 'Neuer Film',
   'compose.lead': 'Beschreib den Film, kopiere den Prompt und füge ihn in {agents} ein.',
   'compose.placeholder': 'Worum soll es im Film gehen? Ein, zwei Sätze genügen.',
+  'compose.lengthIs': 'Also {length}',
+  'compose.lengthHelp': 'Zum Beispiel 3 min, 90 s oder 2:30, höchstens 60 min',
   'compose.topicLabel': 'Worum es im Film geht',
   'compose.style.ask': 'Der Agent fragt nach',
   'compose.promptLabel': 'Der Prompt für deinen Coding-Agenten',
