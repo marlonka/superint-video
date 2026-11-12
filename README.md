@@ -72,6 +72,12 @@ Der Agent fragt nur nach, was er nicht selbst gut entscheiden kann, etwa Screens
 - **Ton, der sitzt.** Mehrere Takes pro Absatz, transkribiert und gegen das Skript gemessen. Die Musik folgt einer Zeitleiste aus den echten Wortzeiten, die Klänge sitzen auf ihren Frames, das Master liegt bei −14 LUFS.
 - **Selbst Hand anlegen.** Text, Timing und Medien änderst du im Studio auf einer Timeline, mit Undo, Tastenkürzeln und Export. Dein Agent sieht die Änderungen sofort.
 
+<p align="center">
+  <a href="https://github.com/marlonka/superint-video/releases/download/v0.3.0/superint-video-launch.mp4"><img src="docs/images/launch-film.jpg" alt="Ein Bild aus dem Launch-Film: die Zeile „Im Studio siehst du jeden Schritt.“ über dem weich gezeichneten Studio" width="100%"></a>
+  <br>
+  <sub><a href="https://github.com/marlonka/superint-video/releases/download/v0.3.0/superint-video-launch.mp4">Den Launch-Film ansehen</a> (32 s, mit Ton). Superint Video hat ihn selbst gemacht, im Stil <code>launch</code>.</sub>
+</p>
+
 ## Die App
 
 Ein Doppelklick auf `Superint Video.exe` öffnet die Startseite. Sie spricht Deutsch und Englisch.

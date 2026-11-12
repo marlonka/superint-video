@@ -1,6 +1,6 @@
 # Beats
 
-Musik: `audio/music/cue.wav`, aus Variante 2 auf Taktgrenzen geschnitten (`process/cut-music.py`), 120,04 BPM, F-Dur. Ein Takt = 1,9993 s, ein Schlag = 0,4998 s; Takt 0 beginnt bei Bild 0. Der Kritiker hört keinen der vier Schnitte (`process/listen/cue.json`).
+Musik: `audio/music/cue.wav`, aus Variante 2 auf Taktgrenzen geschnitten (`process/cut-music.py`), 120,04 BPM, F-Dur. Ein Takt = 1,9993 s, ein Schlag = 0,4998 s; Takt 0 beginnt bei Bild 0 der Szene. Der fertige Film beginnt zwei Schläge später (Szene und Musik mit `sourceOffsetFrames` 30, die Soundeffekte 30 Bilder früher), damit sein erstes Bild schon „Superint Video“ zeigt; die Zeiten unten sind die der Szene. Der Kritiker hört keinen der vier Schnitte (`process/listen/cue.json`).
 
 | Takt | Zeit | Musik | Bild |
 | --- | --- | --- | --- |
