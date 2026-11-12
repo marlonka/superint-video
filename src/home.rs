@@ -790,6 +790,14 @@ pub fn slug(topic: &str) -> String {
     }
 }
 
+/// A film's name as `video.json` and the list keep it: without asterisks, which Markdown would
+/// read, trimmed, at most 120 characters. None when nothing is left.
+pub fn film_name(text: &str) -> Option<String> {
+    let name: String = text.replace('*', "").trim().chars().take(120).collect();
+    let name = name.trim_end();
+    (!name.is_empty()).then(|| name.to_string())
+}
+
 /// What a copy of a film leaves behind: what was made from it (renders, the report, the agent's
 /// status, reviews and polish passes) and Studio's own state. The sources stay, so the copy
 /// plays at once and only what differs has to be made again.
@@ -1065,6 +1073,13 @@ mod tests {
             new_film_dir(home.path(), "Sleep"),
             home.path().join("sleep-2")
         );
+    }
+
+    #[test]
+    fn film_names_lose_asterisks_and_stay_short() {
+        assert_eq!(film_name("  **Schlaf** ").as_deref(), Some("Schlaf"));
+        assert_eq!(film_name(" * "), None);
+        assert_eq!(film_name(&"ä".repeat(200)).unwrap().chars().count(), 120);
     }
 
     #[test]

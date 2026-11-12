@@ -17,11 +17,12 @@
     draft = overview.filmsFolder ?? '';
     changing = true;
   }
-  /** Saves the folder; none goes back to the usual one. */
+  /** Saves the folder; none goes back to the usual one. The folder already in use is not
+   * saved again, so confirming the usual folder does not pin it. */
   function save(folder: string | null) {
     changing = false;
-    if (folder !== (settings.projectsDir ?? null))
-      void saveSettings({ projectsDir: folder }).then(() => refresh());
+    const unchanged = folder === null ? !settings.projectsDir : folder === overview.filmsFolder;
+    if (!unchanged) void saveSettings({ projectsDir: folder }).then(() => refresh());
   }
 </script>
 

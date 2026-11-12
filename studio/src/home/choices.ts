@@ -5,7 +5,7 @@ import type { Style } from '../types';
 /** Suggested lengths in seconds. A guide: the film is as long as its narration needs. */
 export const LENGTHS = [15, 30, 45, 60, 90, 120, 180, 300, 600, 900, 1200, 1800, 2700, 3600];
 /** The longest film the tool makes, in seconds (`new --seconds`). */
-export const MOST_SECONDS = 3600;
+const MOST_SECONDS = 3600;
 
 const UNITS: [RegExp, number][] = [
   [/^(h|std|stunden?|hours?)$/, 3600],
@@ -68,7 +68,7 @@ export const FILM_LANGUAGES = [
   'zh',
 ]; // prettier-ignore
 
-/** Scripts written by one language only, or by one the words then tell apart. */
+/** Scripts and the language they stand for; where several share one, `withinScript` decides. */
 const SCRIPTS: [RegExp, string][] = [
   [/[\p{Script=Hiragana}\p{Script=Katakana}]/u, 'ja'],
   [/\p{Script=Han}/u, 'zh'],
@@ -83,15 +83,6 @@ const SCRIPTS: [RegExp, string][] = [
   [/\p{Script=Arabic}/u, 'ar'],
   [/\p{Script=Cyrillic}/u, 'ru'],
   [/\p{Script=Latin}/u, 'latin'],
-];
-
-/** Within a script, letters only one of its languages uses. */
-const MARKS: [RegExp, string][] = [
-  [/ळ|आहे|आणि|च्या/u, 'mr'],
-  [/[ٹڈڑںےھ]/u, 'ur'],
-  [/[پچژگکی]/u, 'fa'],
-  [/[іїєґ]/u, 'uk'],
-  [/[ђјљњћџ]/u, 'sr'],
 ];
 
 /** The small words a sentence cannot do without, for the languages written in Latin letters. */
@@ -141,38 +132,60 @@ const LETTERS: [RegExp, string][] = [
  * the text does not say clearly. The agent reads the topic itself, so a null only means the
  * prompt asks it to keep to the topic's language without naming it.
  */
-export function topicLanguage(text: string): string | null {
+export function topicLanguage(topic: string): string | null {
+  // The start of a long, dictated topic says as much as all of it.
+  const text = topic.slice(0, MOST_READ);
   const letters = text.match(/\p{L}/gu) ?? [];
   if (letters.length < 3) return null;
-  // The script most of the letters are in; kana makes Chinese characters Japanese.
   let script = '';
   let most = 0;
   for (const [pattern, code] of SCRIPTS) {
     const count = letters.filter((letter) => pattern.test(letter)).length;
     if (count > most) [script, most] = [code, count];
   }
-  if (script === 'zh' && letters.some((letter) => SCRIPTS[0][0].test(letter))) return 'ja';
-  if (script !== 'latin') {
-    const marked = MARKS.find(([pattern]) => pattern.test(text))?.[1];
-    if (script === 'hi') return marked === 'mr' ? 'mr' : 'hi';
-    if (script === 'ar') return marked === 'ur' || marked === 'fa' ? marked : 'ar';
-    if (script === 'ru') return marked === 'uk' || marked === 'sr' ? marked : cyrillic(text);
-    return script;
+  return script === 'latin' ? latin(text) : withinScript(script, text);
+}
+
+/** How much of a topic is read to tell its language. */
+const MOST_READ = 600;
+const KANA = /[\p{Script=Hiragana}\p{Script=Katakana}]/u;
+const BULGARIAN = new Set(['това', 'от', 'са', 'като', 'ще', 'защо', 'какво', 'тази', 'но']);
+
+/** The language within a script that several share, by the letters or words only it uses. */
+function withinScript(script: string, text: string): string {
+  switch (script) {
+    // Japanese writes Chinese characters too, between its kana.
+    case 'zh':
+      return KANA.test(text) ? 'ja' : 'zh';
+    case 'hi':
+      return /ळ|आहे|आणि|च्या/u.test(text) ? 'mr' : 'hi';
+    case 'ar':
+      return /[ٹڈڑںےھ]/u.test(text) ? 'ur' : /[پچژگکی]/u.test(text) ? 'fa' : 'ar';
+    case 'ru':
+      if (/[іїєґ]/u.test(text)) return 'uk';
+      if (/[ђјљњћџ]/u.test(text)) return 'sr';
+      // ы and э are Russian; a few small words are Bulgarian.
+      if (/[ыэ]/u.test(text)) return 'ru';
+      return words(text).filter((word) => BULGARIAN.has(word)).length >= 2 ? 'bg' : 'ru';
+    default:
+      return script;
   }
-  const words = text.toLowerCase().match(/\p{L}+/gu) ?? [];
-  const scores = WORD_SETS.map(([code, set]) => {
-    let score = words.filter((word) => set.has(word)).length;
-    for (const [pattern, owner] of LETTERS) if (owner === code && pattern.test(text)) score += 2;
-    return [code, score] as const;
-  }).sort((a, b) => b[1] - a[1]);
+}
+
+/** Among the languages written in Latin letters: the one with most small words and letters. */
+function latin(text: string): string | null {
+  const found = words(text);
+  const lettered = new Set(
+    LETTERS.filter(([pattern]) => pattern.test(text)).map(([, code]) => code),
+  );
+  const scores = WORD_SETS.map(
+    ([code, set]) =>
+      [code, found.filter((word) => set.has(word)).length + (lettered.has(code) ? 2 : 0)] as const,
+  ).sort((a, b) => b[1] - a[1]);
   const [first, second] = scores;
   return first[1] > 0 && first[1] > second[1] ? first[0] : null;
 }
 
-/** Russian or Bulgarian: the letters ы and э are Russian, a few small words Bulgarian. */
-function cyrillic(text: string) {
-  if (/[ыэ]/u.test(text)) return 'ru';
-  const words = text.toLowerCase().match(/\p{L}+/gu) ?? [];
-  const bulgarian = new Set(['това', 'от', 'са', 'като', 'ще', 'защо', 'какво', 'тази', 'но']);
-  return words.filter((word) => bulgarian.has(word)).length >= 2 ? 'bg' : 'ru';
+function words(text: string) {
+  return text.toLowerCase().match(/\p{L}+/gu) ?? [];
 }

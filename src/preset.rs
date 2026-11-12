@@ -747,7 +747,7 @@ pub fn create_project(
     let template =
         String::from_utf8(preset.files["video.json"].clone())?.replace("\"{{topic}}\"", &escaped);
     let mut manifest: Manifest = serde_json::from_str(&template)?;
-    manifest.name = title.replace('*', "").chars().take(120).collect();
+    manifest.name = crate::home::film_name(title).unwrap_or_else(|| "Untitled".into());
     manifest.width = size.width;
     manifest.height = size.height;
     manifest.duration_frames =

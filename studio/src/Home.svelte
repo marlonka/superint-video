@@ -19,6 +19,7 @@
     run,
     setLanguage,
     setupSkipped,
+    skillsBehind,
     skipSetup,
   } from './home/session';
   import { LOCALES, isLocale, locale, t } from './i18n';
@@ -29,6 +30,7 @@
   /** Set when a film is open underneath: the way back to it. */
   export let onclose: (() => void) | null = null;
 
+  const TYPING = 'textarea, input:not([type="checkbox"], [type="radio"])';
   const openedAt = Date.now();
   const followed = new Set<string>();
   let now = Date.now();
@@ -43,11 +45,7 @@
   /** Setup opened from the header. */
   let setupOpen = false;
   // Something in Setup wants a look: a missing part, or skills older than the app.
-  $: attention =
-    missing.length > 0 ||
-    overview.setup.agents.some(
-      (agent) => agent.ready && agent.canInstall && agent.outdated.length > 0,
-    );
+  $: attention = missing.length > 0 || skillsBehind(overview.setup).length > 0;
   $: if (!overview.project || onclose) document.title = 'Superint Video';
 
   /** Opens a film: the editor underneath when it is this one, its own Studio otherwise. */
@@ -85,10 +83,14 @@
   /** From the finished Setup to the first film. */
   function moveOn() {
     welcoming = false;
+    setupOpen = false;
     page?.scrollTo({ top: 0 });
   }
+  /** Escape leaves Setup, else goes back to the film; not while someone types, so nothing
+   * typed is lost to a stray key. */
   function onKey(event: KeyboardEvent) {
     if (event.key !== 'Escape') return;
+    if (event.target instanceof Element && event.target.matches(TYPING)) return;
     if (setupOpen && !gate) toggleSetup(false);
     else if (onclose) onclose();
   }
