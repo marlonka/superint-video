@@ -1,5 +1,10 @@
 # Versionsverlauf
 
+## 0.7.0 — 2026-11-12
+
+- **Ein Bild je Stil-Karte:** Jede Karte unter „Stile“ zeigt ein einziges Bild im Format 16:9 statt eines Streifens aus mehreren, sauber zugeschnitten; alle Karten einer Reihe sind gleich hoch, auch „Neuen Stil erstellen“. Hat ein Stil mehrere Bilder, wechselt die Karte langsam zwischen bis zu dreien: Jedes bleibt mindestens neun Sekunden, das nächste blendet weich darüber, und das vordere rückt dabei kaum merklich näher. Es wechselt immer nur eine Karte, der Reihe nach. Nichts bewegt sich, solange die Seite verborgen, die Karte außer Sicht oder unter Maus oder Fokus ist; sind im System die Animationseffekte aus, bleibt das erste Bild stehen.
+- **Eigene Bilder für die mitgelieferten Stile:** Flat-Vektor-Erklärfilm, Launch-Film und Miniatur aus Code zeigen je drei Standbilder aus Filmen, die mit ihnen entstanden sind. Sie liegen im neuen Ordner `preview/` eines Stils, getrennt von den Referenzen: Der Coding-Agent misst seine Bilder weiter nur an `references/`, und neue Filme bekommen `preview/` nicht mit. Eigene Stile zeigen ihre ersten Referenzbilder.
+
 ## 0.6.1 — 2026-11-12
 
 - Studio-Build und CI aktualisiert auf Node.js 26.13.1 LTS, npm 12.2.2, Rust 1.100.0, Vite 8 und TypeScript 7. Die Rust- und npm-Abhängigkeiten wurden ebenfalls aktualisiert.

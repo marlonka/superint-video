@@ -12,7 +12,7 @@
   <img alt="Rust" src="https://img.shields.io/badge/Rust-CLI%20%2B%20Studio-b7410e?style=flat-square&logo=rust">
   <img alt="Windows x64" src="https://img.shields.io/badge/Windows-x64-2f7bf5?style=flat-square">
   <img alt="Lizenz: MIT" src="https://img.shields.io/badge/Lizenz-MIT-3a3a3a?style=flat-square">
-  <a href="https://github.com/marlonka/superint-video/releases/tag/v0.6.1"><img alt="Release: v0.6.1" src="https://img.shields.io/badge/Release-v0.6.1-2e8b57?style=flat-square"></a>
+  <a href="https://github.com/marlonka/superint-video/releases/tag/v0.7.0"><img alt="Release: v0.7.0" src="https://img.shields.io/badge/Release-v0.7.0-2e8b57?style=flat-square"></a>
 </p>
 
 <br>
@@ -107,7 +107,7 @@ Ein Doppelklick auf `Superint Video.exe` öffnet die Startseite. Sie spricht Deu
 </table>
 
 <p align="center">
-  <img src="docs/images/app-styles.jpg" alt="Drei Stil-Karten mit Referenzbildern: Neutral, Flat-Vektor-Erklärfilm und Miniatur aus Code, darüber der Knopf „Stil importieren“" width="100%">
+  <img src="docs/images/app-styles.jpg" alt="Die Stil-Karten mit je einem 16:9-Bild: „Neuen Stil erstellen“, Flat-Vektor-Erklärfilm als Standard, Launch-Film und Miniatur aus Code, darüber „Ordner deiner Stile“ und „Stil importieren“" width="100%">
   <br>
   <sub>Unter „Stile“: aus Bildern oder einem fertigen Film einen eigenen erstellen, einen als Standard wählen, eigene Referenzbilder hinzufügen, eine Kopie anlegen, als Datei weitergeben oder eine solche Datei importieren.</sub>
 </p>
@@ -170,7 +170,7 @@ Von der Kommandozeile prüfst du die Installation so:
 Aus dem Quellcode: `git clone`, dann `.\scripts\build.ps1`. Dafür brauchst du Rust 1.100, Node.js 26.13.1 LTS und npm 12.2.2. Details stehen im [Handbuch](docs/HANDBUCH.md#aus-dem-quellcode-bauen).
 
 > [!IMPORTANT]
-> **Stand:** v0.6.1 ist veröffentlicht. Enthalten sind Presets, Ablauf-Skills, Ton und Produktionsbereich sowie die App mit Einrichtung, Diktat, Speicherort für Filme, Stil-Dateien, eigenen Stilen aus Bildern oder fertigen Filmen und neuen Filmen auf Grundlage eines anderen. Geprüft ist nur Windows x64. App und Studio sprechen Deutsch und Englisch; Meldungen der Kommandozeile sind englisch. Kurze SDR-Filme funktionieren gut; lange Projekte, HDR und Ripple-Editing nicht. Die Grenzen stehen im [Handbuch](docs/HANDBUCH.md#grenzen).
+> **Stand:** v0.7.0 ist veröffentlicht. Enthalten sind Presets, Ablauf-Skills, Ton und Produktionsbereich sowie die App mit Einrichtung, Diktat, Speicherort für Filme, Stil-Dateien, eigenen Stilen aus Bildern oder fertigen Filmen und neuen Filmen auf Grundlage eines anderen. Geprüft ist nur Windows x64. App und Studio sprechen Deutsch und Englisch; Meldungen der Kommandozeile sind englisch. Kurze SDR-Filme funktionieren gut; lange Projekte, HDR und Ripple-Editing nicht. Die Grenzen stehen im [Handbuch](docs/HANDBUCH.md#grenzen).
 
 ## Datenschutz und KI-Inhalte
 
