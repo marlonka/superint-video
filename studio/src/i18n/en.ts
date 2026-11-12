@@ -209,6 +209,8 @@ export const en = {
   'compose.lengthHelp': 'For example 3 min, 90 s or 2:30, at most 60 min',
   'compose.topicLabel': 'What the film is about',
   'compose.lengthSuggestions': 'Suggested lengths',
+  'compose.base': 'Starting from "{name}"',
+  'compose.baseClear': 'No base film',
   'compose.promptLabel': 'The prompt for your coding agent',
   'compose.copy': 'Copy prompt',
   'compose.copied': 'Copied. Paste it into {agents}.',
@@ -233,6 +235,7 @@ export const en = {
   'choice.yourDefault': '{value} (default)',
   'choice.fit': 'To suit the topic',
   'choice.ask': 'Ask me first',
+  'choice.likeBase': 'As in the base film',
   'choice.topicLanguage': '{language} (as the topic)',
   'choice.topicLanguageOpen': 'Same as the topic',
   'prompt.about': 'Make a video with Superint Video about: {topic}',
@@ -246,11 +249,17 @@ export const en = {
   'prompt.fitBoth': 'Choose the style and length that suit the topic.',
   'prompt.fitStyle': 'Choose the style that suits the topic.',
   'prompt.fitLength': 'Choose the length that suits the topic.',
+  'prompt.base':
+    'Start from my film "{name}" ({path}): make a copy for the new topic with superint-video duplicate and change only what it needs.',
   'prompt.askStyle': 'Ask me which style I want before you start.',
   'prompt.program': 'The superint-video program is here: {path}',
 
   // Films
-  'films.title': 'Films',
+  'films.title': 'Your films',
+  'films.startFrom': 'Use as a base',
+  'films.duplicate': 'Duplicate',
+  'films.copyName': '{name} (copy)',
+  'films.copied': 'Copy made: {name}',
   'films.open': 'Open {name}',
   'films.showFolder': 'Show its folder',
   'films.remove': 'Take off this list',
@@ -263,8 +272,7 @@ export const en = {
 
   // Styles
   'styles.title': 'Styles',
-  'styles.lead':
-    'How your films look. The default style comes first under "New film"; without one, the agent picks the style to suit the topic.',
+  'styles.lead': 'How your films look.',
   'styles.folder': 'Your styles folder',
   'style.yours': 'your own style',
   'style.about': 'about {length}',

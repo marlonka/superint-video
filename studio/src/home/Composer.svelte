@@ -2,20 +2,23 @@
   // A film starts with one prompt for the coding agent. This builds it from a topic and a few
   // choices, in the language of the app. Left alone, the agent picks style and length to suit
   // the topic, the picture is wide and the film speaks the language the topic is written in.
+  // A film chosen as the base in its menu makes the prompt start from a copy of it.
   import Icon from '../Icon.svelte';
   import { format, locale, t, type Formats, type Translate } from '../i18n';
-  import type { Overview } from '../types';
+  import type { Film, Overview } from '../types';
   import { tick } from 'svelte';
   import { FILM_LANGUAGES, FORMATS, USUAL_FORMAT, styleText, topicLanguage } from './choices';
   import Dictate from './Dictate.svelte';
   import LengthField from './LengthField.svelte';
-  import { copyText, fail } from './session';
+  import { baseFilm, copyText, fail } from './session';
 
   export let overview: Overview;
 
-  /** Style choices that are not a style: the agent picks one to suit the topic, or asks. */
+  /** Style choices that are not a style: the agent picks one to suit the topic, or asks, or
+   * the base film keeps its own. */
   const FIT = ':fit';
   const ASK = ':ask';
+  const BASE = ':base';
 
   let topic = '';
   /** Empty is the first choice of a list: the default style, or the one the topic suits. */
@@ -43,16 +46,29 @@
     field.setSelectionRange(at, at);
   }
 
+  // The base film as the list knows it now; one whose folder is gone is no base.
+  $: base = $baseFilm
+    ? overview.films.find((film) => film.id === $baseFilm.id && film.exists) || null
+    : null;
+  // A newly chosen base brings the topic field into reach.
+  let shownBase: string | null = null;
+  $: if ((base?.id ?? null) !== shownBase) {
+    shownBase = base?.id ?? null;
+    if (shownBase) void tick().then(() => field?.focus({ preventScroll: true }));
+  }
   $: styles = overview.styles;
   $: defaultStyle = styles.find((style) => style.name === overview.settings.preset) || null;
-  /** The style the prompt names, or FIT or ASK. */
-  $: style = pick.style || defaultStyle?.name || FIT;
+  /** The style the prompt names, or FIT, ASK or BASE. */
+  $: style = base ? BASE : pick.style || defaultStyle?.name || FIT;
   $: pickedStyle = styles.find((entry) => entry.name === style) || null;
-  // Only the formats the style can make; wide unless someone picks another.
+  // Only the formats the style can make; wide unless someone picks another. A copy keeps the
+  // format of its base unless someone picks another.
   $: formats = FORMATS.filter((entry) => !pickedStyle || pickedStyle.formats.includes(entry.value));
-  $: usualFormat = formats.some((entry) => entry.value === USUAL_FORMAT)
-    ? USUAL_FORMAT
-    : pickedStyle?.defaultFormat || USUAL_FORMAT;
+  $: usualFormat = base
+    ? ''
+    : formats.some((entry) => entry.value === USUAL_FORMAT)
+      ? USUAL_FORMAT
+      : pickedStyle?.defaultFormat || USUAL_FORMAT;
   $: pictureFormat = formats.some((entry) => entry.value === pick.format)
     ? pick.format
     : usualFormat;
@@ -69,12 +85,23 @@
   );
   // Off the search path the agent learns where the program is; on it, the prompt stays short.
   $: program = overview.cli.onPath ? null : overview.cli.path;
-  $: prompt = buildPrompt(topic, style, seconds, pictureFormat, language, program, $t, $format);
+  $: prompt = buildPrompt(
+    topic,
+    base,
+    style,
+    seconds,
+    pictureFormat,
+    language,
+    program,
+    $t,
+    $format,
+  );
 
   // Everything the prompt depends on is an argument, so it is rebuilt when any of it changes,
   // the language of the app included.
   function buildPrompt(
     about: string,
+    from: Film | null,
     style: string,
     seconds: number | null,
     picture: string,
@@ -84,7 +111,7 @@
     write: Formats,
   ) {
     const details: string[] = [];
-    if (style !== FIT && style !== ASK) details.push(say('prompt.style', { name: style }));
+    if (![FIT, ASK, BASE].includes(style)) details.push(say('prompt.style', { name: style }));
     if (seconds) {
       // "about 45 seconds" below two minutes, whole minutes above when they come out even.
       const length =
@@ -93,17 +120,16 @@
           : say('prompt.seconds', { count: seconds });
       details.push(say('prompt.length', { length }));
     }
-    details.push(say('prompt.format', { format: picture }));
+    if (picture) details.push(say('prompt.format', { format: picture }));
     details.push(
       language
         ? say('prompt.language', { language: write.language(language) })
         : say('prompt.topicLanguage'),
     );
     const sentence = details.join(', ');
-    const lines = [
-      say('prompt.about', { topic: about.trim() || '…' }),
-      `${sentence[0].toUpperCase()}${sentence.slice(1)}.`,
-    ];
+    const lines = [say('prompt.about', { topic: about.trim() || '…' })];
+    if (from) lines.push(say('prompt.base', { name: from.name, path: from.path }));
+    lines.push(`${sentence[0].toUpperCase()}${sentence.slice(1)}.`);
     const fitStyle = style === FIT;
     if (fitStyle && !seconds) lines.push(say('prompt.fitBoth'));
     else if (fitStyle) lines.push(say('prompt.fitStyle'));
@@ -137,21 +163,28 @@
         onblur={() => (caret = [field.selectionStart, field.selectionEnd])}></textarea>
       <Dictate available={overview.setup.can.dictate} oninsert={insert} bind:active={dictating} />
     </div>
+    {#if base}<p class="composer-base">
+        <Icon name="film" size={18} /><span>{$t('compose.base', { name: base.name })}</span><button
+          class="text-link"
+          onclick={() => baseFilm.set(null)}>{$t('compose.baseClear')}</button
+        >
+      </p>{/if}
     <div class="composer-options">
       <div class="composer-choice">
         <label for="film-style">{$t('field.style')}</label>
-        <select id="film-style" bind:value={pick.style}>
-          <option value=""
-            >{defaultStyle
-              ? $t('choice.yourDefault', { value: styleText(defaultStyle, $locale).title })
-              : $t('choice.fit')}</option
-          >
-          {#if defaultStyle}<option value={FIT}>{$t('choice.fit')}</option>{/if}
-          {#each styles.filter((entry) => entry !== defaultStyle) as entry (entry.name)}<option
-              value={entry.name}>{styleText(entry, $locale).title}</option
-            >{/each}
-          <option value={ASK}>{$t('choice.ask')}</option>
-        </select>
+        {#if base}<select id="film-style" disabled><option>{$t('choice.likeBase')}</option></select
+          >{:else}<select id="film-style" bind:value={pick.style}>
+            <option value=""
+              >{defaultStyle
+                ? $t('choice.yourDefault', { value: styleText(defaultStyle, $locale).title })
+                : $t('choice.fit')}</option
+            >
+            {#if defaultStyle}<option value={FIT}>{$t('choice.fit')}</option>{/if}
+            {#each styles.filter((entry) => entry !== defaultStyle) as entry (entry.name)}<option
+                value={entry.name}>{styleText(entry, $locale).title}</option
+              >{/each}
+            <option value={ASK}>{$t('choice.ask')}</option>
+          </select>{/if}
       </div>
       <div class="composer-choice">
         <label for="film-length">{$t('field.length')}</label>
@@ -169,6 +202,7 @@
           value={pictureFormat}
           onchange={(event) => (pick.format = event.currentTarget.value)}
         >
+          {#if base}<option value="">{$t('choice.likeBase')}</option>{/if}
           {#each formats as entry (entry.value)}<option value={entry.value}
               >{$t(entry.label)}</option
             >{/each}

@@ -790,6 +790,64 @@ pub fn slug(topic: &str) -> String {
     }
 }
 
+/// What a copy of a film leaves behind: what was made from it (renders, the report, the agent's
+/// status, reviews and polish passes) and Studio's own state. The sources stay, so the copy
+/// plays at once and only what differs has to be made again.
+const NOT_COPIED: &[&str] = &["renders", "process", ".superint", "report.md"];
+
+/// Copies a film into `to`, a folder that does not exist yet, as the start of another film, and
+/// gives the copy its name. Returns the copy's folder. A copy that fails halfway is removed.
+pub fn duplicate(from: &Path, to: &Path, name: &str) -> Result<PathBuf> {
+    let from = from
+        .canonicalize()
+        .with_context(|| format!("Cannot open the film {}", from.display()))?;
+    anyhow::ensure!(
+        from.join("video.json").is_file(),
+        "{} is not a film: it has no video.json",
+        from.display()
+    );
+    anyhow::ensure!(!to.exists(), "{} exists already", to.display());
+    let parent = to.parent().context("The copy needs a folder to go into")?;
+    fs::create_dir_all(parent)?;
+    anyhow::ensure!(
+        !parent.canonicalize()?.starts_with(&from),
+        "A film cannot be copied into itself"
+    );
+    let copied = (|| -> Result<PathBuf> {
+        let left_out = |entry: &walkdir::DirEntry| {
+            entry.depth() == 1
+                && NOT_COPIED
+                    .iter()
+                    .any(|name| entry.file_name().eq_ignore_ascii_case(name))
+        };
+        for entry in walkdir::WalkDir::new(&from)
+            .follow_links(false)
+            .into_iter()
+            .filter_entry(|entry| !left_out(entry))
+        {
+            let entry = entry?;
+            let target = to.join(entry.path().strip_prefix(&from)?);
+            if entry.file_type().is_dir() {
+                fs::create_dir_all(&target)?;
+            } else if entry.file_type().is_file() {
+                fs::copy(entry.path(), &target)
+                    .with_context(|| format!("Copying {}", entry.path().display()))?;
+            }
+        }
+        let mut store = crate::project::ProjectStore::open(to)?;
+        let revision = store.revision.clone();
+        store.edit(
+            &revision,
+            &json!({"type": "updateProject", "changes": {"name": name}}),
+        )?;
+        Ok(without_verbatim(&store.root))
+    })();
+    if copied.is_err() {
+        let _ = fs::remove_dir_all(to);
+    }
+    copied
+}
+
 /// A folder for a new film in the films folder that does not exist yet.
 pub fn new_film_dir(folder: &Path, topic: &str) -> PathBuf {
     let base = slug(topic);
@@ -1007,6 +1065,57 @@ mod tests {
             new_film_dir(home.path(), "Sleep"),
             home.path().join("sleep-2")
         );
+    }
+
+    #[test]
+    fn a_duplicate_keeps_the_sources_and_leaves_what_was_made() {
+        let films = TempDir::new().unwrap();
+        let film = films.path().join("sleep");
+        let starter = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/starter");
+        for entry in walkdir::WalkDir::new(&starter) {
+            let entry = entry.unwrap();
+            let target = film.join(entry.path().strip_prefix(&starter).unwrap());
+            if entry.file_type().is_dir() {
+                fs::create_dir_all(&target).unwrap();
+            } else {
+                fs::copy(entry.path(), &target).unwrap();
+            }
+        }
+        for (path, text) in [
+            ("brief.md", "# Brief"),
+            ("audio/voice.wav", "RIFF"),
+            ("renders/sleep.mp4", "film"),
+            ("process/status.json", "{}"),
+            ("report.md", "# Report"),
+            (".superint/studio.json", "{}"),
+        ] {
+            fs::create_dir_all(film.join(path).parent().unwrap()).unwrap();
+            fs::write(film.join(path), text).unwrap();
+        }
+
+        let to = new_film_dir(films.path(), "Dreams");
+        let copy = duplicate(&film, &to, "Dreams").unwrap();
+        assert_eq!(folder_key(&copy), folder_key(&to.canonicalize().unwrap()));
+        assert!(copy.join("brief.md").is_file());
+        assert!(copy.join("audio/voice.wav").is_file());
+        assert!(copy.join("scenes").is_dir());
+        for left in ["renders", "process", "report.md", ".superint"] {
+            assert!(!copy.join(left).exists(), "{left} is not copied");
+        }
+        let manifest = read_json(&copy.join("video.json")).unwrap();
+        assert_eq!(manifest["name"], "Dreams");
+        // The original keeps its name and everything it made.
+        assert_ne!(
+            read_json(&film.join("video.json")).unwrap()["name"],
+            "Dreams"
+        );
+        assert!(film.join("renders/sleep.mp4").is_file());
+
+        // Never over an existing folder, never into the film itself, nothing left behind.
+        assert!(duplicate(&film, &copy, "Again").is_err());
+        assert!(duplicate(&film, &film.join("inner"), "Inner").is_err());
+        assert!(!film.join("inner").exists());
+        assert!(duplicate(films.path(), &films.path().join("x"), "X").is_err());
     }
 
     #[test]

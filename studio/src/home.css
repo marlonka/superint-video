@@ -80,7 +80,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  align-self: center;
+  /* Its labels stand on the heading's line. */
+  align-self: baseline;
   margin-right: -12px;
 }
 /* The version stands quietly beside the name, as in an about box. */
@@ -632,7 +633,7 @@
 /* The style names are the longest choices. */
 .composer-options {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1.25fr) repeat(3, minmax(0, 1fr));
   gap: 12px 16px;
 }
 .composer-choice {
@@ -655,6 +656,22 @@
 }
 .length-field > input[type='text'] {
   padding-right: 40px;
+}
+/* Empty, the field says what the topic decides, in the same ink as the lists beside it. */
+.length-field > input[type='text']::placeholder {
+  color: var(--text);
+}
+/* The film a new one starts from, named over the choices it changes. */
+.composer-base {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin: 0;
+  font-size: 15px;
+}
+.composer-base > svg {
+  color: var(--secondary);
 }
 .length-toggle {
   position: absolute;
@@ -723,7 +740,8 @@
 }
 .composer-prompt {
   display: flex;
-  align-items: flex-start;
+  /* The button ends where the prompt ends, however many lines it has. */
+  align-items: flex-end;
   flex-wrap: wrap;
   gap: 12px;
 }

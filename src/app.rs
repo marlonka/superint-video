@@ -117,6 +117,7 @@ pub fn routes(state: AppState) -> Router {
         )
         .route("/api/app/films/{id}/open", post(open_film))
         .route("/api/app/films/{id}/forget", post(forget_film))
+        .route("/api/app/films/{id}/duplicate", post(duplicate_film))
         .route("/api/app/films/{id}/reveal", post(reveal_film))
         .route("/api/app/films/{id}/picture", get(film_picture))
         .route("/api/app/styles", post(copy_style))
@@ -895,6 +896,7 @@ fn films(state: &AppState, settings: &Settings) -> Vec<Value> {
                 "current": current.as_ref() == Some(&id),
                 "id": id,
                 "name": film.name,
+                "path": root,
                 "createdAt": film.created_at,
                 "seenAt": film.seen_at,
                 "exists": exists,
@@ -971,6 +973,41 @@ async fn open_film(
         .await
         .context("Studio did not start for this film")?;
     Ok(Json(json!({"url": url})))
+}
+
+#[derive(Deserialize)]
+struct DuplicateFilm {
+    /// The copy's name, in the language of the start page.
+    name: String,
+}
+
+/// Copies a film as the start of another one, into the films folder, and puts it on the list.
+async fn duplicate_film(
+    State(state): State<AppState>,
+    RoutePath(id): RoutePath<String>,
+    Json(body): Json<DuplicateFilm>,
+) -> ApiResult<Json<Value>> {
+    let root = film_root(&state, &id)?;
+    if !root.join("video.json").is_file() {
+        return Err(ApiError::bad("The folder of this film is gone"));
+    }
+    let name = body.name.trim().replace('*', "");
+    if name.is_empty() {
+        return Err(ApiError::bad("The copy needs a name"));
+    }
+    let settings = Settings::load(&state.home)?;
+    let folder = home::films_dir(&settings).context("No films folder is set")?;
+    let target = home::new_film_dir(&folder, &name);
+    let named = name.clone();
+    let copy = tokio::task::spawn_blocking(move || home::duplicate(&root, &target, &named))
+        .await
+        .context("Copying the film stopped")??;
+    // Listed like a film that was opened, not one the agent began: the start page opens it
+    // itself instead of following it.
+    home::remember(&state.home, &copy, &name, false);
+    Ok(Json(
+        json!({"id": film_id(&copy), "films": films(&state, &settings)}),
+    ))
 }
 
 async fn forget_film(
