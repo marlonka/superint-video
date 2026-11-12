@@ -37,7 +37,10 @@ export const de: Catalog = {
   // Einrichtung
   'setup.title': 'Einrichtung',
   'setup.first.title': 'Superint Video einrichten',
-  'setup.first.lead': 'Das braucht der erste Film. Erledigt: {done} von {total}.',
+  'setup.first.lead':
+    'Drei Schritte, dann kann dein erster Film entstehen. Erledigt: {done} von {total}.',
+  'setup.first.ready': 'Alles bereit für deinen ersten Film. Freiwilliges geht jetzt oder später.',
+  'setup.continue': 'Weiter zum ersten Film',
   'setup.ready': 'Bereit für {parts}',
   'setup.incomplete': 'Es fehlt noch etwas.',
   'setup.part.picture': 'Bild',
@@ -93,7 +96,11 @@ export const de: Catalog = {
   'setup.tool.installing':
     'Ein Terminal-Fenster installiert {name}. Schließe es danach und wähle „Erneut prüfen“.',
   'setup.tool.page': 'Download-Seite',
-  'setup.tool.copyCommand': '„{command}“ kopieren',
+  'setup.tool.copyTask': 'Auftrag für deinen Coding-Agenten kopieren',
+  'setup.tool.taskCopied': 'Kopiert. Füge den Auftrag in deinen Coding-Agenten ein.',
+  'setup.tool.project': 'Projektseite',
+  'setup.tool.earshot.task':
+    'Installiere bitte Earshot für Superint Video: das Werkzeug für Soundeffekte von {url}, nicht das gleichnamige Paket auf PyPI. Laut Anleitung: {command}. Fehlt uv, installiere es vorher (unter Windows mit winget install --id astral-sh.uv). Prüfe danach mit earshot sfx list --json, dass es läuft.',
 
   'setup.key.title': 'Stimme und Musik',
   'setup.key.why':
@@ -104,14 +111,66 @@ export const de: Catalog = {
   'setup.models.voice': 'Stimme',
   'setup.models.timings': 'Wort-Zeitpunkte',
   'setup.models.music': 'Musik',
+  'setup.models.dictation': 'Diktat',
+  'setup.key.GOOGLE_CLOUD_API_KEY.why':
+    'Dieselben Google-Modelle über dein Google-Cloud-Projekt (Gemini Enterprise Agent Platform), dort abgerechnet und zu dessen Bedingungen. Ist es eingerichtet, nimmt es den Platz von AI Studio ein.',
+  'setup.key.OPENAI_API_KEY.why':
+    'Nur zum Sprechen statt Tippen, mit gpt-transcribe. Für einen Film braucht es einen der anderen Schlüssel.',
+  'setup.more.toggle': 'Weitere Anbieter: {providers}',
+  'setup.cloud.signIn': 'Mit Google anmelden (ADC)',
+  'setup.cloud.signInWhy':
+    'Empfohlen: die Anmeldung bei Google Cloud mit deinem Google-Konto (ADC, Application Default Credentials) statt eines API-Schlüssels. Ein Fenster holt dafür bei Bedarf die Google Cloud CLI und öffnet die Anmeldung im Browser.',
+  'setup.cloud.signingIn':
+    'Ein Fenster führt durch die Anmeldung; das Installieren der Google Cloud CLI dauert ein, zwei Minuten. Fragt Windows nach Administratorrechten, blinkt das manchmal nur in der Taskleiste. Die App bemerkt die Anmeldung von selbst.',
+  'setup.cloud.useKey': 'Stattdessen einen API-Schlüssel eintragen',
+  'setup.cloud.needsProject':
+    'Für die Anmeldung fehlt noch die Projekt-ID: unter „Projekt und Region“ eintragen.',
+  'setup.cloud.express':
+    'Express-Modus: Google verarbeitet global. Für die Region eu die Projekt-ID eintragen.',
+  'setup.cloud.place': 'Projekt {project}, Region {location}.',
+  'setup.cloud.fixed': 'Vorgegeben durch GOOGLE_CLOUD_PROJECT oder GOOGLE_CLOUD_LOCATION.',
+  'setup.cloud.change': 'Projekt und Region',
+  'setup.cloud.changeFor': 'Projekt und Region für Google Cloud',
+  'setup.cloud.project': 'Projekt-ID',
+  'setup.cloud.location': 'Region',
+  'setup.cloud.location.eu': 'eu: Europäische Union',
+  'setup.cloud.location.us': 'us: USA',
+  'setup.cloud.location.global': 'global: weltweit',
+  'setup.cloud.hint':
+    'Mit Projekt entstehen Stimme, Wort-Zeitpunkte und Diktat in der Region. Ohne Projekt verarbeitet Google einen Schlüssel aus dem Express-Modus global. Musik (Lyria 3) gibt es nur global.',
+  'setup.cloud.saved': 'Google Cloud: gespeichert',
+  'setup.openai.eu': 'In der EU verarbeiten (eu.api.openai.com)',
+  'setup.openai.euHint':
+    'Nur wenn auf platform.openai.com unter Settings, Project bei „Project Residency“ Europa steht. Die meisten Projekte sind Global, dann bleibt das aus.',
+  'setup.openai.euRefused':
+    'Steht bei deinem OpenAI-Projekt „Project Residency: Global“, nimmt eu.api.openai.com es nicht an: „In der EU verarbeiten“ ausschalten.',
+  'setup.openai.saved': 'OpenAI geht jetzt an {address}',
+  'setup.models.title': 'Modelle',
+  'setup.models.why':
+    'Für Profis: welches Modell welche Aufgabe übernimmt. Leere Felder behalten die Standardmodelle, je nach Schlüssel.',
+  'setup.models.usual': 'Standardmodelle',
+  'setup.models.usualWhy': 'Gewählt nach deinen Schlüsseln.',
+  'setup.models.own': 'Eigene Wahl',
+  'setup.models.change': 'Modelle wählen',
+  'setup.models.field.narration': 'Stimme: Modell',
+  'setup.models.field.voice': 'Stimme: Name',
+  'setup.models.hint':
+    'IDs so, wie der Anbieter sie schreibt. gemini-… und lyria-… sind von Google, über Google Cloud, solange dessen Schlüssel da ist, sonst über AI Studio. anbieter/modell geht über OpenRouter. gpt-… ist von OpenAI und nur fürs Diktat. Gilt für neue Filme; ein Film kann trotzdem andere nennen.',
+  'setup.models.reset': 'Zurück zu den Standardmodellen',
+  'setup.models.saved': 'Modelle gespeichert',
   'setup.key.source.app': 'Auf diesem Rechner gespeichert.',
+  'setup.key.source.google':
+    'Mit deinem Google-Konto angemeldet (Application Default Credentials). Abmelden: gcloud auth application-default revoke',
   'setup.key.source.file': 'In einer .env-Datei gefunden. Zum Ändern die Datei bearbeiten.',
   'setup.key.source.environment': 'Als Umgebungsvariable gesetzt. Zum Ändern die Variable ändern.',
   'setup.key.asking': '{provider} wird gefragt …',
   'setup.key.check.none': 'Noch kein API-Schlüssel gespeichert.',
   'setup.key.check.works': 'Der API-Schlüssel funktioniert.',
   'setup.key.check.worksAll':
-    'Der API-Schlüssel funktioniert: Stimme, Wort-Zeitpunkte und Musik sind erreichbar.',
+    'Der API-Schlüssel funktioniert: Stimme, Wort-Zeitpunkte, Musik und Diktat sind erreichbar.',
+  'setup.key.check.worksCloud':
+    'Der API-Schlüssel funktioniert: Stimme, Wort-Zeitpunkte und Diktat sind erreichbar. Musik wird erst gefragt, wenn sie entsteht.',
+  'setup.key.check.worksDictation': 'Der API-Schlüssel funktioniert: Diktat ist erreichbar.',
   'setup.key.check.credit': 'Der API-Schlüssel funktioniert. Vom Limit sind noch {amount} übrig.',
   'setup.key.check.partial': 'Der API-Schlüssel funktioniert, erreicht aber {models} nicht.',
   'setup.key.check.refused': 'Der Anbieter hat den API-Schlüssel nicht angenommen: {detail}',
@@ -124,11 +183,14 @@ export const de: Catalog = {
   'setup.key.removed': 'API-Schlüssel für {provider} von diesem Rechner entfernt',
 
   'setup.optional.title': 'Freiwillig',
+  'setup.optional.why': 'Nicht nötig für den ersten Film. Geht auch später.',
 
   // Neuer Film
   'compose.title': 'Neuer Film',
   'compose.lead': 'Beschreib den Film, kopiere den Prompt und füge ihn in {agents} ein.',
   'compose.placeholder': 'Worum soll es im Film gehen? Ein, zwei Sätze genügen.',
+  'compose.lengthIs': 'Also {length}',
+  'compose.lengthHelp': 'Zum Beispiel 3 min, 90 s oder 2:30, höchstens 60 min',
   'compose.topicLabel': 'Worum es im Film geht',
   'compose.style.ask': 'Der Agent fragt nach',
   'compose.promptLabel': 'Der Prompt für deinen Coding-Agenten',
@@ -136,6 +198,23 @@ export const de: Catalog = {
   'compose.copied': 'Kopiert. Füge ihn in {agents} ein.',
   'compose.copyBlocked':
     'Der Browser hat das Kopieren nicht erlaubt. Markiere den Text und kopiere ihn von Hand.',
+  'dictate.start': 'Sprechen',
+  'dictate.startHint': 'Sag, worum es im Film gehen soll, statt es zu tippen',
+  'dictate.needsKey': 'Zum Sprechen braucht es einen API-Schlüssel unter Einrichtung.',
+  'dictate.starting': 'Mikrofon startet …',
+  'dictate.listening': 'Aufnahme läuft. Sag, worum es im Film gehen soll.',
+  'dictate.writing': 'Wird aufgeschrieben …',
+  'dictate.written': 'Mit {model} aufgeschrieben.',
+  'dictate.discarded': 'Aufnahme verworfen.',
+  'dictate.done': 'Fertig: aufschreiben',
+  'dictate.discard': 'Aufnahme verwerfen',
+  'dictate.tooShort': 'Die Aufnahme war zu kurz. Sprich etwas länger.',
+  'dictate.empty': 'Es war nichts zu verstehen. Versuch es noch einmal, etwas näher am Mikrofon.',
+  'dictate.problem.denied':
+    'Das Mikrofon ist für diese Seite nicht erlaubt. Erlaube es in den Website-Einstellungen des Browsers und versuch es noch einmal.',
+  'dictate.problem.absent': 'Kein Mikrofon gefunden.',
+  'dictate.problem.busy': 'Das Mikrofon wird gerade von einem anderen Programm benutzt.',
+  'dictate.problem.other': 'Das Mikrofon ließ sich nicht starten: {detail}',
   'choice.yourDefault': '{value} (Vorgabe)',
   'choice.styleOwn': '{value} (vom Stil)',
   'choice.fromStyle': 'Vom Stil',
@@ -146,6 +225,7 @@ export const de: Catalog = {
   'prompt.minutes': { one: '{count} Minute', other: '{count} Minuten' },
   'prompt.language': 'auf {language}',
   'prompt.askStyle': 'Frag mich vor dem Start, welchen Stil ich möchte.',
+  'prompt.program': 'Das Programm superint-video liegt hier: {path}',
 
   // Filme
   'films.title': 'Filme',
@@ -274,6 +354,8 @@ export const de: Catalog = {
   'preview.label': 'Vorschau',
   'preview.frameTitle': 'Vorschau des Films',
   'preview.loading': 'Szenen werden geladen',
+  'preview.editText': 'Text ändern: {name}',
+  'preview.editHint': 'Enter übernimmt · Umschalt+Enter neue Zeile · Esc bricht ab',
   'preview.previous': 'Vorheriges Bild',
   'preview.next': 'Nächstes Bild',
   'preview.play': 'Abspielen',
@@ -368,6 +450,13 @@ export const de: Catalog = {
   'film.height': 'Höhe',
   'film.frameRate': 'Bildrate',
   'film.background': 'Hintergrund',
+  'film.font': 'Schrift',
+  'film.fontOfStyle': 'Wie im Stil ({font})',
+  'film.fontOfScenes': 'Wie in den Szenen',
+  'film.fontsOfFilm': 'Im Film',
+  'film.fontsOfTool': 'Mitgeliefert',
+  'film.fontNotTaken':
+    'Die Szenen dieses Films legen ihre Schrift selbst fest. Bitte deinen Coding-Agenten, sie auf die Schrift des Films umzustellen.',
   'film.location': 'Speicherort des Projekts',
 
   // Studio: Zeitleiste

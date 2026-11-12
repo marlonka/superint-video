@@ -52,6 +52,12 @@ enum Commands {
         #[command(subcommand)]
         command: Option<SettingsCommand>,
     },
+    /// Which model does which job (narration, voice, timings, music, dictation), through which
+    /// provider, what else is known to fit, and how to change it. Without a subcommand: print it.
+    Models {
+        #[command(subcommand)]
+        command: Option<ModelsCommand>,
+    },
     /// Create a minimal project with a working HTML scene.
     Init { directory: PathBuf },
     /// Create a project from a style preset and write brief.md for the agent.
@@ -124,6 +130,39 @@ enum Commands {
         /// Started by another command: no console, and it ends itself after long without a viewer.
         #[arg(long, hide = true)]
         detached: bool,
+    },
+    /// Change the film the way Studio does: scene props (texts, numbers, colours), timing,
+    /// position, opacity, fades, gain, tracks; split, duplicate, delete, add. Checked like a
+    /// Studio edit and written as one step; with the film's Studio open it goes through Studio,
+    /// so the user sees it and can undo it there.
+    Edit {
+        project: PathBuf,
+        /// Operations as JSON, one or a list ({"type":"updateClip","id":…,"changes":{…}},
+        /// splitClip, duplicateClip, deleteClip, addClip, addTrack, updateTrack, updateProject).
+        /// `-` reads them from stdin, `@file` from a file.
+        operations: Option<String>,
+        /// The clip that --prop and --set change.
+        #[arg(long)]
+        clip: Option<String>,
+        /// A scene prop of the clip, key=value; repeatable.
+        #[arg(long = "prop")]
+        props: Vec<String>,
+        /// A field of the clip, field=value (startFrame, durationFrames, opacity, gain,
+        /// fadeInFrames, fadeOutFrames, hidden, muted, transform.x/y/scale/rotation); repeatable.
+        #[arg(long = "set")]
+        sets: Vec<String>,
+        /// Check the change and print it without writing.
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// The film's main font: the one it has, the ones it can take (its own and the tool's), and
+    /// with a family, the switch to it, through Studio when it is open.
+    Fonts {
+        project: PathBuf,
+        family: Option<String>,
+        /// Back to the style's own font.
+        #[arg(long)]
+        reset: bool,
     },
     /// Read the project, revision and timeline.
     Inspect {
@@ -298,6 +337,29 @@ enum SettingsCommand {
     /// Set one value by its name in `settings` (window is app or browser, follow is true or
     /// false). An empty value clears it.
     Set { key: String, value: String },
+}
+
+#[derive(Subcommand)]
+enum ModelsCommand {
+    /// Whether a model can do a job: its form, its provider, the way it would go now and,
+    /// unless --offline, whether the keys reach it. Costs nothing.
+    Check {
+        model: String,
+        /// narration, timings, music or dictation.
+        #[arg(long, default_value = "narration")]
+        job: String,
+        #[arg(long)]
+        offline: bool,
+    },
+    /// Use a model for a job in every new film (or for dictation), after checking it. An empty
+    /// model goes back to the usual one. `voice` takes a voice name.
+    Set {
+        job: String,
+        model: String,
+        /// Save it even when the check says the keys do not reach it.
+        #[arg(long)]
+        force: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -496,7 +558,7 @@ fn settings_report(home: &std::path::Path) -> Result<Value> {
         "settings": settings,
         "file": home.join("settings.json"),
         "keys": home::setting_keys(),
-        "note": "Unset values follow the style preset; `filmsFolder` is where `new` puts a film when no folder is given (projectsDir, else Superint Video in the user's Videos folder). The user changes these in the app (`superint-video app`) or with `settings set <key> <value>`.",
+        "note": "Unset values follow the style preset; `filmsFolder` is where `new` puts a film when no folder is given (projectsDir, else Superint Video in the user's Videos folder). The user changes these in the app (`superint-video app`) or with `settings set <key> <value>`. For the models, `superint-video models` says what each job uses and checks a model before `models set`.",
     }))
 }
 
@@ -545,6 +607,20 @@ async fn run() -> Result<()> {
                 settings.save(&home)?;
             }
             print_json(settings_report(&home)?);
+        }
+        Commands::Models { command } => {
+            let start = std::env::current_dir()?;
+            print_json(match command {
+                None => superint_video::models::report(&start)?,
+                Some(ModelsCommand::Check {
+                    model,
+                    job,
+                    offline,
+                }) => superint_video::models::check(&start, &model, &job, !offline).await?,
+                Some(ModelsCommand::Set { job, model, force }) => {
+                    superint_video::models::set(&start, &user_home()?, &job, &model, force).await?
+                }
+            });
         }
         Commands::Init { directory } => {
             if directory.exists() && std::fs::read_dir(&directory)?.next().is_some() {
@@ -745,6 +821,28 @@ async fn run() -> Result<()> {
                 .await?;
             }
         }
+        Commands::Edit {
+            project,
+            operations,
+            clip,
+            props,
+            sets,
+            dry_run,
+        } => {
+            let request = superint_video::edit::Request {
+                operations: operations.as_deref(),
+                clip: clip.as_deref(),
+                props: &props,
+                sets: &sets,
+                dry_run,
+            };
+            print_json(superint_video::edit::run(&project, &request).await?);
+        }
+        Commands::Fonts {
+            project,
+            family,
+            reset,
+        } => print_json(superint_video::fonts::run(&project, family.as_deref(), reset).await?),
         Commands::Inspect {
             project,
             json: machine,

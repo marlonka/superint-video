@@ -60,6 +60,59 @@ export function validateActors(result) {
   });
 }
 
+/**
+ * Where the scene shows its text props, so Studio can let the user click a text and retype it.
+ * A text is the element marked data-prop="key", else the innermost element whose text is
+ * exactly the prop's value. Hidden and fully transparent elements are left out; each element
+ * counts once. Boxes are in scene pixels: [{prop, x, y, w, h}].
+ */
+export function textBoxes(root, definitions, props, styleOf = element => getComputedStyle(element)) {
+  const keys = Object.entries(definitions || {}).filter(([, prop]) => prop.type === 'text').map(([key]) => key);
+  if (!root || !keys.length) return [];
+  const plain = text => String(text ?? '').replace(/\s+/g, ' ').trim();
+  const elements = [];
+  (function walk(element) {
+    for (const child of element.children || []) { elements.push(child); walk(child); }
+  })(root);
+  // The words themselves, not the block around them: a paragraph is as wide as the page.
+  const measure = element => {
+    const range = element.ownerDocument?.createRange?.();
+    if (range) {
+      range.selectNodeContents(element);
+      const box = range.getBoundingClientRect();
+      if (box.width > 0 && box.height > 0) return box;
+    }
+    return element.getBoundingClientRect();
+  };
+  const shown = element => {
+    const box = measure(element);
+    if (!(box.width > 0 && box.height > 0)) return null;
+    let alpha = 1;
+    for (let node = element; node; node = node.parentElement) {
+      const style = styleOf(node);
+      if (style.display === 'none' || style.visibility === 'hidden') return null;
+      alpha *= Number(style.opacity ?? 1);
+    }
+    return alpha < 0.05 ? null : box;
+  };
+  const claimed = new Set();
+  const boxes = [];
+  for (const key of keys) {
+    let element = elements.find(item => item.getAttribute?.('data-prop') === key);
+    const value = plain(props?.[key]);
+    if (!element && value) {
+      const matches = elements.filter(item => !claimed.has(item) && plain(item.textContent) === value);
+      element = matches.find(item => !matches.some(other => other !== item && item.contains(other)));
+    }
+    if (!element || claimed.has(element)) continue;
+    const box = shown(element);
+    if (!box) continue;
+    claimed.add(element);
+    boxes.push({ prop: key, x: box.left, y: box.top, w: box.width, h: box.height });
+  }
+  return boxes;
+}
+
 let definition = null;
 function validateProp(key, prop, value) {
   const expectedType = prop.type === 'number' ? 'number' : prop.type === 'boolean' ? 'boolean' : 'string';
@@ -81,6 +134,37 @@ const deadline = (promise, label, ms = 15000) => new Promise((resolve, reject) =
   const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
   Promise.resolve(promise).then(value => { clearTimeout(timer); resolve(value); }, error => { clearTimeout(timer); reject(error); });
 });
+
+/** The film's main font while the user has chosen one this scene has, else null. */
+let filmFont = null;
+/** The scene's own `--font`, read before the film's choice replaces it. */
+let styleFont = null;
+const loadedFamilies = new Map();
+const familyOf = face => face.family.replace(/^['"]|['"]$/g, '');
+
+/**
+ * The font list for text a scene sets itself (canvas, WebGL, SVG attributes): the film's main
+ * font when the user chose one, ahead of `fallback`. CSS takes the same choice through
+ * `var(--font)`.
+ */
+export function fontFamily(fallback = 'system-ui, sans-serif') {
+  return filmFont ? `"${filmFont}", ${fallback}` : fallback;
+}
+
+/**
+ * Puts the film's font into `--font` before a frame, with every face of it loaded, so no frame
+ * shows a stand-in. A family this scene does not have leaves the scene's own font.
+ */
+async function useFilmFont(family) {
+  const root = document.documentElement;
+  if (styleFont === null) styleFont = getComputedStyle(root).getPropertyValue('--font').trim();
+  const faces = typeof family === 'string' ? [...document.fonts].filter(face => familyOf(face) === family) : [];
+  filmFont = faces.length ? family : null;
+  if (!filmFont) return root.style.removeProperty('--font');
+  root.style.setProperty('--font', `"${filmFont}", ${styleFont || 'system-ui, sans-serif'}`);
+  if (!loadedFamilies.has(filmFont)) loadedFamilies.set(filmFont, Promise.all(faces.map(face => face.load())));
+  await deadline(loadedFamilies.get(filmFont), `Font ${filmFont}`);
+}
 
 async function assetReadiness() {
   await deadline(document.fonts.ready, 'Font loading');
@@ -125,11 +209,16 @@ if (typeof window !== 'undefined' && window.parent !== window) {
         const props = Object.fromEntries(Object.entries(definition?.props || {}).map(([key, value]) => [key, value.default]));
         Object.assign(props, context.props || {});
         for (const [key, prop] of Object.entries(definition?.props || {})) validateProp(key, prop, props[key]);
+        await useFilmFont(context.font);
         const actors = validateActors(await deadline(definition?.render({ ...context, props }), 'render(context)'));
-        await assetReadiness();
-        // A layout read flushes author style changes before the parent's capture.
+        // A layout read applies the author's style changes and so starts any font they need;
+        // the frame waits for it, and a second read flushes the result before the capture.
         document.documentElement.getBoundingClientRect();
-        post({ type: 'frame', requestId: message.requestId, frame: context.frame, actors });
+        await assetReadiness();
+        document.documentElement.getBoundingClientRect();
+        // Only the paused preview asks where the texts are, to let the user retype them.
+        const texts = context.texts ? textBoxes(document.body, definition?.props, props) : [];
+        post({ type: 'frame', requestId: message.requestId, frame: context.frame, actors, texts });
       } catch (error) {
         post({ type: 'error', requestId: message.requestId, message: error?.stack || String(error) });
       }

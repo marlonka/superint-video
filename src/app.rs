@@ -6,8 +6,8 @@ use crate::{
     env::{self, Keys},
     home::{self, KeyStore, Settings},
     live, polish, preset, process, production,
-    project::modified_ms,
-    providers,
+    project::{modified_ms, without_verbatim},
+    providers::{self, Provider},
     server::{ApiError, ApiResult, bytes_response},
     skills::{self, Agent},
 };
@@ -40,6 +40,8 @@ const MOST_FILMS: usize = 60;
 const PICTURE_WIDTH: u32 = 640;
 /// The largest style file the start page may send.
 const MOST_STYLE_BYTES: usize = 256 * 1024 * 1024;
+/// The largest dictation: ten minutes of 16 kHz mono 16-bit WAV, and room for its header.
+const MOST_DICTATION_BYTES: usize = 20 * 1024 * 1024;
 /// Where the skills an update replaced are kept, below the user folder.
 const REPLACED_SKILLS: &str = "replaced-skills";
 
@@ -109,6 +111,10 @@ pub fn routes(state: AppState) -> Router {
         .route("/api/app/settings", put(save_settings))
         .route("/api/app/keys/{name}", post(save_key).delete(remove_key))
         .route("/api/app/keys/{name}/test", post(test_key))
+        .route(
+            "/api/app/dictate",
+            post(dictate).layer(DefaultBodyLimit::max(MOST_DICTATION_BYTES)),
+        )
         .route("/api/app/films/{id}/open", post(open_film))
         .route("/api/app/films/{id}/forget", post(forget_film))
         .route("/api/app/films/{id}/reveal", post(reveal_film))
@@ -126,6 +132,7 @@ pub fn routes(state: AppState) -> Router {
         )
         .route("/api/app/agents/{id}/skills", post(install_skills))
         .route("/api/app/tools/{id}/install", post(install_tool))
+        .route("/api/app/google/sign-in", post(google_sign_in))
         .route("/api/app/reveal/{what}", post(reveal_place))
         .with_state(state)
 }
@@ -162,9 +169,21 @@ async fn payload(state: &AppState, fresh: bool) -> Result<Value> {
     let state = state.clone();
     // Keys, settings, styles, skills and films are all read from disk.
     tokio::task::spawn_blocking(move || {
-        let keys = Keys::load(state.start())?;
-        let settings = Settings::load(&state.home)?;
-        let any_key = env::KNOWN.iter().any(|name| keys.get(name).is_some());
+        let Access {
+            keys,
+            settings,
+            sign_in,
+            place,
+        } = Access::load(&state)?;
+        let reaches = |route| providers::ready(&keys, sign_in.as_ref(), &place, route);
+        // OpenAI writes down dictations only; a film needs one of the others.
+        let film_key = [
+            Provider::AiStudio,
+            Provider::GoogleCloud,
+            Provider::OpenRouter,
+        ]
+        .into_iter()
+        .any(reaches);
         let project = state.project.as_ref().map(|root| {
             let manifest = home::read_json(&root.join("video.json"));
             json!({"name": manifest.and_then(|m| m["name"].as_str().map(str::to_owned))})
@@ -177,14 +196,17 @@ async fn payload(state: &AppState, fresh: bool) -> Result<Value> {
             "setup": {
                 "can": {
                     "picture": ready(&tools, "chrome") && ready(&tools, "ffmpeg"),
-                    "voice": any_key,
-                    "music": any_key,
+                    "voice": film_key,
+                    "music": film_key,
                     "soundEffects": ready(&tools, "earshot"),
+                    "dictate": film_key || reaches(Provider::OpenAi),
                 },
                 "tools": tools,
-                "keys": key_rows(&keys),
+                "keys": key_rows(&keys, &settings, sign_in.as_ref(), &place),
+                "models": usual_models(reaches),
                 "agents": agents(&state, fresh),
             },
+            "cli": cli(),
             "filmsFolder": home::films_dir(&settings),
             "films": films(&state, &settings),
             "settings": settings,
@@ -192,6 +214,24 @@ async fn payload(state: &AppState, fresh: bool) -> Result<Value> {
         }))
     })
     .await?
+}
+
+/// Where this program is, and whether a coding agent's shell finds this very one by its name.
+/// When it does not, the prompt says where it is.
+fn cli() -> Value {
+    let exe = std::env::current_exe()
+        .and_then(|exe| exe.canonicalize())
+        .ok();
+    let name = if cfg!(windows) {
+        "superint-video.exe"
+    } else {
+        "superint-video"
+    };
+    let found = process::find_command(name).and_then(|found| found.canonicalize().ok());
+    json!({
+        "path": exe.as_deref().map(without_verbatim),
+        "onPath": exe.is_some() && found == exe,
+    })
 }
 
 fn ready(tools: &Value, id: &str) -> bool {
@@ -246,9 +286,72 @@ struct Tool {
     get: &'static str,
     /// What winget calls it, when winget can install it.
     winget: Option<&'static str>,
-    /// A command for a terminal that installs it, for tools the app cannot install itself.
+    /// The command that installs it outside winget, for the user or a coding agent to run.
     command: Option<&'static str>,
+    /// A script that installs it in a window of its own.
+    script: Option<Script>,
 }
+
+/// An installer the app writes into its folder and runs in a terminal window. It needs one
+/// command first, which it fetches through winget when it is missing.
+#[derive(Clone, Copy)]
+struct Script {
+    file: &'static str,
+    text: &'static str,
+    needs: &'static str,
+}
+
+/// Writes an installer script into the app's folder, with Windows line ends, and gives its path.
+fn write_script(home: &Path, file: &str, text: &str) -> Result<String> {
+    std::fs::create_dir_all(home)?;
+    let path = home.join(file);
+    std::fs::write(&path, text.replace('\n', "\r\n"))?;
+    Ok(path.display().to_string())
+}
+
+/// Earshot as its README installs it (checked 2026-11-12): from GitHub with uv, which brings
+/// its own Python. `pip install earshot` would fetch another project of the same name.
+macro_rules! earshot_source {
+    () => {
+        r#""earshot[mcp,llm] @ git+https://github.com/Leonxlnx/earshot""#
+    };
+}
+pub(crate) const EARSHOT_INSTALL: &str = concat!("uv tool install ", earshot_source!());
+/// The window that installs Earshot: uv first through winget when it is missing, then
+/// Earshot. Nothing is agreed to for the user; winget asks in the window.
+const EARSHOT_SCRIPT: &str = concat!(
+    r#"@echo off
+echo Superint Video installs Earshot, the sound effects tool (github.com/Leonxlnx/earshot).
+echo.
+call :find
+if not defined UV (
+  echo First uv, which installs Python tools:
+  winget install --id astral-sh.uv --exact --source winget
+  call :find
+)
+if not defined UV (
+  echo uv could not be installed. See https://docs.astral.sh/uv/
+  exit /b 1
+)
+"%UV%" tool install --force "#,
+    earshot_source!(),
+    r#"
+if errorlevel 1 exit /b 1
+echo.
+echo Done. Close this window and choose "Check again" in Superint Video.
+exit /b 0
+
+rem uv on the search path, in winget's links, in winget's package folder (where winget leaves
+rem it when Windows lets it make no link), or where uv's own installer puts it.
+:find
+set "UV="
+where uv >nul 2>nul && set "UV=uv"
+if not defined UV if exist "%LOCALAPPDATA%\Microsoft\WinGet\Links\uv.exe" set "UV=%LOCALAPPDATA%\Microsoft\WinGet\Links\uv.exe"
+if not defined UV if exist "%USERPROFILE%\.local\bin\uv.exe" set "UV=%USERPROFILE%\.local\bin\uv.exe"
+if not defined UV for /d %%D in ("%LOCALAPPDATA%\Microsoft\WinGet\Packages\astral-sh.uv_*") do if exist "%%D\uv.exe" set "UV=%%D\uv.exe"
+exit /b 0
+"#
+);
 
 const TOOLS: &[Tool] = &[
     Tool {
@@ -259,6 +362,7 @@ const TOOLS: &[Tool] = &[
         get: "https://www.google.com/chrome/",
         winget: Some("Google.Chrome"),
         command: None,
+        script: None,
     },
     Tool {
         id: "ffmpeg",
@@ -268,6 +372,7 @@ const TOOLS: &[Tool] = &[
         get: "https://ffmpeg.org/download.html",
         winget: Some("Gyan.FFmpeg"),
         command: None,
+        script: None,
     },
     Tool {
         id: "earshot",
@@ -276,7 +381,12 @@ const TOOLS: &[Tool] = &[
         optional: true,
         get: "https://github.com/Leonxlnx/earshot",
         winget: None,
-        command: Some("pip install earshot"),
+        command: Some(EARSHOT_INSTALL),
+        script: Some(Script {
+            file: "install-earshot.cmd",
+            text: EARSHOT_SCRIPT,
+            needs: "uv",
+        }),
     },
 ];
 
@@ -299,7 +409,11 @@ async fn tools(state: &AppState, fresh: bool) -> Value {
                 "optional": tool.optional,
                 "sounds": first.and_then(|d| d["sounds"].as_u64()),
                 "get": tool.get,
-                "install": winget && tool.winget.is_some(),
+                // A script brings what it needs through winget when that is missing.
+                "install": match tool.script {
+                    Some(script) => winget || process::installed(script.needs),
+                    None => winget && tool.winget.is_some(),
+                },
                 "command": tool.command,
             })
         })
@@ -324,9 +438,11 @@ async fn install_tool(
         .iter()
         .find(|tool| tool.id == id)
         .ok_or_else(|| ApiError::bad("Unknown tool"))?;
-    let command = install_command(tool)
-        .filter(|_| process::winget())
-        .ok_or_else(|| ApiError::bad("This tool cannot be installed from here"))?;
+    let command = match tool.script {
+        Some(script) => Some(write_script(&state.home, script.file, script.text)?),
+        None => install_command(tool).filter(|_| process::winget()),
+    }
+    .ok_or_else(|| ApiError::bad("This tool cannot be installed from here"))?;
     if ready(&tools(&state, true).await, tool.id) {
         return Err(ApiError::bad("This tool is already installed"));
     }
@@ -353,38 +469,160 @@ fn open_terminal(_title: &str, _command: &str) -> Result<()> {
     bail!("Installing from the app works on Windows only")
 }
 
+/// What this computer can reach, read once per request: the keys, the settings, the user's
+/// Google sign-in and where Google Cloud requests go.
+struct Access {
+    keys: Keys,
+    settings: Settings,
+    sign_in: Option<providers::gauth::Adc>,
+    place: providers::cloud::Place,
+}
+
+impl Access {
+    fn load(state: &AppState) -> Result<Self> {
+        let keys = Keys::load(state.start())?;
+        let settings = Settings::load(&state.home)?;
+        let sign_in = providers::gauth::find();
+        let place = providers::cloud::Place::of(&keys, &settings, sign_in.as_ref());
+        Ok(Self {
+            keys,
+            settings,
+            sign_in,
+            place,
+        })
+    }
+
+    fn key_rows(&self) -> Vec<Value> {
+        key_rows(
+            &self.keys,
+            &self.settings,
+            self.sign_in.as_ref(),
+            &self.place,
+        )
+    }
+}
+
 /// One row per provider. Never a value: only whether a key is there, where it comes from and
-/// the models it is used with unless a style or a film names others. Those are the same three
-/// on both routes: with an OpenRouter key alone they are reached through OpenRouter.
-fn key_rows(keys: &Keys) -> Vec<Value> {
+/// the models it is used with unless the user, a style or a film names others. With an
+/// OpenRouter key alone, Google's models are reached through OpenRouter, and Google Cloud
+/// reaches the same models as AI Studio; OpenAI writes down dictations only. Google Cloud and
+/// OpenAI are for few users and are folded away in Setup (`more`) until they hold a key.
+fn key_rows(
+    keys: &Keys,
+    settings: &Settings,
+    sign_in: Option<&providers::gauth::Adc>,
+    place: &providers::cloud::Place,
+) -> Vec<Value> {
     let status = keys.status();
-    let usual = providers::AI_STUDIO;
-    let row = |name: &str, title: &str, get: &str, model: &dyn Fn(&'static str) -> String| {
+    let row = |route: Provider, title: &str, get: &str| {
+        let name = route.key();
         let found = status.iter().find(|s| s.name == name);
+        let models: serde_json::Map<String, Value> = providers::usual_models(route)
+            .into_iter()
+            .map(|(job, model)| (job.to_string(), json!(model)))
+            .collect();
         json!({
-            "name": name, "title": title, "recommended": name == env::GEMINI, "get": get,
+            "name": name, "title": title, "recommended": route == Provider::AiStudio, "get": get,
+            "more": matches!(route, Provider::GoogleCloud | Provider::OpenAi),
             "present": found.is_some_and(|s| s.present),
             "source": found.and_then(|s| s.source.as_ref()).map(env::Source::kind),
-            "models": {
-                "voice": model(usual.speech), "timings": model(usual.transcription),
-                "music": model(usual.music),
-            },
+            "models": models,
         })
     };
+    let mut cloud = row(
+        Provider::GoogleCloud,
+        "Google Cloud",
+        "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/start/api-keys",
+    );
+    cloud["place"] = json!({
+        "project": place.project, "location": place.location, "servedIn": place.served_in(),
+        // Set outside the app (GOOGLE_CLOUD_PROJECT, GOOGLE_CLOUD_LOCATION), so Setup shows it.
+        "fixed": keys.cloud_project.is_some() || keys.cloud_location.is_some(),
+    });
+    // Google's recommended way in is the user's Google sign-in. A saved key stays the user's
+    // choice and wins; without one, the sign-in counts as the key.
+    if keys.get(env::GOOGLE_CLOUD).is_none() && sign_in.is_some() {
+        cloud["present"] = json!(true);
+        cloud["source"] = json!("google");
+    }
+    cloud["ready"] = json!(providers::ready(
+        keys,
+        sign_in,
+        place,
+        Provider::GoogleCloud
+    ));
+    let mut openai = row(
+        Provider::OpenAi,
+        "OpenAI",
+        "https://platform.openai.com/api-keys",
+    );
+    openai["region"] = json!(settings.open_ai_region.as_deref().unwrap_or("global"));
     vec![
         row(
-            env::GEMINI,
+            Provider::AiStudio,
             "Google AI Studio",
             "https://aistudio.google.com/apikey",
-            &|model| model.into(),
         ),
         row(
-            env::OPENROUTER,
+            Provider::OpenRouter,
             "OpenRouter",
             "https://openrouter.ai/settings/keys",
-            &|model| providers::openrouter_twin(model).unwrap_or_else(|| model.into()),
         ),
+        cloud,
+        openai,
     ]
+}
+
+/// The models a film and a dictation use when the user names none, for Setup's models form.
+fn usual_models(ready: impl Fn(Provider) -> bool) -> Value {
+    let usual = providers::AI_STUDIO;
+    json!({
+        "narration": usual.speech, "voice": usual.voice, "transcription": usual.transcription,
+        "music": usual.music, "dictation": providers::usual_dictation(ready),
+    })
+}
+
+/// The window that signs the user in to Google Cloud: the Google Cloud CLI first through winget
+/// when it is missing, then `gcloud auth application-default login`, which opens the browser.
+/// Nothing is agreed to for the user; winget and Google ask in their own windows.
+const GOOGLE_SIGN_IN_SCRIPT: &str = r#"@echo off
+echo Superint Video signs you in to Google Cloud with your Google account.
+echo Google calls this Application Default Credentials: no API key, no secret to copy.
+echo.
+call :find
+if not defined GCLOUD (
+  echo First the Google Cloud CLI, which does the sign-in. This takes a minute or two.
+  echo Windows may ask for administrator rights: if nothing shows up, look for a
+  echo flashing shield in the taskbar.
+  winget install --id Google.CloudSDK --exact --source winget
+  call :find
+)
+if not defined GCLOUD (
+  echo The Google Cloud CLI could not be installed. See https://cloud.google.com/sdk/docs/install
+  exit /b 1
+)
+echo Your browser opens for the sign-in.
+call "%GCLOUD%" auth application-default login
+if errorlevel 1 exit /b 1
+echo.
+echo Done. Close this window; Superint Video sees the sign-in by itself.
+exit /b 0
+
+rem The Google Cloud CLI on the search path, or where its installer puts it (as gauth::cli).
+:find
+set "GCLOUD="
+for %%G in (gcloud.cmd) do if not "%%~$PATH:G"=="" set "GCLOUD=%%~$PATH:G"
+if not defined GCLOUD if exist "%LOCALAPPDATA%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd" set "GCLOUD=%LOCALAPPDATA%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
+if not defined GCLOUD if exist "%ProgramFiles(x86)%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd" set "GCLOUD=%ProgramFiles(x86)%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
+if not defined GCLOUD if exist "%ProgramFiles%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd" set "GCLOUD=%ProgramFiles%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
+exit /b 0
+"#;
+
+/// Opens the sign-in window. Google's own CLI keeps the sign-in; the app saves nothing of it.
+async fn google_sign_in(State(state): State<AppState>) -> ApiResult<Json<Value>> {
+    let script = write_script(&state.home, "google-sign-in.cmd", GOOGLE_SIGN_IN_SCRIPT)?;
+    open_terminal("Superint Video: Google sign-in", &script)?;
+    Ok(Json(json!({"started": true})))
 }
 
 // ---------------------------------------------------------------------------------------- keys
@@ -409,7 +647,7 @@ async fn save_key(
 ) -> ApiResult<Json<Value>> {
     let name = known_key(&name)?;
     KeyStore::at(&state.home).set(name, &body.value)?;
-    Ok(Json(json!({"keys": key_rows(&Keys::load(state.start())?)})))
+    Ok(Json(json!({"keys": Access::load(&state)?.key_rows()})))
 }
 
 async fn remove_key(
@@ -418,7 +656,7 @@ async fn remove_key(
 ) -> ApiResult<Json<Value>> {
     let name = known_key(&name)?;
     KeyStore::at(&state.home).remove(name)?;
-    Ok(Json(json!({"keys": key_rows(&Keys::load(state.start())?)})))
+    Ok(Json(json!({"keys": Access::load(&state)?.key_rows()})))
 }
 
 async fn test_key(
@@ -426,15 +664,64 @@ async fn test_key(
     RoutePath(name): RoutePath<String>,
 ) -> ApiResult<Json<Value>> {
     let name = known_key(&name)?;
-    Ok(Json(providers::try_key(state.start(), name).await?))
+    let settings = Settings::load(&state.home)?;
+    Ok(Json(
+        providers::try_key(state.start(), name, settings.dictation_model.as_deref()).await?,
+    ))
+}
+
+// ----------------------------------------------------------------------------------- dictation
+
+/// Writes down what the user said into the start page. The page records and sends a WAV
+/// file; the answer is the text, the model and the route that wrote it. The recording is
+/// kept nowhere but in the request to the provider.
+async fn dictate(State(state): State<AppState>, body: Bytes) -> ApiResult<Json<Value>> {
+    let seconds = providers::wav_seconds(&body).map_err(|e| ApiError::bad(&e.to_string()))?;
+    if seconds < 0.2 {
+        return Err(ApiError::bad("The recording is too short"));
+    }
+    if seconds > providers::MOST_DICTATION_SECONDS {
+        return Err(ApiError::bad("The recording is longer than ten minutes"));
+    }
+    let Access {
+        keys,
+        settings,
+        sign_in,
+        place,
+    } = Access::load(&state)?;
+    // The same answer the start page gave when it showed the microphone.
+    let any = [
+        Provider::AiStudio,
+        Provider::GoogleCloud,
+        Provider::OpenAi,
+        Provider::OpenRouter,
+    ]
+    .into_iter()
+    .any(|route| providers::ready(&keys, sign_in.as_ref(), &place, route));
+    if !any {
+        return Err(ApiError::bad(
+            "Dictation needs an API key: add one under Setup",
+        ));
+    }
+    let generators = providers::Generators::with(
+        keys,
+        std::env::temp_dir().join("superint-video-dictation"),
+        &settings,
+        sign_in,
+    )?;
+    let dictation = generators
+        .dictate(&body, settings.dictation_model.as_deref())
+        .await?;
+    Ok(Json(json!(dictation)))
 }
 
 // ------------------------------------------------------------------------------------ settings
 
 async fn save_settings(
     State(state): State<AppState>,
-    Json(settings): Json<Settings>,
+    Json(mut settings): Json<Settings>,
 ) -> ApiResult<Json<Value>> {
+    settings.normalize();
     settings.save(&state.home)?;
     Ok(Json(json!({"settings": settings})))
 }
@@ -837,6 +1124,13 @@ mod tests {
                 .filter_map(install_command)
                 .all(|c| !c.contains("accept"))
         );
+        // The sign-in agrees to nothing for the user either.
+        assert!(!GOOGLE_SIGN_IN_SCRIPT.contains("accept"));
+        assert!(GOOGLE_SIGN_IN_SCRIPT.contains("auth application-default login"));
+        // Earshot comes from GitHub: the PyPI package of that name is another project.
+        let source = r#""earshot[mcp,llm] @ git+https://github.com/Leonxlnx/earshot""#;
+        assert!(EARSHOT_INSTALL.ends_with(source) && EARSHOT_SCRIPT.contains(source));
+        assert!(!EARSHOT_SCRIPT.contains("accept") && !EARSHOT_SCRIPT.contains("pip install"));
     }
 
     #[test]
@@ -848,12 +1142,21 @@ mod tests {
             .set(env::GEMINI, "value-that-must-not-leak-01")
             .unwrap();
         let keys = Keys::load_with(project.path(), Some(home.path())).unwrap();
-        let rows = json!(key_rows(&keys)).to_string();
+        let mut settings = Settings::default();
+        settings.set("openAiRegion", "eu").unwrap();
+        let place = providers::cloud::Place::of(&keys, &settings, None);
+        let rows = json!(key_rows(&keys, &settings, None, &place)).to_string();
         assert!(!rows.contains("value-that-must-not-leak-01"));
         assert!(rows.contains("aistudio.google.com"));
         // Each provider names the models its key is used with by default.
         assert!(rows.contains(r#""voice":"gemini-3.8-flash-tts""#));
         assert!(rows.contains(r#""voice":"google/gemini-3.8-flash-tts""#));
         assert!(rows.contains(r#""music":"google/lyria-3-pro-preview""#));
+        assert!(rows.contains(r#""music":"lyria-3-pro-preview""#));
+        assert!(rows.contains(r#""dictation":"microsoft/mai-transcribe-2""#));
+        // OpenAI only writes down dictations; it and Google Cloud are folded away.
+        assert!(rows.contains(r#""models":{"dictation":"gpt-transcribe"}"#));
+        assert!(rows.contains(r#""region":"eu""#));
+        assert_eq!(rows.matches(r#""more":true"#).count(), 2);
     }
 }

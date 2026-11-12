@@ -3,7 +3,7 @@
 //! nesting between API versions do not break parsing.
 use super::{
     Generators, Provider, SpeechRequest, TranscribeRequest, Transcript, Word, language_tag, mime,
-    pcm_wav, sniff,
+    pcm_wav, sniff, with_headers,
 };
 use crate::env;
 use anyhow::{Context, Result, bail};
@@ -87,6 +87,19 @@ pub(super) async fn transcribe(
     })
 }
 
+/// A dictation in `smart` mode: the text as it is meant to be read, without fillers, stutters
+/// and false starts, with the speaker's own corrections applied. The language is detected,
+/// so a German sentence with English terms comes out as spoken.
+pub(super) async fn dictate(g: &Generators, wav: Vec<u8>, model: &str) -> Result<String> {
+    let uri = upload(g, wav, "audio/wav").await?;
+    let body = json!({
+        "model": model,
+        "input": [{"type": "audio", "uri": uri, "mime_type": "audio/wav"}],
+        "generation_config": {"transcription_config": {"mode": "smart"}},
+    });
+    Ok(transcript(&interact(g, &body, Duration::from_secs(120)).await?).0)
+}
+
 pub(super) async fn music(g: &Generators, model: &str, prompt: &str) -> Result<Vec<u8>> {
     let mut body = json!({"model": model, "input": prompt});
     // The 30-second clip model only returns MP3.
@@ -99,29 +112,34 @@ pub(super) async fn music(g: &Generators, model: &str, prompt: &str) -> Result<V
 /// Whether this key sees a model (`GET /v1beta/models/{model}`).
 pub async fn visible(g: &Generators, model: &str) -> Result<bool> {
     let key = g.keys.require(env::GEMINI)?;
-    let response = g
+    let request = g
         .http
         .get(format!("{BASE}/v1beta/models/{model}"))
-        .header("x-goog-api-key", key.expose())
-        .timeout(Duration::from_secs(20))
-        .send()
-        .await
-        .map_err(|e| g.transport(e))?;
-    match response.status().as_u16() {
-        200 => Ok(true),
-        404 => Ok(false),
-        _ => Err(g.failure(Provider::AiStudio, response).await),
-    }
+        .header("x-goog-api-key", key.expose());
+    g.probe(Provider::AiStudio, request).await
 }
 
 async fn interact(g: &Generators, body: &Value, timeout: Duration) -> Result<Value> {
     let key = g.keys.require(env::GEMINI)?;
     let url = format!("{BASE}/v1beta/interactions");
+    let auth = [("x-goog-api-key", key.expose().to_string())];
+    interact_at(g, Provider::AiStudio, &url, &auth, body, timeout).await
+}
+
+/// Creates an interaction at `url` and polls it until it settles. Google Cloud's Interactions
+/// API works the same way under its own address; `auth` are the headers that say who asks.
+pub(super) async fn interact_at(
+    g: &Generators,
+    provider: Provider,
+    url: &str,
+    auth: &[(&str, String)],
+    body: &Value,
+    timeout: Duration,
+) -> Result<Value> {
+    let label = provider.label();
     let response = g
-        .send(Provider::AiStudio, || {
-            g.http
-                .post(&url)
-                .header("x-goog-api-key", key.expose())
+        .send(provider, || {
+            with_headers(g.http.post(url), auth)
                 .json(body)
                 .timeout(timeout)
         })
@@ -132,27 +150,20 @@ async fn interact(g: &Generators, body: &Value, timeout: Duration) -> Result<Val
     while status(&value).is_some_and(pending) {
         if started.elapsed() > timeout {
             bail!(
-                "AI Studio did not finish within {} seconds",
+                "{label} did not finish within {} seconds",
                 timeout.as_secs()
             );
         }
         let id = value["id"]
             .as_str()
             .or(value["name"].as_str())
-            .context("Unfinished interaction without an id")?
-            .to_string();
-        let url = if id.starts_with("interactions/") {
-            format!("{BASE}/v1beta/{id}")
-        } else {
-            format!("{BASE}/v1beta/interactions/{id}")
-        };
+            .context("Unfinished interaction without an id")?;
+        // The id may come as `interactions/<id>` or as the whole resource name.
+        let poll = format!("{url}/{}", id.rsplit('/').next().unwrap_or(id));
         tokio::time::sleep(Duration::from_secs(2)).await;
         value = g
-            .send(Provider::AiStudio, || {
-                g.http
-                    .get(&url)
-                    .header("x-goog-api-key", key.expose())
-                    .timeout(Duration::from_secs(60))
+            .send(provider, || {
+                with_headers(g.http.get(&poll), auth).timeout(Duration::from_secs(60))
             })
             .await?
             .json()
@@ -164,7 +175,7 @@ async fn interact(g: &Generators, body: &Value, timeout: Duration) -> Result<Val
             .as_str()
             .or(value["error"].as_str())
             .unwrap_or("no details");
-        bail!("AI Studio interaction {state}: {}", g.keys.redact(detail));
+        bail!("{label} interaction {state}: {}", g.keys.redact(detail));
     }
     Ok(value)
 }
@@ -290,7 +301,7 @@ fn collect<'a>(value: &'a Value, matches: &dyn Fn(&Value) -> bool, out: &mut Vec
     }
 }
 
-fn audio(response: &Value) -> Result<Vec<u8>> {
+pub(super) fn audio(response: &Value) -> Result<Vec<u8>> {
     let mut blocks = Vec::new();
     for scope in outputs(response) {
         collect(
@@ -300,19 +311,24 @@ fn audio(response: &Value) -> Result<Vec<u8>> {
         );
     }
     let block = blocks.last().context(
-        "AI Studio returned no audio. Check the model ID and the text against models.md",
+        "Google returned no audio. Check the model ID and the text against the provider file",
     )?;
-    let bytes = B64
-        .decode(block["data"].as_str().unwrap_or_default())
-        .context("AI Studio audio is not valid base64")?;
-    if sniff(&bytes) != "bin" {
-        return Ok(bytes);
-    }
-    // Headerless PCM (audio/l16): wrap it at the rate the MIME type names.
     let mime = block["mime_type"]
         .as_str()
         .or(block["mimeType"].as_str())
         .unwrap_or_default();
+    decode(block["data"].as_str().unwrap_or_default(), mime)
+}
+
+/// Base64 audio as a file: as it came when it has a header, else headerless PCM (audio/l16)
+/// wrapped at the rate its MIME type names.
+pub(super) fn decode(data: &str, mime: &str) -> Result<Vec<u8>> {
+    let bytes = B64
+        .decode(data)
+        .context("Google's audio is not valid base64")?;
+    if sniff(&bytes) != "bin" {
+        return Ok(bytes);
+    }
     let rate = mime
         .split(';')
         .find_map(|part| part.trim().strip_prefix("rate="))
@@ -354,7 +370,7 @@ fn transcript(response: &Value) -> (String, Vec<Word>) {
 }
 
 /// Durations come as "0.100s", as numbers or as {seconds, nanos}.
-fn offset(value: &Value) -> Option<f64> {
+pub(super) fn offset(value: &Value) -> Option<f64> {
     match value {
         Value::String(text) => text.trim().trim_end_matches('s').parse().ok(),
         Value::Number(number) => number.as_f64(),

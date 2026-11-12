@@ -33,6 +33,33 @@ props: {
 }
 ```
 
+A text prop the user sees on screen becomes clickable in Studio's preview: the user clicks it and types a new text, which goes into the clip's `props`. Mark the element that shows it with `data-prop`, so it is found even when the scene changes the words on the way (uppercase, a counter, a typewriter):
+
+```html
+<h1 id="title" data-prop="title"></h1>
+```
+
+```js
+render({props}) { title.textContent = props.title; }
+```
+
+Without the mark, an element whose text is exactly the prop's value is found too. Text drawn into a canvas or WebGL cannot be clicked; it stays editable on the right of Studio.
+
+**The film's font.** The user can give the whole film another main font (Studio: Film → Font; `superint-video fonts <dir> <family>`): one the film's files declare with `@font-face`, or one of the tool's library, which every scene gets through `/runtime/fonts/fonts.css` (Geist, Nunito, Jost, Fraunces, Courier Prime, JetBrains Mono, Caveat). Before each frame the runtime puts it into the `--font` CSS variable on `<html>`, ahead of the style's own `--font` as fallback, and loads all its faces; `context.font` names it (null while the style's applies). So:
+
+```css
+:root { --font: 'Geist', system-ui, sans-serif; }   /* the style's main font */
+body { font-family: var(--font); }                 /* main text follows the film's choice */
+code { font-family: 'JetBrains Mono', monospace; } /* a deliberate second role keeps its own */
+```
+
+```js
+import {fontFamily} from '/runtime/scene.js';
+ctx.font = `700 64px ${fontFamily('"Geist", sans-serif')}`;  // canvas, WebGL, SVG attributes
+```
+
+Measure and fit text inside `render`: a font change rebuilds the scene, and the new font is loaded before `render` runs, but not yet in `ready`.
+
 `interpolate(value, inputStops, outputStops, {clamp=true,ease=ease.linear})` interpolates
 between corresponding numeric arrays. Input stops must be strictly increasing.
 Arrays must have the same length, at least two. Outside values clamp by default.

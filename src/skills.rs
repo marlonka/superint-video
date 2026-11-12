@@ -21,8 +21,10 @@ pub const SKILLS: &[&str] = &[
 pub struct Agent {
     pub id: &'static str,
     pub title: &'static str,
-    /// Its folder in the user's home, where its skills live.
+    /// Its folder in the user's home; its skills are in `skills` there.
     folder: &'static str,
+    /// Folders in the user's home that are there once it is installed.
+    found_by: &'static [&'static str],
     pub get: &'static str,
 }
 
@@ -31,13 +33,29 @@ pub const AGENTS: &[Agent] = &[
         id: "claude",
         title: "Claude Code",
         folder: ".claude",
+        found_by: &[".claude"],
         get: "https://claude.com/product/claude-code",
     },
     Agent {
         id: "codex",
         title: "ChatGPT Codex",
         folder: ".codex",
+        found_by: &[".codex"],
         get: "https://openai.com/codex/",
+    },
+    // Global skills live in `~/.gemini/config/skills`, shared by the Antigravity app and its
+    // CLI; the app also still reads the older `~/.gemini/antigravity/skills` (checked
+    // 2026-11-12, antigravity.google/docs/skills).
+    Agent {
+        id: "antigravity",
+        title: "Google Antigravity",
+        folder: ".gemini/config",
+        found_by: &[
+            ".gemini/antigravity",
+            ".gemini/antigravity-cli",
+            ".gemini/config",
+        ],
+        get: "https://antigravity.google/",
     },
 ];
 
@@ -46,14 +64,18 @@ impl Agent {
         AGENTS.iter().find(|agent| agent.id == id)
     }
 
-    pub fn home(&self) -> Option<PathBuf> {
+    fn user() -> Option<PathBuf> {
         std::env::var_os("USERPROFILE")
             .or_else(|| std::env::var_os("HOME"))
-            .map(|user| PathBuf::from(user).join(self.folder))
+            .map(PathBuf::from)
+    }
+
+    pub fn home(&self) -> Option<PathBuf> {
+        Some(Self::user()?.join(self.folder))
     }
 
     pub fn installed(&self) -> bool {
-        self.home().is_some_and(|home| home.is_dir())
+        Self::user().is_some_and(|user| self.found_by.iter().any(|dir| user.join(dir).is_dir()))
     }
 
     pub fn skills_dir(&self) -> Option<PathBuf> {

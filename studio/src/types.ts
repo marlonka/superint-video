@@ -23,6 +23,18 @@ export interface Project {
   canUndo?: boolean;
   canRedo?: boolean;
   production?: Production;
+  fonts?: FontChoices;
+}
+/** What the film can take as its main font (`manifest.font`). */
+export interface FontChoices {
+  /** Declared by the film's own files, whatever its style. */
+  film: string[];
+  /** The tool's own, without the film's. */
+  library: string[];
+  /** The style's main font, kept while none is chosen. */
+  style: string | null;
+  /** Whether any scene takes the choice. */
+  follows: boolean;
 }
 /** What the agent is producing, read from brief.md, preset.json and process/status.json. */
 export interface Production {
@@ -89,6 +101,15 @@ export interface PropDefinition {
   min?: number;
   max?: number;
 }
+/** A text prop where the paused preview shows it, in project pixels. */
+export interface TextSpot {
+  clipId: string;
+  prop: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
 export interface RenderJob {
   id: string;
   status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
@@ -140,14 +161,37 @@ export interface Tool {
   command?: string | null;
 }
 export interface KeyRow {
-  name: 'GEMINI_API_KEY' | 'OPENROUTER_API_KEY';
+  name: 'GEMINI_API_KEY' | 'OPENROUTER_API_KEY' | 'GOOGLE_CLOUD_API_KEY' | 'OPENAI_API_KEY';
   title: string;
   recommended: boolean;
   present: boolean;
-  source: 'app' | 'file' | 'environment' | null;
+  /** `google`: no key, the user's Google sign-in (Google Cloud only). */
+  source: 'app' | 'file' | 'environment' | 'google' | null;
   get: string;
-  /** The models this provider's key is used with by default. */
-  models: { voice: string; timings: string; music: string };
+  /** For few users: folded away in Setup until it holds a key. */
+  more: boolean;
+  /** The models this provider's key is used with by default; OpenAI's only dictates. */
+  models: { voice?: string; timings?: string; music?: string; dictation: string };
+  /** Google Cloud: where requests go. `fixed` when the environment or a .env file sets it. */
+  place?: { project: string | null; location: string; servedIn: string; fixed: boolean };
+  /** OpenAI: the region of its address. */
+  region?: 'global' | 'eu';
+  /** Google Cloud: a key, or a sign-in with a project. */
+  ready?: boolean;
+}
+/** The models a film and a dictation use when the user names none. */
+export interface UsualModels {
+  narration: string;
+  voice: string;
+  transcription: string;
+  music: string;
+  dictation: string;
+}
+/** What a dictation came back as: the text, and the model and route that wrote it down. */
+export interface Dictation {
+  text: string;
+  model: string;
+  route: 'aiStudio' | 'openRouter' | 'googleCloud' | 'openAi';
 }
 /** What asking the provider about a saved key found. */
 export interface KeyCheck {
@@ -184,6 +228,17 @@ export interface Settings {
   follow: boolean;
   /** The language of the app itself; null follows the system. */
   uiLanguage: string | null;
+  /** Models a pro chose; null keeps the usual ones. */
+  narrationModel: string | null;
+  narrationVoice: string | null;
+  transcriptionModel: string | null;
+  musicModel: string | null;
+  dictationModel: string | null;
+  /** Google Cloud: the project (null: express mode) and its region (null: eu). */
+  googleCloudProject: string | null;
+  googleCloudLocation: 'eu' | 'us' | 'global' | null;
+  /** OpenAI: null is global. */
+  openAiRegion: 'global' | 'eu' | null;
 }
 export interface Style {
   name: string;
@@ -223,10 +278,20 @@ export interface Overview {
   setup: {
     tools: Tool[];
     keys: KeyRow[];
-    can: { picture: boolean; voice: boolean; music: boolean; soundEffects: boolean };
+    can: {
+      picture: boolean;
+      voice: boolean;
+      music: boolean;
+      soundEffects: boolean;
+      /** Any key, OpenAI's too: the start page can write down what is said. */
+      dictate: boolean;
+    };
+    models: UsualModels;
     agents: Agent[];
   };
   settings: Settings;
+  /** This program, and whether an agent's shell finds it as `superint-video`. */
+  cli: { path: string | null; onPath: boolean };
   /** Where a new film goes: the folder the user chose, else the usual one. */
   filmsFolder: string | null;
   styles: Style[];

@@ -6,8 +6,13 @@ use serde_json::Value;
 use std::{ffi::OsStr, path::Path, time::Duration};
 use tokio_util::sync::CancellationToken;
 
-const MISSING: &str = "Earshot is not reachable. Install it (pip install earshot) or point \
-                       SUPERINT_EARSHOT at its executable; superint-video has no fallback synthesis";
+/// Why Earshot cannot be started, and how the user gets it.
+fn missing() -> anyhow::Error {
+    anyhow::anyhow!(
+        "Earshot is not reachable. The user installs it from Setup in the app (`superint-video app`), or: {} (not `pip install earshot`, a different package of the same name). SUPERINT_EARSHOT may point at its executable; superint-video has no fallback synthesis",
+        crate::app::EARSHOT_INSTALL
+    )
+}
 
 /// Run earshot with `args` and parse its JSON output.
 pub async fn json<I, S>(args: I, timeout: Duration) -> Result<Value>
@@ -19,7 +24,7 @@ where
     cmd.args(args);
     let bytes = match process::output(cmd, &CancellationToken::new(), timeout).await {
         Ok(bytes) => bytes,
-        Err(error) if error.to_string().starts_with("Could not start") => bail!(MISSING),
+        Err(error) if error.to_string().starts_with("Could not start") => return Err(missing()),
         Err(error) => return Err(error.context("earshot failed")),
     };
     serde_json::from_slice(&bytes).context("earshot did not print JSON")
@@ -114,7 +119,7 @@ pub async fn listen(root: &Path, request: Listen<'_>) -> Result<Value> {
     let bytes =
         match process::output(cmd, &CancellationToken::new(), Duration::from_secs(900)).await {
             Ok(bytes) => bytes,
-            Err(error) if error.to_string().starts_with("Could not start") => bail!(MISSING),
+            Err(error) if error.to_string().starts_with("Could not start") => return Err(missing()),
             Err(error) => bail!("earshot llm failed: {}", keys.redact(&format!("{error:#}"))),
         };
     let answer: Value = serde_json::from_slice(&bytes).context("earshot llm did not print JSON")?;

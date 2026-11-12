@@ -43,7 +43,7 @@
     </td>
     <td width="25%" valign="top">
       <h3>Dein Agent führt Regie</h3>
-      Claude Code oder ChatGPT Codex recherchiert, schreibt, zeichnet und prüft. Es gibt keinen eingebauten Chat, und für das Bild brauchst du keinen API-Key.
+      Claude Code, ChatGPT Codex oder Google Antigravity recherchiert, schreibt, zeichnet und prüft. Es gibt keinen eingebauten Chat, und für das Bild brauchst du keinen API-Key.
     </td>
     <td width="25%" valign="top">
       <h3>Ton mit Ohren</h3>
@@ -87,7 +87,7 @@ Ein Doppelklick auf `Superint Video.exe` öffnet die Startseite. Sie spricht Deu
 <p align="center">
   <img src="docs/images/app-start.jpg" alt="Die Startseite: ein Feld für das Thema des Films, darunter Stil, Länge, Format und Sprache, der fertige Prompt mit dem Knopf „Prompt kopieren“ und vier Filme mit Vorschaubild und Stand" width="100%">
   <br>
-  <sub>Thema eintippen, „Prompt kopieren“, in Claude Code oder ChatGPT Codex einfügen. Darunter stehen deine Filme mit ihrem Stand.</sub>
+  <sub>Thema eintippen, „Prompt kopieren“, in Claude Code, ChatGPT Codex oder Google Antigravity einfügen. Darunter stehen deine Filme mit ihrem Stand.</sub>
 </p>
 
 <table>
@@ -148,19 +148,19 @@ Alle Befehle und Optionen stehen im [Handbuch](docs/HANDBUCH.md) und in `superin
 - **Deutsch und Englisch:** App und Studio folgen der Sprache deines Systems, der Globus oben rechts stellt um. Die Texte liegen in einem Katalog je Sprache; Zahlen, Zeiten und Aufzählungen schreibt der Browser so, wie die Sprache es verlangt.
 - **Szenen sind HTML:** Jeder Frame sieht gleich aus, ob vorwärts, rückwärts oder nach einem Sprung abgespielt. `video.json` speichert alle Zeiten als ganze Frames.
 - **Rendering:** Chrome nimmt die Bilder auf, mehrere Browser parallel; FFmpeg kodiert HEVC oder H.264 und prüft das Ergebnis.
-- **Ton:** Der Anbieter ist Konfiguration: Google AI Studio (`gemini-3.8-flash-tts`, `gemini-3.5-transcribe`, `lyria-3.5`) oder OpenRouter. Jede Anfrage wird zwischengespeichert, und die API-Keys liegen verschlüsselt in der App oder in einer `.env`.
+- **Ton:** Der Anbieter ist Konfiguration: Google AI Studio (`gemini-3.8-flash-tts`, `gemini-3.5-transcribe`, `lyria-3.5`), dieselben Modelle über Google Cloud, oder OpenRouter. Jede Anfrage wird zwischengespeichert, und die API-Keys liegen verschlüsselt in der App oder in einer `.env`.
 - **Geprüft:** Über 100 Tests. `scripts/build.ps1` baut und prüft alles lokal.
 
 ## Loslegen
 
 1. Lade das ZIP aus den [Releases](https://github.com/marlonka/superint-video/releases/latest) und entpacke es.
 2. Starte **`Superint Video.exe`**. Solange etwas fehlt, zeigt die App nur die Einrichtung. Jede Zeile hat rechts den einen Knopf, der sie erledigt:
-   - **Coding-Agent:** Claude Code oder ChatGPT Codex. Ein Klick kopiert die Superint-Skills hinein. Von Hand gehören die Ordner aus `skills/` nach `%USERPROFILE%\.claude\skills\` oder `%USERPROFILE%\.codex\skills\`.
+   - **Coding-Agent:** Claude Code, ChatGPT Codex oder Google Antigravity. Ein Klick kopiert die Superint-Skills hinein. Von Hand gehören die Ordner aus `skills/` nach `%USERPROFILE%\.claude\skills\`, `%USERPROFILE%\.codex\skills\` oder `%USERPROFILE%\.gemini\config\skills\`.
    - **Chrome** (oder Edge) und **FFmpeg:** Fehlt eines, installiert „Installieren“ es über winget in einem sichtbaren Terminal-Fenster. Die App stimmt dabei nichts für dich zu.
    - **Ein API-Schlüssel** von Google AI Studio oder OpenRouter für Stimme und Musik. Die Einrichtung nennt die Modelle, die damit laufen. Du trägst ihn dort ein, er bleibt verschlüsselt auf deinem Rechner.
    - [Earshot](https://github.com/Leonxlnx/earshot) für Soundeffekte ist freiwillig.
 3. Wähl unter „Vorgaben“ deinen Stil und, wenn du magst, Länge, Format und Sprache.
-4. Schreib unter „Neuer Film“, worum es gehen soll, kopiere den Prompt und füge ihn in Claude Code oder ChatGPT Codex ein. Der Film erscheint in der App, während er entsteht, und liegt danach in `Videos\Superint Video`.
+4. Schreib unter „Neuer Film“, worum es gehen soll, kopiere den Prompt und füge ihn in Claude Code, ChatGPT Codex oder Google Antigravity ein. Der Film erscheint in der App, während er entsteht, und liegt danach in `Videos\Superint Video`.
 
 Von der Kommandozeile prüfst du die Installation so:
 
@@ -175,7 +175,7 @@ Aus dem Quellcode: `git clone`, dann `.\scripts\build.ps1`. Dafür brauchst du R
 
 ## Datenschutz und KI-Inhalte
 
-Superint Video sammelt keine Nutzungsdaten und braucht kein Konto. Bild, Studio und Render bleiben auf deinem Rechner. Für Stimme, Transkription und Musik gehen die Texte und Aufnahmen, die dein Agent dafür schreibt, an den Anbieter, den du eingerichtet hast (Google AI Studio oder OpenRouter), zu dessen Bedingungen. Bei der kostenlosen Stufe der Gemini API darf Google sie zur Verbesserung seiner Produkte nutzen. Was dein Coding-Agent mit deinen Dateien macht, regelt dessen Anbieter.
+Superint Video sammelt keine Nutzungsdaten und braucht kein Konto. Bild, Studio und Render bleiben auf deinem Rechner. Für Stimme, Transkription und Musik gehen die Texte und Aufnahmen, die dein Agent dafür schreibt, an den Anbieter, den du eingerichtet hast (Google AI Studio, Google Cloud oder OpenRouter, fürs Diktat auch OpenAI), zu dessen Bedingungen. Bei der kostenlosen Stufe der Gemini API darf Google sie zur Verbesserung seiner Produkte nutzen. Was dein Coding-Agent mit deinen Dateien macht, regelt dessen Anbieter.
 
 Stimme und Musik kommen meist aus generativen Modellen. Jedes exportierte MP4 sagt das in seinen Metadaten. Kennzeichne deine Filme beim Veröffentlichen auch sichtbar als KI-gestützt, und bilde echte Stimmen nur mit Einwilligung nach. Mehr dazu im [Handbuch](docs/HANDBUCH.md#datenschutz-und-ki-kennzeichnung).
 

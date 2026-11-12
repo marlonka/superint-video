@@ -144,7 +144,8 @@ async fn asset_file(
     let mut bytes = tokio::fs::read(&source).await?;
     if media::kind(&source) == "scene" {
         let html = String::from_utf8(bytes).context("Scene must be UTF-8 HTML")?;
-        let bootstrap = "<script type=\"module\" src=\"/runtime/scene.js\"></script>";
+        // The tool's fonts come with every scene; a face loads only when a scene uses it.
+        let bootstrap = "<link rel=\"stylesheet\" href=\"/runtime/fonts/fonts.css\"><script type=\"module\" src=\"/runtime/scene.js\"></script>";
         let lower = html.to_ascii_lowercase();
         bytes = if let Some(start) = lower
             .find("<head")
@@ -498,6 +499,7 @@ fn payload(state: &StudioState) -> Result<Value> {
         "assets": assets,
         "canUndo": store.can_undo(),
         "canRedo": store.can_redo(),
+        "fonts": crate::fonts::Choices::of(&state.root).json(),
         "production": crate::production::summary(&state.root),
     }))
 }
@@ -507,6 +509,7 @@ async fn project_payload(State(state): State<StudioState>) -> ApiResult<Json<Val
 #[derive(Deserialize)]
 struct EditBody {
     revision: String,
+    /// One operation, or a list applied as one step (`superint-video edit`).
     operation: Value,
 }
 async fn edit(
@@ -514,11 +517,11 @@ async fn edit(
     Json(body): Json<EditBody>,
 ) -> ApiResult<Json<Value>> {
     {
-        state
-            .store
-            .lock()
-            .unwrap()
-            .edit(&body.revision, &body.operation)?;
+        let mut store = state.store.lock().unwrap();
+        match &body.operation {
+            Value::Array(operations) => store.edit_many(&body.revision, operations)?,
+            operation => store.edit(&body.revision, operation)?,
+        }
     }
     let result = payload(&state)?;
     let _ = state

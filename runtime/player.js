@@ -16,18 +16,19 @@ const timeout = (promise, label, ms = 20000) => new Promise((resolve, reject) =>
   Promise.resolve(promise).then(value => { clearTimeout(timer); resolve(value); }, error => { clearTimeout(timer); reject(error); });
 });
 const paint = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-const state = () => ({ frame, playing, durationFrames: manifest?.durationFrames || 0, propDefinitions, actors: placedActors(), errors: [...errors] });
-// Actor boxes in stage pixels: the clip transform turns about the stage centre, like the layer's CSS.
-function placedActors() {
+const state = () => ({ frame, playing, durationFrames: manifest?.durationFrames || 0, propDefinitions, actors: placed('actors'), texts: placed('texts'), errors: [...errors] });
+// Boxes in stage pixels: the clip transform turns about the stage centre, like the layer's CSS.
+// `actors` are the scene's review boxes, `texts` where it shows its text props.
+function placed(kind) {
   if (!manifest) return [];
   const cx = manifest.width / 2, cy = manifest.height / 2;
-  return layers.flatMap(layer => (layer.actors || []).map(actor => {
+  return layers.flatMap(layer => (layer[kind] || []).map(box => {
     const t = layer.clip.transform || {}, s = t.scale ?? 1, r = (t.rotation || 0) * Math.PI / 180;
-    const corners = [[actor.x, actor.y], [actor.x + actor.w, actor.y], [actor.x, actor.y + actor.h], [actor.x + actor.w, actor.y + actor.h]]
+    const corners = [[box.x, box.y], [box.x + box.w, box.y], [box.x, box.y + box.h], [box.x + box.w, box.y + box.h]]
       .map(([x, y]) => [cx + (t.x || 0) + s * ((x - cx) * Math.cos(r) - (y - cy) * Math.sin(r)), cy + (t.y || 0) + s * ((x - cx) * Math.sin(r) + (y - cy) * Math.cos(r))]);
     const xs = corners.map(c => c[0]), ys = corners.map(c => c[1]);
     const x = Math.min(...xs), y = Math.min(...ys);
-    return { ...actor, clipId: layer.clip.id, x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
+    return { ...box, clipId: layer.clip.id, x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
   }));
 }
 function post(type, extra = {}) {
@@ -77,7 +78,8 @@ addEventListener('message', event => {
     switch (message.action) {
       case 'seek': pause(); await seek(message.frame); break;
       case 'play': await play(); break;
-      case 'pause': pause(); break;
+      // Paused, the picture is drawn once more with the places of its texts (see evaluate).
+      case 'pause': pause(); await seek(frame); break;
     }
   };
   run().catch(report);
@@ -128,13 +130,14 @@ async function load() {
 async function evaluate(at, expectedGeneration) {
   await Promise.all(layers.map(async layer => {
     const clip = layer.clip;
-    if (!visible(clip, at)) { layer.actors = []; return; }
+    if (!visible(clip, at)) { layer.actors = []; layer.texts = []; return; }
     const local = at - clip.startFrame + (clip.sourceOffsetFrames || 0);
     try {
       if (clip.type === 'scene') {
         if (layer.wrapper.style.visibility === 'hidden') { layer.wrapper.style.opacity = '0'; layer.wrapper.style.visibility = 'visible'; }
-        const reply = await sceneRequest(layer, 'frame', { frame: local, time: seconds(local), fps: manifest.fps, width: manifest.width, height: manifest.height, props: clip.props || {}, preview: !captureMode });
+        const reply = await sceneRequest(layer, 'frame', { frame: local, time: seconds(local), fps: manifest.fps, width: manifest.width, height: manifest.height, props: clip.props || {}, font: manifest.font || null, preview: !captureMode, texts: !captureMode && !playing });
         layer.actors = reply.actors || [];
+        layer.texts = reply.texts || [];
       } else if (clip.type === 'video' && layer.loadedFrame !== local) {
         const image = new Image();
         image.src = `/frame/${encodeURIComponent(clip.id)}/${local}.png`;

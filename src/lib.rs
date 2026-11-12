@@ -1,13 +1,16 @@
 pub mod app;
 pub mod audio;
 pub mod earshot;
+pub mod edit;
 pub mod env;
+pub mod fonts;
 pub mod frontmatter;
 pub mod home;
 pub mod live;
 pub mod media;
 pub mod mix;
 pub mod model;
+pub mod models;
 pub mod music;
 pub mod polish;
 pub mod preset;

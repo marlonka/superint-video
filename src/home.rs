@@ -2,6 +2,7 @@
 //! saved in the app, the films this computer knows, and whether a start page is open.
 //! `SUPERINT_HOME`, else `%APPDATA%\superint-video` (`~/.config/superint-video` elsewhere).
 use crate::project::{atomic_write as write, millis, now_ms, without_verbatim};
+use crate::providers::Provider;
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -62,6 +63,22 @@ pub struct Settings {
     pub follow: bool,
     /// The language of the app itself; unset follows the system. Not the film's language.
     pub ui_language: Option<String>,
+    /// Models a pro chose, as IDs exactly as the provider writes them; the ID says the
+    /// provider (`Provider::of`). Unset follows the style, then the usual Google models. A
+    /// film's own `voice.md` or `music-prompt.md` still wins.
+    pub narration_model: Option<String>,
+    pub narration_voice: Option<String>,
+    pub transcription_model: Option<String>,
+    pub music_model: Option<String>,
+    /// What writes down what the user says into the start page; unset, the first provider
+    /// with a key.
+    pub dictation_model: Option<String>,
+    /// Google Cloud: the project a standard key belongs to. Unset is express mode.
+    pub google_cloud_project: Option<String>,
+    /// Google Cloud: `eu` (unset), `us` or `global`. Applies with a project.
+    pub google_cloud_location: Option<String>,
+    /// OpenAI: `global` (unset) or `eu`, for a project with European data residency.
+    pub open_ai_region: Option<String>,
 }
 
 impl Default for Settings {
@@ -75,6 +92,14 @@ impl Default for Settings {
             window: Window::App,
             follow: true,
             ui_language: None,
+            narration_model: None,
+            narration_voice: None,
+            transcription_model: None,
+            music_model: None,
+            dictation_model: None,
+            google_cloud_project: None,
+            google_cloud_location: None,
+            open_ai_region: None,
         }
     }
 }
@@ -108,9 +133,55 @@ impl Settings {
             .unwrap_or_default()
     }
 
+    /// The values as they are meant: no spaces around them, nothing for an empty one, model IDs
+    /// without the `models/` Google puts in front, the Google Cloud project and the regions in
+    /// lower case. Values come typed, pasted and from the command line; `set` and `save` both
+    /// clean them here.
+    pub fn normalize(&mut self) {
+        for value in [
+            &mut self.preset,
+            &mut self.format,
+            &mut self.language,
+            &mut self.ui_language,
+            &mut self.narration_voice,
+            &mut self.google_cloud_project,
+            &mut self.google_cloud_location,
+            &mut self.open_ai_region,
+            &mut self.narration_model,
+            &mut self.transcription_model,
+            &mut self.music_model,
+            &mut self.dictation_model,
+        ] {
+            *value = value
+                .take()
+                .map(|text| text.trim().to_string())
+                .filter(|text| !text.is_empty());
+        }
+        for model in [
+            &mut self.narration_model,
+            &mut self.transcription_model,
+            &mut self.music_model,
+            &mut self.dictation_model,
+        ] {
+            *model = model
+                .take()
+                .map(|id| model_id(&id))
+                .filter(|id| !id.is_empty());
+        }
+        for value in [
+            &mut self.google_cloud_project,
+            &mut self.google_cloud_location,
+            &mut self.open_ai_region,
+        ] {
+            *value = value.take().map(|text| text.to_lowercase());
+        }
+    }
+
     pub fn save(&self, home: &Path) -> Result<()> {
-        self.validate()?;
-        let mut bytes = serde_json::to_vec_pretty(self)?;
+        let mut clean = self.clone();
+        clean.normalize();
+        clean.validate()?;
+        let mut bytes = serde_json::to_vec_pretty(&clean)?;
         bytes.push(b'\n');
         write(&home.join(SETTINGS), &bytes)
     }
@@ -152,7 +223,67 @@ impl Settings {
         {
             bail!("The app speaks: {}", UI_LANGUAGES.join(", "));
         }
+        for (model, film) in [
+            (&self.narration_model, true),
+            (&self.transcription_model, true),
+            (&self.music_model, true),
+            (&self.dictation_model, false),
+        ] {
+            if let Some(model) = model {
+                check_model(model, film)?;
+            }
+        }
+        if let Some(voice) = &self.narration_voice {
+            let plain = (1..=80).contains(&voice.len())
+                && voice
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || "-_.".contains(c));
+            if !plain {
+                bail!("{voice} is not a voice name: letters, digits and - _ . only");
+            }
+        }
+        if let Some(project) = &self.google_cloud_project {
+            // Google's rule for project IDs: 6 to 30 lowercase letters, digits and hyphens.
+            let plain = (6..=30).contains(&project.len())
+                && project
+                    .chars()
+                    .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+                && !project.starts_with('-')
+                && !project.ends_with('-');
+            if !plain {
+                bail!(
+                    "{project} is not a Google Cloud project ID: 6 to 30 lowercase letters, digits and hyphens, as in my-films-123"
+                );
+            }
+        }
+        if let Some(location) = &self.google_cloud_location
+            && !crate::providers::cloud::LOCATIONS.contains(&location.as_str())
+        {
+            bail!(
+                "Google Cloud location is one of: {}",
+                crate::providers::cloud::LOCATIONS.join(", ")
+            );
+        }
+        if let Some(region) = &self.open_ai_region
+            && !crate::providers::openai::REGIONS
+                .iter()
+                .any(|(name, _)| name == region)
+        {
+            bail!("OpenAI region is global or eu");
+        }
         Ok(())
+    }
+
+    /// The models the user chose, for the coding agent (`doctor`).
+    pub fn models(&self) -> Value {
+        json!({
+            "narration": self.narration_model,
+            "voice": self.narration_voice,
+            "transcription": self.transcription_model,
+            "music": self.music_model,
+            "dictation": self.dictation_model,
+            "rule": "Chosen in Setup for new films; they beat the style's preset, and voice.md or music-prompt.md beat them. Unset follows the preset, then the usual Google models",
+        })
     }
 
     /// One value by its JSON name; an empty value clears it.
@@ -184,13 +315,47 @@ impl Settings {
                 }
             }
             "uiLanguage" => self.ui_language = text,
+            "narrationModel" => self.narration_model = text,
+            "narrationVoice" => self.narration_voice = text,
+            "transcriptionModel" => self.transcription_model = text,
+            "musicModel" => self.music_model = text,
+            "dictationModel" => self.dictation_model = text,
+            "googleCloudProject" => self.google_cloud_project = text,
+            "googleCloudLocation" => self.google_cloud_location = text,
+            "openAiRegion" => self.open_ai_region = text,
             _ => bail!(
                 "Unknown setting {key}. Known: {}",
                 setting_keys().join(", ")
             ),
         }
+        self.normalize();
         self.validate()
     }
+}
+
+/// A model ID as it is pasted: without spaces, and without the `models/` Google puts in front.
+pub fn model_id(text: &str) -> String {
+    let text = text.trim().trim_matches(['"', '\'']).trim();
+    text.strip_prefix("models/").unwrap_or(text).to_string()
+}
+
+/// A model ID a provider could know, with no characters a request would have to escape. A film
+/// cannot use OpenAI (see `providers::openai_for_film`); a dictation can use any provider.
+pub fn check_model(model: &str, film: bool) -> Result<()> {
+    let plain = (1..=120).contains(&model.len())
+        && model
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || "-._:/@".contains(c));
+    if !plain {
+        bail!("{model} is not a model ID: letters, digits and - . _ : / @ only");
+    }
+    if model.starts_with('/') || model.ends_with('/') {
+        bail!("{model} is not a model ID. OpenRouter IDs look like microsoft/mai-transcribe-2");
+    }
+    if film && Provider::of(model) == Provider::OpenAi {
+        return Err(crate::providers::openai_for_film(model));
+    }
+    Ok(())
 }
 
 // -------------------------------------------------------------------------------------- places
@@ -701,12 +866,32 @@ mod tests {
         settings.set("language", "de").unwrap();
         settings.set("follow", "off").unwrap();
         settings.set("uiLanguage", "de").unwrap();
+        settings
+            .set("dictationModel", " models/gemini-4-transcribe ")
+            .unwrap();
+        settings
+            .set("musicModel", "google/lyria-3-pro-preview")
+            .unwrap();
+        settings.set("narrationVoice", "Charon").unwrap();
+        settings.set("googleCloudProject", "my-films-123").unwrap();
+        settings.set("googleCloudLocation", "US").unwrap();
+        settings.set("openAiRegion", "eu").unwrap();
         settings.save(home.path()).unwrap();
         let loaded = Settings::load(home.path()).unwrap();
         assert_eq!(loaded.preset.as_deref(), Some("flat-explainer"));
         assert_eq!(loaded.seconds, Some(90));
         assert!(!loaded.follow);
         assert_eq!(loaded.ui_language.as_deref(), Some("de"));
+        assert_eq!(
+            loaded.dictation_model.as_deref(),
+            Some("gemini-4-transcribe")
+        );
+        assert_eq!(
+            loaded.music_model.as_deref(),
+            Some("google/lyria-3-pro-preview")
+        );
+        assert_eq!(loaded.google_cloud_location.as_deref(), Some("us"));
+        assert_eq!(loaded.models()["voice"], "Charon");
 
         assert!(settings.clone().set("seconds", "0").is_err());
         assert!(settings.clone().set("format", "wide").is_err());
@@ -714,11 +899,44 @@ mod tests {
         assert!(settings.clone().set("projectsDir", "films").is_err());
         assert!(settings.clone().set("colour", "red").is_err());
         assert!(settings.clone().set("uiLanguage", "tlh").is_err());
+        assert!(settings.clone().set("dictationModel", "gemini 4").is_err());
+        assert!(settings.clone().set("musicModel", "google/").is_err());
+        // OpenAI writes down dictations, but speaks and times no film.
+        settings
+            .clone()
+            .set("dictationModel", "gpt-transcribe")
+            .unwrap();
+        assert!(
+            settings
+                .clone()
+                .set("narrationModel", "gpt-4o-mini-tts")
+                .is_err()
+        );
+        assert!(
+            settings
+                .clone()
+                .set("transcriptionModel", "whisper-1")
+                .is_err()
+        );
+        assert!(settings.clone().set("narrationVoice", "Kore!").is_err());
+        assert!(
+            settings
+                .clone()
+                .set("googleCloudProject", "My_Project")
+                .is_err()
+        );
+        assert!(
+            settings
+                .clone()
+                .set("googleCloudLocation", "europe-west4")
+                .is_err()
+        );
+        assert!(settings.clone().set("openAiRegion", "jp").is_err());
         settings.set("seconds", "").unwrap();
         assert_eq!(settings.seconds, None);
         // Every field of the file is set by its name, so none can be left out of `set`.
         let keys = setting_keys();
-        assert_eq!(keys.len(), 8);
+        assert_eq!(keys.len(), 16);
         for key in keys {
             Settings::default().set(&key, "").unwrap();
         }

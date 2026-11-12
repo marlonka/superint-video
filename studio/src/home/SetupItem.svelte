@@ -6,15 +6,20 @@
   import { settle } from '../motion';
 
   export let title: string;
-  export let done: boolean;
+  /** Null: nothing to get done here, so no mark. */
+  export let done: boolean | null;
 </script>
 
-<li class="setup-item" class:done>
-  <span class="setup-mark" aria-hidden="true"
+<li class="setup-item" class:done={done === true}>
+  <span class="setup-mark" class:blank={done === null} aria-hidden="true"
     >{#if done}<span in:settle><Icon name="check" size={14} /></span>{/if}</span
   >
   <div class="setup-text">
-    <strong>{title}<span class="sr-only">: {$t(done ? 'setup.done' : 'setup.todo')}</span></strong>
+    <strong
+      >{title}{#if done !== null}<span class="sr-only"
+          >: {$t(done ? 'setup.done' : 'setup.todo')}</span
+        >{/if}</strong
+    >
     <slot />
   </div>
   <div class="setup-action"><slot name="action" /></div>

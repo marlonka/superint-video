@@ -50,11 +50,20 @@ export function patch(changes: Partial<Overview>) {
   overview.update((current) => (current ? { ...current, ...changes } : current));
 }
 
-/** Calls the server. A value is sent as JSON, a file as it is. A failure carries its status. */
-export async function call<T>(path: string, method = 'POST', body?: unknown): Promise<T> {
+/**
+ * Calls the server. A value is sent as JSON, a file as it is. A failure carries its status.
+ * `signal` lets the caller give up on the answer, as when a dictation is discarded.
+ */
+export async function call<T>(
+  path: string,
+  method = 'POST',
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
   const file = body instanceof Blob;
   const response = await fetch(path, {
     method,
+    signal,
     headers: {
       'X-Superint-Token': token,
       ...(body === undefined
@@ -89,15 +98,18 @@ export async function refresh(fresh = false): Promise<Overview | null> {
   }
 }
 
-/** Runs one action at a time and shows its failure where the user reads it. */
-export async function run(name: string, work: () => Promise<void>) {
-  if (get(busy)) return;
+/** Runs one piece of work at a time and shows its failure where the user reads it; says
+ * whether it was done. */
+export async function run(name: string, work: () => Promise<void>): Promise<boolean> {
+  if (get(busy)) return false;
   busy.set(name);
   problem.set('');
   try {
     await work();
+    return true;
   } catch (cause) {
     fail(cause);
+    return false;
   } finally {
     busy.set('');
   }

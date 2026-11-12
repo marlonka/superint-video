@@ -13,6 +13,7 @@ All frames are integer project frames. FPS is a rational `{num,den}`.
   "fps":{"num":30,"den":1},
   "durationFrames":150,
   "background":"#111413",
+  "font":"Fraunces",
   "tracks":[{"id":"visuals","kind":"visual","name":"Scenes"}],
   "clips":[{
     "id":"intro","type":"scene","src":"scenes/intro.html","track":"visuals",
@@ -47,6 +48,7 @@ Images/videos fit inside the composition with `object-fit:contain`.
 Transform applies to that composition-sized layer.
 Later tracks draw above earlier tracks. Array order breaks ties within a track.
 Gaps show `background`. Use overlapping clips and opacity fades for crossfades.
+`font` (optional) is the film's main font, a family the film's files declare or one of the tool's library; scenes take it through `var(--font)`. Leave it out to keep the style's. Change it with `superint-video fonts <dir> <family>`, which checks the name.
 
 For project frame `f`, an active clip's local frame is:
 

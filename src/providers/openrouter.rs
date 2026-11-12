@@ -1,6 +1,7 @@
 //! OpenRouter: ElevenLabs TTS, MAI-Transcribe and Lyria, plus the live catalog and credits.
 use super::{
     Generators, Provider, SpeechRequest, TranscribeRequest, Transcript, Word, language_code,
+    text_of,
 };
 use crate::env;
 use anyhow::{Context, Result, bail};
@@ -90,14 +91,30 @@ pub(super) async fn transcribe(
         .collect();
     Ok(Transcript {
         model: request.model.into(),
-        text: value["text"]
-            .as_str()
-            .unwrap_or_default()
-            .trim()
-            .to_string(),
+        text: text_of(&value),
         words,
         biased: None,
     })
+}
+
+/// A dictation: the text alone, no timings. The language is detected.
+pub(super) async fn dictate(g: &Generators, wav: &[u8], model: &str) -> Result<String> {
+    let key = g.keys.require(env::OPENROUTER)?;
+    let body = json!({
+        "model": model,
+        "input_audio": {"data": B64.encode(wav), "format": "wav"},
+    });
+    let value: Value = g
+        .send(Provider::OpenRouter, || {
+            post(g, "/audio/transcriptions", key)
+                .json(&body)
+                .timeout(Duration::from_secs(120))
+        })
+        .await?
+        .json()
+        .await
+        .map_err(|e| g.transport(e))?;
+    Ok(text_of(&value))
 }
 
 /// Lyria through chat completions: audio arrives as base64 pieces in the SSE deltas.

@@ -133,11 +133,28 @@
   line-height: 1.2;
 }
 .first-lead {
-  margin: 0 0 44px;
+  margin: 0;
   color: var(--secondary);
   font-size: 17px;
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
+}
+/* One bar per required step, filled once the step is done. */
+.setup-progress {
+  display: flex;
+  gap: 6px;
+  max-width: 360px;
+  margin: 16px 0 44px;
+}
+.setup-progress > span {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  transition: background-color 240ms ease-out;
+}
+.setup-progress > span.done {
+  background: var(--text);
 }
 /* Unfinished Setup, wherever Setup itself is not in front: the start page and Studio. It is the
    one inverted block of the app, so nobody takes it for part of the page. */
@@ -205,18 +222,51 @@
   grid-template-columns: 232px minmax(0, 1fr);
   column-gap: 56px;
 }
-.setup-group > header > h3 {
+/* A group's title with its step: a number, a check once done, an empty column when optional. */
+.setup-heading {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  column-gap: 10px;
+  align-content: start;
+}
+.setup-heading > h3 {
   margin: 0;
   padding-top: 8px;
   font-size: 17px;
   font-weight: 600;
   line-height: 24px;
 }
-.setup-group > header > p {
+.setup-heading > p {
+  grid-column: 2;
   margin: 2px 0 0;
   color: var(--secondary);
   font-size: 15px;
   line-height: 1.5;
+}
+.setup-step {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-top: 8px;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.setup-step.numbered {
+  border: 1.5px solid var(--border);
+  color: var(--secondary);
+}
+/* The step whose action comes next. */
+.setup-step.current {
+  border-color: var(--text);
+  color: var(--text);
+}
+.setup-step.done {
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--page);
 }
 .setup-list {
   display: grid;
@@ -277,9 +327,14 @@
 .setup-text > .setup-note.failed {
   color: var(--error);
 }
+/* Links in a row that wraps between links, never inside one. */
 .setup-links {
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+.setup-links > .text-link {
+  text-align: start;
 }
 /* The models a key is used with, as a small table: what for, which one. */
 .setup-models {
@@ -303,6 +358,8 @@
 .setup-action > .button,
 .key-form > .button {
   width: 100%;
+  /* Room for the longest label on one line, "Mit Google anmelden (ADC)". */
+  padding-inline: 10px;
 }
 .setup-action > .button > svg {
   width: 16px;
@@ -324,6 +381,94 @@
 .key-form > .text-link {
   justify-self: start;
 }
+/* Google Cloud's project and region: the fields and Save in line with a key's, what to type
+   and the way out under the fields. */
+.place-fields {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+.place-fields > input {
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 15px;
+}
+.place-fields > select {
+  flex: none;
+  font-size: 15px;
+}
+.place-form > .model-hint,
+.place-form > .setup-links {
+  grid-column: 1;
+}
+.model-hint {
+  color: var(--secondary);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.setup-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  color: var(--text);
+  font-size: 15px;
+}
+/* The providers few people need, folded away under one line. */
+.setup-keys {
+  display: grid;
+  gap: 20px;
+}
+.setup-more {
+  justify-self: start;
+  margin-left: 34px;
+  font-size: 15px;
+}
+/* The models a pro chose: a row like the others, with no mark, as nothing is missing. The
+   fields take the whole width of the row; Save stands in the button column, next to the hint. */
+.setup-mark.blank {
+  border-color: transparent;
+}
+.setup-item > .models-form {
+  display: grid;
+  grid-column: 2 / -1;
+  grid-template-columns: subgrid;
+  row-gap: 12px;
+}
+.models-fields {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 14px;
+  min-width: 0;
+}
+.models-fields > label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.models-fields > label > span {
+  color: var(--secondary);
+  font-size: 14px;
+}
+.models-fields input {
+  width: 100%;
+  font-size: 15px;
+}
+.models-fields input.model-id {
+  font-family: var(--mono);
+}
+.models-form > .button {
+  grid-column: 2;
+  align-self: start;
+  width: 100%;
+}
+.models-form > .model-hint,
+.models-form > .setup-links {
+  grid-column: 1;
+  margin: 0;
+}
 .setup-foot {
   display: flex;
   align-items: center;
@@ -331,9 +476,14 @@
   flex-wrap: wrap;
   gap: 12px 20px;
 }
-.setup-foot > .button {
-  width: 216px;
+.setup-foot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 14px;
   margin-left: auto;
+}
+.setup-foot-actions > .button {
+  width: 216px;
 }
 .loader.small {
   width: 14px;
@@ -355,10 +505,127 @@
   display: grid;
   gap: 12px;
 }
-.composer > textarea {
+/* The field and its microphone are one box. The bar under the text holds the microphone, and
+   while the user speaks the waveform, the time and the two ways out, at the same height. */
+.composer-field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.composer-field:has(> textarea:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+.composer-field > textarea {
   width: 100%;
   min-height: 92px;
+  border: 0;
+  border-radius: 8px 8px 0 0;
+  background: transparent;
   font-size: 17px;
+}
+.composer-field > textarea:focus-visible {
+  outline: none;
+}
+/* While the microphone listens, the box says so in the one colour the app keeps for it. The
+   text waits; dictated words go where the cursor was. */
+.composer-field.dictating {
+  border-color: var(--live);
+}
+.composer-field.dictating > textarea {
+  color: var(--secondary);
+}
+.dictate {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 6px 6px 12px;
+}
+.dictate.active {
+  padding-left: 6px;
+}
+.dictate.active > :not(.sr-only) {
+  animation: dictate-in 200ms ease-out;
+}
+@keyframes dictate-in {
+  from {
+    opacity: 0;
+  }
+}
+.dictate-hint {
+  margin-right: auto;
+  color: var(--secondary);
+  font-size: 14px;
+  line-height: 1.4;
+}
+/* The microphone: quiet until it listens, then filled and breathing, until it is pressed
+   again to write down what it heard. */
+.dictate-mic {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--secondary);
+}
+.dictate-mic:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--text);
+}
+.dictate-mic > svg {
+  width: 20px;
+  height: 20px;
+}
+.dictate-mic.live,
+.dictate-mic.live:hover:not(:disabled),
+.dictate-mic.writing {
+  background: var(--live);
+  color: var(--live-text);
+}
+.dictate-mic.live {
+  animation: dictate-breathe 1.6s ease-out infinite;
+}
+.dictate-mic.writing:disabled {
+  opacity: 1;
+  cursor: progress;
+}
+@keyframes dictate-breathe {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--live) 55%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--live) 0%, transparent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dictate-mic.live {
+    animation: none;
+  }
+}
+.dictate-wave {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  color: var(--text);
+}
+.dictate-wave.writing {
+  color: var(--secondary);
+}
+.dictate-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 4px;
+  color: var(--secondary);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .composer-options,
 .default-fields {
@@ -386,9 +653,18 @@
   font-size: 14px;
 }
 .composer-options select,
+.composer-options input[type='text'],
 .default-fields select,
 .default-fields input[type='text'] {
   width: 100%;
+}
+/* What a typed length is understood as, or how to write one. */
+.length-note {
+  color: var(--secondary);
+  font-size: 13px;
+}
+.length-note.failed {
+  color: var(--error);
 }
 .composer-prompt {
   display: flex;
@@ -675,8 +951,13 @@
     grid-template-columns: minmax(0, 1fr);
     row-gap: 12px;
   }
-  .setup-group > header > h3 {
+  .setup-heading > h3,
+  .setup-step {
     padding-top: 0;
+    margin-top: 0;
+  }
+  .models-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @container application (max-width: 760px) {
@@ -705,8 +986,22 @@
   .setup-item > .key-form {
     grid-template-columns: minmax(0, 1fr);
   }
-  .setup-foot > .button {
+  .setup-item > .models-form,
+  .models-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .place-fields {
+    flex-wrap: wrap;
+  }
+  .setup-more {
+    margin-left: 0;
+  }
+  .setup-foot-actions,
+  .setup-foot-actions > .button {
     width: 100%;
+  }
+  .models-form > .button {
+    grid-column: 1;
   }
 }
 

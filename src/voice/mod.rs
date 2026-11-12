@@ -50,7 +50,8 @@ const KEYS: &[&str] = &[
     "transcriptionFallback",
 ];
 
-/// Values `voice.md` falls back to: the project's preset and brief, then the AI Studio route.
+/// Values `voice.md` falls back to: the models the user chose in Setup, the project's preset
+/// and brief, then the AI Studio route.
 #[derive(Debug, Clone)]
 pub struct Defaults {
     pub model: String,
@@ -72,6 +73,12 @@ impl Defaults {
     }
 
     pub fn for_project(root: &Path) -> Self {
+        Self::for_project_with(root, &crate::home::Settings::current())
+    }
+
+    /// `for_project` with the user's settings given. A model the user chose in Setup beats the
+    /// preset's: the preset names the usual model, the user named one on purpose.
+    pub fn for_project_with(root: &Path, settings: &crate::home::Settings) -> Self {
         let mut defaults = Self::builtin();
         let preset = fs::read(root.join(preset::CONFIG))
             .ok()
@@ -88,6 +95,16 @@ impl Defaults {
                 defaults.transcription = transcription.model.clone();
             }
             defaults.language = preset.defaults.language.clone();
+        }
+        if let Some(model) = &settings.narration_model {
+            defaults.model = model.clone();
+            defaults.voice = route_voice(model).into();
+        }
+        if let Some(voice) = &settings.narration_voice {
+            defaults.voice = voice.clone();
+        }
+        if let Some(model) = &settings.transcription_model {
+            defaults.transcription = model.clone();
         }
         if let Some(language) = fs::read_to_string(root.join("brief.md"))
             .ok()
@@ -118,8 +135,8 @@ impl Defaults {
 
 fn route_voice(model: &str) -> &'static str {
     match Provider::of(model) {
-        Provider::AiStudio => AI_STUDIO.voice,
         Provider::OpenRouter => OPENROUTER.voice,
+        Provider::AiStudio | Provider::GoogleCloud | Provider::OpenAi => AI_STUDIO.voice,
     }
 }
 
@@ -233,9 +250,9 @@ impl VoiceDoc {
     /// reads angle brackets.
     pub fn syntax(&self) -> Syntax {
         match self.provider() {
-            Provider::AiStudio => Syntax::Gemini,
             Provider::OpenRouter if self.model.contains("gemini") => Syntax::Gemini,
             Provider::OpenRouter => Syntax::ElevenLabs,
+            Provider::AiStudio | Provider::GoogleCloud | Provider::OpenAi => Syntax::Gemini,
         }
     }
 
@@ -772,8 +789,8 @@ async fn dry_run(
 /// for reference; Google's own price list is not available through the API.
 async fn price(generators: &Generators, model: &str, characters: usize) -> Value {
     let id = match Provider::of(model) {
-        Provider::OpenRouter => model.to_string(),
-        Provider::AiStudio => format!("google/{model}"),
+        Provider::OpenRouter | Provider::OpenAi => model.to_string(),
+        Provider::AiStudio | Provider::GoogleCloud => format!("google/{model}"),
     };
     let Ok(catalog) = providers::openrouter::catalog(generators).await else {
         return json!({"available": false});

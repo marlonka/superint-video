@@ -41,7 +41,10 @@ export const en = {
   // Setup
   'setup.title': 'Setup',
   'setup.first.title': 'Set up Superint Video',
-  'setup.first.lead': 'What the first film needs. Done: {done} of {total}.',
+  'setup.first.lead': 'Three steps, then your first film can be made. Done: {done} of {total}.',
+  'setup.first.ready':
+    'Everything is ready for your first film. The optional parts can come now or later.',
+  'setup.continue': 'On to the first film',
   'setup.ready': 'Ready for {parts}',
   'setup.incomplete': 'Something is still missing.',
   'setup.part.picture': 'picture',
@@ -95,7 +98,11 @@ export const en = {
   'setup.tool.installing':
     'A terminal window is installing {name}. Close it when it is done, then choose "Check again".',
   'setup.tool.page': 'Download page',
-  'setup.tool.copyCommand': 'Copy "{command}"',
+  'setup.tool.copyTask': 'Copy a task for your coding agent',
+  'setup.tool.taskCopied': 'Copied. Paste the task into your coding agent.',
+  'setup.tool.project': 'Project page',
+  'setup.tool.earshot.task':
+    'Please install Earshot for Superint Video: the sound effects tool from {url}, not the PyPI package of the same name. Its README says: {command}. If uv is missing, install it first (on Windows: winget install --id astral-sh.uv). Then check with earshot sfx list --json that it runs.',
 
   'setup.key.title': 'Voice and music',
   'setup.key.why':
@@ -106,14 +113,67 @@ export const en = {
   'setup.models.voice': 'Voice',
   'setup.models.timings': 'Word timings',
   'setup.models.music': 'Music',
+  'setup.models.dictation': 'Dictation',
+  'setup.key.GOOGLE_CLOUD_API_KEY.why':
+    'The same Google models through your Google Cloud project (Gemini Enterprise Agent Platform), billed there and under its terms. Once it is set up, it takes the place of AI Studio.',
+  'setup.key.OPENAI_API_KEY.why':
+    'Only for speaking instead of typing, with gpt-transcribe. A film needs one of the other keys.',
+  'setup.more.toggle': 'More providers: {providers}',
+  'setup.cloud.signIn': 'Sign in with Google (ADC)',
+  'setup.cloud.signInWhy':
+    'Recommended: sign in to Google Cloud with your Google account (ADC, Application Default Credentials) instead of an API key. A window brings the Google Cloud CLI if needed and opens the sign-in in your browser.',
+  'setup.cloud.signingIn':
+    'A window walks you through the sign-in; installing the Google Cloud CLI takes a minute or two. If Windows asks for administrator rights, that sometimes only flashes in the taskbar. The app notices the sign-in by itself.',
+  'setup.cloud.useKey': 'Use an API key instead',
+  'setup.cloud.needsProject':
+    'The sign-in still needs the project ID: enter it under "Project and region".',
+  'setup.cloud.express':
+    'Express mode: Google serves it globally. For the eu region, add the project ID.',
+  'setup.cloud.place': 'Project {project}, region {location}.',
+  'setup.cloud.fixed': 'Set by GOOGLE_CLOUD_PROJECT or GOOGLE_CLOUD_LOCATION.',
+  'setup.cloud.change': 'Project and region',
+  'setup.cloud.changeFor': 'Project and region for Google Cloud',
+  'setup.cloud.project': 'Project ID',
+  'setup.cloud.location': 'Region',
+  'setup.cloud.location.eu': 'eu: European Union',
+  'setup.cloud.location.us': 'us: United States',
+  'setup.cloud.location.global': 'global: anywhere',
+  'setup.cloud.hint':
+    'With a project, voice, word timings and dictation are made in the region. Without one, an express-mode key is served globally. Music (Lyria 3) is served globally only.',
+  'setup.cloud.saved': 'Google Cloud: saved',
+  'setup.openai.eu': 'Process in the EU (eu.api.openai.com)',
+  'setup.openai.euHint':
+    'Only when platform.openai.com shows Europe under Settings, Project, "Project Residency". Most projects are Global; then leave it off.',
+  'setup.openai.euRefused':
+    'If your OpenAI project says "Project Residency: Global", eu.api.openai.com does not take it: turn "Process in the EU" off.',
+  'setup.openai.saved': 'OpenAI now goes to {address}',
+  'setup.models.title': 'Models',
+  'setup.models.why':
+    'For pros: which model does which job. Empty fields keep the usual models, chosen by your keys.',
+  'setup.models.usual': 'The usual models',
+  'setup.models.usualWhy': 'Chosen by your keys.',
+  'setup.models.own': 'Your choice',
+  'setup.models.change': 'Choose models',
+  'setup.models.field.narration': 'Voice: model',
+  'setup.models.field.voice': 'Voice: name',
+  'setup.models.hint':
+    "IDs as the provider writes them. gemini-… and lyria-… are Google's, through Google Cloud while its key is here, else AI Studio. vendor/model goes through OpenRouter. gpt-… is OpenAI's, for dictation only. They apply to new films; a film can still name others.",
+  'setup.models.reset': 'Back to the usual models',
+  'setup.models.saved': 'Models saved',
   'setup.key.source.app': 'Saved on this computer.',
+  'setup.key.source.google':
+    'Signed in with your Google account (Application Default Credentials). To sign out: gcloud auth application-default revoke',
   'setup.key.source.file': 'Found in a .env file. To change it, edit that file.',
   'setup.key.source.environment':
     'Set as an environment variable. To change it, change the variable.',
   'setup.key.asking': 'Asking {provider}…',
   'setup.key.check.none': 'No API key is saved yet.',
   'setup.key.check.works': 'The API key works.',
-  'setup.key.check.worksAll': 'The API key works: voice, word timings and music are reachable.',
+  'setup.key.check.worksAll':
+    'The API key works: voice, word timings, music and dictation are reachable.',
+  'setup.key.check.worksCloud':
+    'The API key works: voice, word timings and dictation are reachable. Music is only asked when it is made.',
+  'setup.key.check.worksDictation': 'The API key works: dictation is reachable.',
   'setup.key.check.credit': 'The API key works. {amount} of its limit is left.',
   'setup.key.check.partial': 'The API key works, but it does not reach {models}.',
   'setup.key.check.refused': 'The provider did not accept the API key: {detail}',
@@ -126,17 +186,37 @@ export const en = {
   'setup.key.removed': 'API key for {provider} removed from this computer',
 
   'setup.optional.title': 'Optional',
+  'setup.optional.why': 'Not needed for the first film. It can come later.',
 
   // New film
   'compose.title': 'New film',
   'compose.lead': 'Describe the film, copy the prompt and paste it into {agents}.',
   'compose.placeholder': 'What should the film be about? One or two sentences are enough.',
+  'compose.lengthIs': 'So {length}',
+  'compose.lengthHelp': 'For example 3 min, 90 s or 2:30, at most 60 min',
   'compose.topicLabel': 'What the film is about',
   'compose.style.ask': 'Let the agent ask',
   'compose.promptLabel': 'The prompt for your coding agent',
   'compose.copy': 'Copy prompt',
   'compose.copied': 'Copied. Paste it into {agents}.',
   'compose.copyBlocked': 'The browser did not allow copying. Select the text and copy it by hand.',
+  'dictate.start': 'Speak',
+  'dictate.startHint': 'Say what the film should be about instead of typing it',
+  'dictate.needsKey': 'Speaking needs an API key under Setup.',
+  'dictate.starting': 'Starting the microphone…',
+  'dictate.listening': 'Recording. Say what the film should be about.',
+  'dictate.writing': 'Writing it down…',
+  'dictate.written': 'Written down with {model}.',
+  'dictate.discarded': 'Recording discarded.',
+  'dictate.done': 'Done: write it down',
+  'dictate.discard': 'Discard the recording',
+  'dictate.tooShort': 'The recording was too short. Speak a little longer.',
+  'dictate.empty': 'Nothing could be made out. Try again a little closer to the microphone.',
+  'dictate.problem.denied':
+    'The microphone is not allowed for this page. Allow it in the browser’s site settings, then try again.',
+  'dictate.problem.absent': 'No microphone was found.',
+  'dictate.problem.busy': 'The microphone is in use by another program.',
+  'dictate.problem.other': 'The microphone did not start: {detail}',
   'choice.yourDefault': '{value} (default)',
   'choice.styleOwn': "{value} (the style's own)",
   'choice.fromStyle': "The style's own",
@@ -147,6 +227,7 @@ export const en = {
   'prompt.minutes': { one: '{count} minute', other: '{count} minutes' },
   'prompt.language': 'in {language}',
   'prompt.askStyle': 'Ask me which style I want before you start.',
+  'prompt.program': 'The superint-video program is here: {path}',
 
   // Films
   'films.title': 'Films',
@@ -274,6 +355,8 @@ export const en = {
   'preview.label': 'Preview',
   'preview.frameTitle': 'Preview of the film',
   'preview.loading': 'Loading scenes',
+  'preview.editText': 'Change the text: {name}',
+  'preview.editHint': 'Enter keeps it · Shift+Enter new line · Esc cancels',
   'preview.previous': 'Previous frame',
   'preview.next': 'Next frame',
   'preview.play': 'Play',
@@ -368,6 +451,13 @@ export const en = {
   'film.height': 'Height',
   'film.frameRate': 'Frame rate',
   'film.background': 'Background',
+  'film.font': 'Font',
+  'film.fontOfStyle': 'As in the style ({font})',
+  'film.fontOfScenes': 'As in the scenes',
+  'film.fontsOfFilm': 'In this film',
+  'film.fontsOfTool': 'Included',
+  'film.fontNotTaken':
+    "This film's scenes set their own font. Ask your coding agent to switch them to the film's font.",
   'film.location': 'Project location',
 
   // Studio: timeline

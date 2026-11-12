@@ -4,14 +4,39 @@
   import Icon from '../Icon.svelte';
   import { format, lengthLabel, locale, t, type Formats, type Translate } from '../i18n';
   import type { Overview } from '../types';
-  import { FILM_LANGUAGES, FORMATS, LENGTHS, styleText } from './choices';
+  import { tick } from 'svelte';
+  import { FILM_LANGUAGES, FORMATS, LENGTHS, parseLength, styleText } from './choices';
+  import Dictate from './Dictate.svelte';
   import { copyText, fail } from './session';
 
   export let overview: Overview;
 
   let topic = '';
   let pick = { preset: '', seconds: '', format: '', language: '' };
+  /** The length as typed or picked; the prompt takes the seconds it stands for. */
+  let lengthText = '';
+  $: lengthSeconds = parseLength(lengthText);
+  $: pick.seconds = lengthSeconds ? String(lengthSeconds) : '';
   let copied = false;
+  let field: HTMLTextAreaElement;
+  /** Where the cursor was when the field was left: dictated text goes there. */
+  let caret: [number, number] | null = null;
+  let dictating = false;
+
+  /** Puts dictated text where the cursor was, else at the end, with a space where one is due. */
+  async function insert(text: string) {
+    const [from, to] = caret ?? [topic.length, topic.length];
+    const before = topic.slice(0, from);
+    const after = topic.slice(to);
+    const lead = before && !/\s$/.test(before) ? ' ' : '';
+    const tail = after && !/^\s/.test(after) ? ' ' : '';
+    topic = `${before}${lead}${text}${tail}${after}`;
+    const at = before.length + lead.length + text.length;
+    caret = [at, at];
+    await tick();
+    field.focus();
+    field.setSelectionRange(at, at);
+  }
 
   $: settings = overview.settings;
   $: styles = overview.styles;
@@ -22,7 +47,9 @@
   $: agents = $format.or(
     (ready.length ? ready : overview.setup.agents).map((agent) => agent.title),
   );
-  $: prompt = buildPrompt(topic, pick, !settings.preset, $t, $format);
+  // Off the search path the agent learns where the program is; on it, the prompt stays short.
+  $: program = overview.cli.onPath ? null : overview.cli.path;
+  $: prompt = buildPrompt(topic, pick, !settings.preset, program, $t, $format);
 
   // Everything the prompt depends on is an argument, so it is rebuilt when any of it changes,
   // the language of the app included.
@@ -30,6 +57,7 @@
     about: string,
     chosen: typeof pick,
     noDefaultStyle: boolean,
+    program: string | null,
     say: Translate,
     write: Formats,
   ) {
@@ -53,6 +81,7 @@
       lines.push(`${sentence[0].toUpperCase()}${sentence.slice(1)}.`);
     }
     if (!chosen.preset && noDefaultStyle) lines.push(say('prompt.askStyle'));
+    if (program) lines.push(say('prompt.program', { path: program }));
     return lines.join('\n');
   }
   /** The first, empty choice of a select: the user's default, else what the style brings. */
@@ -74,11 +103,17 @@
     <p class="home-summary">{$t('compose.lead', { agents })}</p>
   </div>
   <div class="composer">
-    <textarea
-      rows="3"
-      placeholder={$t('compose.placeholder')}
-      aria-label={$t('compose.topicLabel')}
-      bind:value={topic}></textarea>
+    <div class="composer-field" class:dictating>
+      <textarea
+        rows="3"
+        placeholder={$t('compose.placeholder')}
+        aria-label={$t('compose.topicLabel')}
+        readonly={dictating}
+        bind:this={field}
+        bind:value={topic}
+        onblur={() => (caret = [field.selectionStart, field.selectionEnd])}></textarea>
+      <Dictate available={overview.setup.can.dictate} oninsert={insert} bind:active={dictating} />
+    </div>
     <div class="composer-options">
       <label
         ><span>{$t('field.style')}</span>
@@ -95,17 +130,32 @@
       >
       <label
         ><span>{$t('field.length')}</span>
-        <select bind:value={pick.seconds}>
-          <option value=""
-            >{inherited(
-              settings.seconds ? lengthLabel(settings.seconds) : null,
-              pickedStyle ? lengthLabel(pickedStyle.seconds) : null,
-            )}</option
-          >
-          {#each LENGTHS as seconds (seconds)}<option value={String(seconds)}
-              >{lengthLabel(seconds)}</option
-            >{/each}
-        </select></label
+        <!-- Typed or picked: "3 min", "90 s", "2:30", or minutes alone. Empty keeps the default. -->
+        <input
+          type="text"
+          list="film-lengths"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder={inherited(
+            settings.seconds ? lengthLabel(settings.seconds) : null,
+            pickedStyle ? lengthLabel(pickedStyle.seconds) : null,
+          )}
+          aria-invalid={!!lengthText.trim() && !lengthSeconds}
+          aria-describedby="length-note"
+          bind:value={lengthText}
+        />
+        <datalist id="film-lengths"
+          >{#each LENGTHS as seconds (seconds)}<option value={lengthLabel(seconds)}
+            ></option>{/each}</datalist
+        >
+        {#if lengthText.trim() && (!lengthSeconds || lengthLabel(lengthSeconds) !== lengthText.trim())}<small
+            id="length-note"
+            class="length-note"
+            class:failed={!lengthSeconds}
+            >{lengthSeconds
+              ? $t('compose.lengthIs', { length: lengthLabel(lengthSeconds) })
+              : $t('compose.lengthHelp')}</small
+          >{/if}</label
       >
       <label
         ><span>{$t('field.format')}</span>

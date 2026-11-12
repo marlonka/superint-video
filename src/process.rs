@@ -66,19 +66,198 @@ pub fn reveal_file(path: &Path) -> Result<()> {
 }
 
 /// Where a tool such as `ffmpeg` is started from: `SUPERINT_<NAME>`, else the search path.
-/// On Windows a tool that winget installed is found right away, although a program that was
-/// already running does not see the new search path yet.
+/// On Windows a tool installed while this program runs is found right away, although this
+/// process still has the search path it started with: through winget's links, the folder of
+/// uv and pipx, and the search path as Windows has saved it since.
 pub fn binary(name: &str) -> PathBuf {
     if let Some(path) = std::env::var_os(format!("SUPERINT_{}", name.to_uppercase())) {
         return PathBuf::from(path);
     }
     #[cfg(windows)]
     if !on_search_path(name)
-        && let Some(link) = winget_link(name)
+        && let Some(found) = elsewhere(name)
     {
-        return link;
+        return found;
     }
     PathBuf::from(name)
+}
+
+/// Whether a command can be started now, wherever it was installed.
+#[cfg(windows)]
+pub fn installed(name: &str) -> bool {
+    on_search_path(name) || elsewhere(name).is_some()
+}
+#[cfg(not(windows))]
+pub fn installed(name: &str) -> bool {
+    find_command(name).is_some()
+}
+
+#[cfg(windows)]
+fn elsewhere(name: &str) -> Option<PathBuf> {
+    first_file(install_folders(), &format!("{name}.exe"))
+}
+
+/// The first of these folders that holds `file`.
+pub(crate) fn first_file(
+    folders: impl IntoIterator<Item = PathBuf>,
+    file: &str,
+) -> Option<PathBuf> {
+    folders
+        .into_iter()
+        .map(|folder| folder.join(file))
+        .find(|path| path.is_file())
+}
+
+/// Where a tool installed while this program runs may be: winget's links, the one folder uv
+/// and pipx put commands in, then the search path Windows has saved since, which a program
+/// started before does not have yet. That last one is read only when the others fail.
+#[cfg(windows)]
+fn install_folders() -> impl Iterator<Item = PathBuf> {
+    [
+        std::env::var_os("LOCALAPPDATA")
+            .map(|dir| PathBuf::from(dir).join("Microsoft/WinGet/Links")),
+        std::env::var_os("UV_TOOL_BIN_DIR").map(PathBuf::from),
+        std::env::var_os("XDG_BIN_HOME").map(PathBuf::from),
+        std::env::var_os("USERPROFILE").map(|home| PathBuf::from(home).join(".local/bin")),
+    ]
+    .into_iter()
+    .flatten()
+    .chain(std::iter::once(()).flat_map(|()| saved_folders()))
+}
+
+/// A command by its whole file name, such as `gcloud.cmd`: on this process's search path, else
+/// where a later installation put it.
+pub fn find_command(file: &str) -> Option<PathBuf> {
+    let path: Vec<PathBuf> = std::env::var_os("PATH")
+        .map(|path| std::env::split_paths(&path).collect())
+        .unwrap_or_default();
+    #[cfg(windows)]
+    let later = install_folders();
+    #[cfg(not(windows))]
+    let later = std::iter::empty();
+    first_file(path.into_iter().chain(later), file)
+}
+
+/// The search path a program started now would get: the machine's and the user's, as Windows
+/// keeps them. winget adds a tool's folder there when it cannot make a link, and installers
+/// add theirs.
+#[cfg(windows)]
+fn saved_folders() -> Vec<PathBuf> {
+    [
+        (
+            registry::MACHINE,
+            r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment",
+        ),
+        (registry::USER, "Environment"),
+    ]
+    .into_iter()
+    .filter_map(|(root, key)| registry::string(root, key, "Path"))
+    .flat_map(|value| {
+        expand(&value)
+            .split(';')
+            .map(|folder| PathBuf::from(folder.trim()))
+            .collect::<Vec<_>>()
+    })
+    .filter(|folder| !folder.as_os_str().is_empty())
+    .collect()
+}
+
+/// `%NAME%` replaced by the variable's value, as Windows does for a saved search path.
+#[cfg(windows)]
+fn expand(text: &str) -> String {
+    let mut out = String::new();
+    let mut rest = text;
+    while let Some(start) = rest.find('%') {
+        out.push_str(&rest[..start]);
+        let after = &rest[start + 1..];
+        match after.find('%') {
+            Some(end) => {
+                let name = &after[..end];
+                match std::env::var(name) {
+                    Ok(value) if !name.is_empty() => out.push_str(&value),
+                    _ => {
+                        out.push('%');
+                        out.push_str(name);
+                        out.push('%');
+                    }
+                }
+                rest = &after[end + 1..];
+            }
+            None => {
+                out.push_str(&rest[start..]);
+                rest = "";
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
+/// Reads one text value from the registry.
+#[cfg(windows)]
+mod registry {
+    use std::ffi::c_void;
+
+    pub const USER: isize = 0x8000_0001_u32 as i32 as isize;
+    pub const MACHINE: isize = 0x8000_0002_u32 as i32 as isize;
+    /// REG_SZ or REG_EXPAND_SZ, as stored: the variables are expanded by the caller.
+    const TEXT: u32 = 0x0000_0002 | 0x0000_0004 | 0x1000_0000;
+
+    #[link(name = "advapi32")]
+    unsafe extern "system" {
+        fn RegGetValueW(
+            key: isize,
+            sub_key: *const u16,
+            value: *const u16,
+            flags: u32,
+            kind: *mut u32,
+            data: *mut c_void,
+            size: *mut u32,
+        ) -> i32;
+    }
+
+    fn wide(text: &str) -> Vec<u16> {
+        text.encode_utf16().chain(std::iter::once(0)).collect()
+    }
+
+    pub fn string(root: isize, key: &str, value: &str) -> Option<String> {
+        let (key, value) = (wide(key), wide(value));
+        let mut size = 0u32;
+        // SAFETY: the names are NUL-terminated and outlive the call; a null buffer asks for
+        // the size only.
+        let found = unsafe {
+            RegGetValueW(
+                root,
+                key.as_ptr(),
+                value.as_ptr(),
+                TEXT,
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+                &mut size,
+            )
+        };
+        if found != 0 || size == 0 {
+            return None;
+        }
+        let mut buffer = vec![0u16; (size as usize).div_ceil(2)];
+        // SAFETY: `buffer` holds `size` bytes, as the call above asked for.
+        let read = unsafe {
+            RegGetValueW(
+                root,
+                key.as_ptr(),
+                value.as_ptr(),
+                TEXT,
+                std::ptr::null_mut(),
+                buffer.as_mut_ptr().cast(),
+                &mut size,
+            )
+        };
+        if read != 0 {
+            return None;
+        }
+        let text = String::from_utf16_lossy(&buffer);
+        Some(text.trim_end_matches('\0').to_string())
+    }
 }
 
 /// Asks without following links: the aliases Windows keeps for Store apps, winget among them,
@@ -93,15 +272,6 @@ fn on_search_path(name: &str) -> bool {
                 .is_ok()
         })
     })
-}
-
-/// winget puts a link to every command-line tool it installs into one folder of the user.
-#[cfg(windows)]
-fn winget_link(name: &str) -> Option<PathBuf> {
-    let link = PathBuf::from(std::env::var_os("LOCALAPPDATA")?)
-        .join("Microsoft/WinGet/Links")
-        .join(format!("{name}.exe"));
-    link.is_file().then_some(link)
 }
 
 /// Whether winget, the package manager that ships with Windows, can be asked to install a tool.
@@ -261,6 +431,21 @@ pub async fn output(
 
 #[cfg(test)]
 mod tests {
+    #[cfg(windows)]
+    #[test]
+    fn a_saved_search_path_is_read_and_expanded() {
+        // SAFETY: no other test reads this variable.
+        unsafe { std::env::set_var("SUPERINT_TEST_FOLDER", r"C:\tools") };
+        assert_eq!(
+            super::expand(r"%SUPERINT_TEST_FOLDER%\bin;%NOT_SET_9%;x"),
+            r"C:\tools\bin;%NOT_SET_9%;x"
+        );
+        assert_eq!(super::expand("50%"), "50%");
+        // The machine's search path holds Windows' own folder, and cmd with it.
+        assert!(super::first_file(super::saved_folders(), "cmd.exe").is_some());
+        assert!(super::find_command("cmd.exe").is_some());
+    }
+
     #[cfg(windows)]
     #[test]
     fn the_file_manager_gets_one_kind_of_slash() {

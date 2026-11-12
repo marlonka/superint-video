@@ -20,6 +20,10 @@
   --action-text: #111111;
   --focus: #b4b4b4;
   --error: #ffb4ab;
+  --mono: Consolas, 'SFMono-Regular', ui-monospace, monospace;
+  /* The one colour: a microphone that is listening. */
+  --live: #3f7ff0;
+  --live-text: #ffffff;
   --shadow: 0 16px 48px rgb(0 0 0 / 35%);
   color: var(--text);
   background: var(--page);
@@ -39,6 +43,8 @@
   --action-text: #ffffff;
   --focus: #535353;
   --error: #9c2323;
+  --live: #1f5fd1;
+  --live-text: #ffffff;
   --shadow: 0 16px 48px rgb(0 0 0 / 14%);
 }
 
@@ -709,6 +715,52 @@ fieldset {
   top: 0;
   border: 0;
   transform-origin: 0 0;
+}
+/* Texts the user can retype. Unseen until the pointer is over the picture, then a thin frame
+   around each and a firm one around the one under the pointer: white on a dark halo, so it
+   stands out on any film. */
+.text-spots {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.text-spot {
+  position: absolute;
+  border-radius: 3px;
+  outline-offset: 2px;
+  cursor: text;
+  pointer-events: auto;
+}
+.preview-stage:hover .text-spot {
+  outline: 1px dashed rgb(255 255 255 / 70%);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 30%);
+}
+.preview-stage .text-spot:hover,
+.preview-stage .text-spot:focus-visible,
+.preview-stage .text-spot.current {
+  outline: 2px solid #ffffff;
+  box-shadow: 0 0 0 4px rgb(0 0 0 / 45%);
+}
+.text-editor {
+  display: grid;
+  position: absolute;
+  z-index: 2;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--raised);
+  box-shadow: var(--shadow);
+  pointer-events: auto;
+}
+.text-editor > textarea {
+  width: 100%;
+  min-height: 40px;
+  font-size: 16px;
+  resize: none;
+}
+.text-editor > span {
+  color: var(--secondary);
+  font-size: 12px;
 }
 .preview-loading {
   position: absolute;
