@@ -220,6 +220,35 @@ fn is_rate_limit(error: &anyhow::Error) -> bool {
     error.to_string().contains(" returned 429")
 }
 
+/// A music model answering without music now and then: no audio at all, or Google's
+/// copyright/recitation block on a prompt that goes through a moment later. Both came up in a
+/// live run and passed when asked again with the very same prompt.
+fn music_hiccup(error: &anyhow::Error) -> bool {
+    let text = format!("{error:#}").to_ascii_lowercase();
+    text.contains("no music audio")
+        || text.contains("returned no audio")
+        || text.contains("recitation")
+}
+
+/// Asks once more when the first answer is a hiccup, and says so; a second failure stands.
+async fn once_more<T, Fut>(
+    what: &str,
+    hiccup: fn(&anyhow::Error) -> bool,
+    mut ask: impl FnMut() -> Fut,
+) -> Result<T>
+where
+    Fut: std::future::Future<Output = Result<T>>,
+{
+    match ask().await {
+        Err(error) if hiccup(&error) => {
+            let first: String = format!("{error:#}").chars().take(160).collect();
+            eprintln!("{what}: no usable answer this time ({first}); asking once more");
+            ask().await
+        }
+        result => result,
+    }
+}
+
 /// One HTTP client for the whole program, so its connections are reused.
 fn client() -> Result<reqwest::Client> {
     static CLIENT: std::sync::OnceLock<reqwest::Client> = std::sync::OnceLock::new();
@@ -618,11 +647,15 @@ impl Generators {
         }
         let (bytes, route, name) = self
             .across(self.ways(model), |route, name| async move {
-                match route {
-                    Provider::GoogleCloud => cloud::music(self, &name, prompt).await,
-                    Provider::AiStudio => aistudio::music(self, &name, prompt).await,
-                    _ => openrouter::music(self, &name, prompt).await,
-                }
+                let label = format!("music: {} on {}", name, route.label());
+                once_more(&label, music_hiccup, || async {
+                    match route {
+                        Provider::GoogleCloud => cloud::music(self, &name, prompt).await,
+                        Provider::AiStudio => aistudio::music(self, &name, prompt).await,
+                        _ => openrouter::music(self, &name, prompt).await,
+                    }
+                })
+                .await
             })
             .await?;
         self.cache.put_bytes(&key(&name), &bytes)?;
@@ -1142,6 +1175,45 @@ mod tests {
 #[cfg(test)]
 mod twin_tests {
     use super::*;
+
+    #[tokio::test]
+    async fn a_music_hiccup_is_asked_once_more_and_no_more() {
+        use std::sync::atomic::{AtomicU32, Ordering};
+        let asked = AtomicU32::new(0);
+        let fails = |message: &'static str| {
+            asked.fetch_add(1, Ordering::SeqCst);
+            async move { Err::<u32, _>(anyhow!(message)) }
+        };
+        let result = once_more("test", music_hiccup, || {
+            fails("OpenRouter returned no music audio. Model text: [[A0]]")
+        })
+        .await;
+        assert!(result.is_err());
+        assert_eq!(asked.swap(0, Ordering::SeqCst), 2);
+        let result = once_more("test", music_hiccup, || fails("Google AI Studio returned 400 Bad Request: Request blocked due to copyright/recitation content")).await;
+        assert!(result.is_err());
+        assert_eq!(asked.swap(0, Ordering::SeqCst), 2);
+        let result = once_more("test", music_hiccup, || {
+            fails("OpenRouter returned 402 Payment Required")
+        })
+        .await;
+        assert!(result.is_err());
+        assert_eq!(asked.swap(0, Ordering::SeqCst), 1);
+        let second = AtomicU32::new(0);
+        let result = once_more("test", music_hiccup, || {
+            let attempt = second.fetch_add(1, Ordering::SeqCst);
+            async move {
+                if attempt == 0 {
+                    Err(anyhow!("Google returned no audio. Check the model ID"))
+                } else {
+                    Ok(7)
+                }
+            }
+        })
+        .await;
+        assert_eq!(result.unwrap(), 7);
+        assert_eq!(second.load(Ordering::SeqCst), 2);
+    }
 
     #[test]
     fn every_ai_studio_model_has_its_twin_on_openrouter() {

@@ -2,6 +2,8 @@
 
 ## Unveröffentlicht
 
+- **Musik fragt einmal nach:** Antwortet ein Musikmodell ohne Musik (kein Ton zurück, oder Googles Sperre wegen „copyright/recitation“ bei einem Prompt, der kurz darauf durchgeht), fragt das Werkzeug von selbst ein zweites Mal und sagt es; erst ein zweiter Fehlschlag bricht ab. Beides kam in einem Live-Durchlauf aller Modelle vor und ging beim zweiten Versuch mit demselben Prompt durch.
+
 - **Gemini-Stimme über OpenRouter:** `google/gemini-3.8-flash-tts` bekam ohne eigene Stimme die ElevenLabs-Stimme `daniel` und scheiterte mit 400; ebenso hätte der Ausweichweg von AI Studio zum Gemini-Zwilling auf OpenRouter sie geschickt. Die Stimme richtet sich jetzt nach der Modellfamilie, nicht nach dem Anbieter.
 
 - **Schrift des Films:** Im Studio unter „Film“ → „Schrift“ bekommt der ganze Film eine andere Hauptschrift, und `superint-video fonts <film> <schrift>` macht dasselbe für den Coding-Agenten (bei offenem Studio live und mit Strg+Z rücknehmbar). Angeboten werden die Schriften, die der Film selbst mitbringt, bei jedem Stil, auch künftigen, von selbst erkannt, und sieben mitgelieferte unter der SIL Open Font License: Geist, Nunito, Jost, Fraunces, Courier Prime, JetBrains Mono und Caveat. Szenen nehmen die Wahl über `var(--font)` und, für Text in Canvas oder SVG, über `fontFamily()` aus der Szenen-Laufzeit; die Laufzeit lädt die Schrift vor jedem Bild vollständig, sodass Vorschau und Export gleich aussehen. Die Stile `blank`, `flat-explainer` und `launch` folgen ihr; wo die Szenen ihre Schrift selbst festlegen (`miniature-3d`), sagt das Studio es.
