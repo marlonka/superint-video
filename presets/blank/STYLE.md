@@ -11,4 +11,4 @@ Before any scene, write the look into `direction.md` from, in this order:
 
 `direction.md` then states, in numbers: palette tokens (replace the ones in `kit/theme.css`), type (face, weights, sizes, tracking), shapes and materials, light, motion vocabulary (eases, durations, staggers), the composition grammar and the don'ts. Ship any other font locally under `kit/fonts/` with its licence and await it in `ready`.
 
-To reuse the look in later films, make it a preset of its own: `superint-video preset new <name> --from blank --reference <stills…>`, copy the project's `kit/` and `scenes/lib/` into the new preset folder, and write the rules from `direction.md` into its `STYLE.md`.
+To reuse the look in later films, make it a preset of its own. Once the film is finished, `superint-video preset from-film <film folder> --name "<name>"` does it in one step. By hand: `superint-video preset new <name> --from blank --reference <stills…>`, copy the project's `kit/` and `scenes/lib/` into the new preset folder, and write the rules from `direction.md` into its `STYLE.md`.

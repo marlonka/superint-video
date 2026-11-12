@@ -970,10 +970,10 @@ fn files_from_film(
         style.config = config;
     }
     identity.name(&mut style.config, styles);
-    if let Some(workflow) = identity.workflow.clone().or(film.workflow) {
-        if preset::valid_word(&workflow, "Workflow").is_ok() {
-            style.config.defaults.workflow = Some(workflow);
-        }
+    if let Some(workflow) = identity.workflow.clone().or(film.workflow)
+        && preset::valid_word(&workflow, "Workflow").is_ok()
+    {
+        style.config.defaults.workflow = Some(workflow);
     }
     if let Some(voice) = &identity.voice
         && style.config.narration.voice.is_none()

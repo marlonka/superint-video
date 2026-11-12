@@ -109,7 +109,7 @@ Ein Doppelklick auf `Superint Video.exe` öffnet die Startseite. Sie spricht Deu
 <p align="center">
   <img src="docs/images/app-styles.jpg" alt="Drei Stil-Karten mit Referenzbildern: Neutral, Flat-Vektor-Erklärfilm und Miniatur aus Code, darüber der Knopf „Stil importieren“" width="100%">
   <br>
-  <sub>Unter „Stile“: einen als Standard wählen, eigene Referenzbilder hinzufügen, eine Kopie anlegen, als Datei weitergeben oder eine solche Datei importieren.</sub>
+  <sub>Unter „Stile“: aus Bildern oder einem fertigen Film einen eigenen erstellen, einen als Standard wählen, eigene Referenzbilder hinzufügen, eine Kopie anlegen, als Datei weitergeben oder eine solche Datei importieren.</sub>
 </p>
 
 ## Drei Teile, ein Werkzeug

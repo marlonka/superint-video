@@ -6,6 +6,7 @@ import { once } from 'node:events';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import http from 'node:http';
 import { tmpdir } from 'node:os';
+import { crc32, deflateSync } from 'node:zlib';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -54,6 +55,77 @@ await writeFile(path.join(projectPath, 'video.json'), JSON.stringify(manifest, n
 // films, styles or downloads.
 const homePath = path.join(tempRoot, 'home');
 await writeFile(path.join(tempRoot, 'empty.env'), '');
+// What a model would answer when asked for a style: a sheet of values, a line, the look
+// contract. The server reads it from this file, so the run asks no model and needs no key.
+const styleSheet = {
+  title: { en: 'Paper Cut', de: 'Scherenschnitt' },
+  description: {
+    en: 'Layered cut paper in warm tones with one strong accent.',
+    de: 'Geschichtetes Papier in warmen Tönen mit einem kräftigen Akzent.',
+  },
+  essence:
+    'Everything is cut from paper and stacked: flat shapes with a cut edge, a soft shadow under each layer and a warm ground.',
+  palette: {
+    ground: '#F4ECDF',
+    surface: '#e9dcc6',
+    line: '#cdbb9d',
+    ink: '#221100',
+    muted: '#6b5d4a',
+    accent: '#E4572E',
+  },
+  uses: { ground: 'The paper every frame stands on', accent: 'The one thing that matters' },
+  font: 'Fraunces',
+  displayWeight: 800,
+  textWeight: 500,
+  tracking: -0.02,
+  seconds: 60,
+  workflow: 'superint-explainer',
+  voice: 'Kore',
+  music: 'Warm felt piano and soft brushes, 84 BPM. Instrumental, no vocals.',
+};
+const styleSections = [
+  ['The frame test', '- Is the ground a warm paper tone (`ground`), never white?'],
+  ['Colour', '`ground` fills at least 55 % of every frame; `accent` takes at most 8 %.'],
+  ['Shapes and materials', 'Layered cut paper: flat fills, corners of 0.6 vmin, no outlines.'],
+  ['Light and depth', 'One light from the upper left; every layer drops a soft shadow.'],
+  ['Type', 'Fraunces 800 for headlines at 9 vmin, sentence case, at most six words a line.'],
+  ['Composition', 'Margins of 7 vmin. The subject sits on a third, never in the centre.'],
+  ['Motion', 'Layers slide in from below over 0.5 s with an ease-out; staggers of 0.08 s.'],
+  ['Do', '- Stack layers so each overlaps the one behind it.'],
+  ["Don't", '- No outlines, gradients, glows or glass.'],
+  ['Pitfalls', '- Shadows that point different ways.'],
+];
+const styleAnswer = path.join(tempRoot, 'style-answer.txt');
+await writeFile(
+  styleAnswer,
+  '```json\n' +
+    JSON.stringify(styleSheet, null, 2) +
+    '\n```\n\n=== STYLE.md ===\n' +
+    styleSections.map(([title, text]) => `## ${title}\n\n${text}\n`).join('\n'),
+);
+/** A PNG of one colour, small enough to write by hand. */
+function png(width, height, [red, green, blue]) {
+  const chunk = (kind, data) => {
+    const body = Buffer.concat([Buffer.from(kind), data]);
+    const frame = Buffer.alloc(8 + body.length);
+    frame.writeUInt32BE(data.length, 0);
+    body.copy(frame, 4);
+    frame.writeUInt32BE(crc32(body), 4 + body.length);
+    return frame;
+  };
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0);
+  header.writeUInt32BE(height, 4);
+  header.set([8, 2, 0, 0, 0], 8);
+  const row = Buffer.concat([Buffer.from([0]), Buffer.alloc(width * 3)]);
+  for (let x = 0; x < width; x++) row.set([red, green, blue], 1 + x * 3);
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    chunk('IHDR', header),
+    chunk('IDAT', deflateSync(Buffer.concat(Array(height).fill(row)))),
+    chunk('IEND', Buffer.alloc(0)),
+  ]);
+}
 const isolated = {
   ...process.env,
   SUPERINT_HOME: homePath,
@@ -63,6 +135,7 @@ const isolated = {
   SUPERINT_FILMS: path.join(tempRoot, 'films'),
   SUPERINT_PRESETS: path.join(tempRoot, 'styles'),
   SUPERINT_DOWNLOADS: path.join(tempRoot, 'downloads'),
+  SUPERINT_STYLE_ANSWER: styleAnswer,
   GEMINI_API_KEY: '',
   GOOGLE_API_KEY: '',
   OPENROUTER_API_KEY: '',
@@ -419,12 +492,27 @@ try {
       ['my-films-123', 'us', 'us'],
     );
   }
-  assert.deepEqual(withModels.setup.keys[3].models, { dictation: 'gpt-transcribe' });
+  // OpenAI's models write down dictations and write styles, and make no part of a film.
+  assert.deepEqual(withModels.setup.keys[3].models, {
+    dictation: 'gpt-transcribe',
+    style: 'gpt-6.1-sol',
+  });
+  // The model that writes a style is a job like the others; without a key nobody writes one.
+  assert.equal(withModels.setup.models.style, 'gemini-4-hydrogen');
+  assert.equal(withModels.setup.can.style, false);
+  assert.deepEqual(withModels.setup.style, { model: 'gemini-4-hydrogen', provider: 'Google' });
+  const styleWriter = await send('/api/app/settings', 'PUT', {
+    ...app.settings,
+    styleModel: ' models/gemini-4-argon ',
+  });
+  assert.equal(styleWriter.status, 200, await styleWriter.clone().text());
+  assert.equal((await get('/api/app')).settings.styleModel, 'gemini-4-argon');
   assert.equal(withModels.setup.keys[3].region, 'eu');
   assert.equal(withModels.setup.models.narration, 'gemini-3.8-flash-tts');
   for (const refused of [
     { narrationModel: 'gpt-4o-mini-tts' },
     { dictationModel: 'gemini 4' },
+    { styleModel: 'gemini 4' },
     { googleCloudProject: 'My_Project' },
     { googleCloudLocation: 'europe-west4' },
     { openAiRegion: 'jp' },
@@ -542,6 +630,96 @@ try {
   assert.ok(
     (await readFile(path.join(isolated.SUPERINT_PRESETS, 'blank-2', 'preset.json'))).length > 0,
   );
+  // A style of one's own: pictures and a description go in as a form, the model's answer (the
+  // file above) becomes a style among the user's, with the pictures as its references.
+  const wish = (fields, pictures = [], token = project.token) => {
+    const form = new FormData();
+    for (const [name, value] of Object.entries(fields)) form.set(name, value);
+    for (const [name, bytes, type] of pictures)
+      form.append('reference', new Blob([bytes], { type }), name);
+    return fetch(origin + '/api/app/styles/create', {
+      method: 'POST',
+      headers: { Origin: origin, 'X-Superint-Token': token },
+      body: form,
+    });
+  };
+  const picture = png(48, 27, [228, 87, 46]);
+  const good = [
+    ['Mein Bild (1).png', picture, 'image/png'],
+    ['02 zweites.png', png(27, 48, [34, 17, 0]), 'image/png'],
+  ];
+  assert.equal(
+    (await wish({ describe: 'Wie aus Papier geschnitten' }, good, 'no')).status,
+    403,
+    'no style is ownStyle without the token',
+  );
+  assert.equal((await wish({ name: 'Leer' })).status, 400, 'nothing to go on');
+  assert.equal(
+    (await wish({}, [['notes.png', Buffer.from('not a picture'), 'image/png']])).status,
+    400,
+    'a file that is no picture',
+  );
+  assert.equal(
+    (await wish({}, Array(13).fill(good[0]))).status,
+    400,
+    'more pictures than a style takes',
+  );
+  const before = (await get('/api/app')).styles.length;
+  const madeAnswer = await wish(
+    { name: ' Mein *Papierstil* ', describe: 'Wie aus Papier geschnitten', language: 'de' },
+    good,
+  );
+  assert.equal(madeAnswer.status, 200, await madeAnswer.clone().text());
+  const ownStyle = await madeAnswer.json();
+  assert.equal(ownStyle.name, 'mein-papierstil');
+  assert.equal(ownStyle.title, 'Mein Papierstil');
+  assert.equal(ownStyle.styles.length, before + 1);
+  const mine = ownStyle.styles.find((style) => style.name === ownStyle.name);
+  assert.equal(mine.own, true);
+  assert.equal(mine.language, 'de');
+  assert.equal(mine.references.length, 2);
+  const madeRoot = path.join(isolated.SUPERINT_PRESETS, ownStyle.name);
+  const contract = await readFile(path.join(madeRoot, 'STYLE.md'), 'utf8');
+  assert.match(contract, /^# Mein Papierstil: art direction/);
+  assert.match(contract, /## The frame test[\s\S]*## Pitfalls[\s\S]*## References/);
+  assert.ok(!contract.includes('Wie aus Papier geschnitten'), 'the description is not quoted');
+  assert.match(await readFile(path.join(madeRoot, 'kit', 'theme.css'), 'utf8'), /#e4572e/i);
+  for (const reference of ['01-mein-bild-1.png', '02-zweites.png'])
+    assert.ok(existsSync(path.join(madeRoot, 'references', reference)), reference);
+  // The same name again takes a free one and replaces nothing.
+  const again = await (await wish({ name: 'Mein Papierstil' }, good)).json();
+  assert.equal(again.name, 'mein-papierstil-2');
+  // It starts a film like any other style.
+  const started = JSON.parse(
+    execFileSync(binary, ['new', '--preset', ownStyle.name, '--topic', 'Papier', '--no-studio'], {
+      env: isolated,
+      windowsHide: true,
+    }).toString(),
+  );
+  assert.equal(started.preset, ownStyle.name);
+  assert.equal(started.references, 2);
+  // A style from a film: the same answer, the film's own look in code, and its topic stays out.
+  // A film with nothing of a look in it says so.
+  assert.equal(
+    (await send(`/api/app/films/${original.id}/style`, 'POST', { name: 'Aus Film' })).status,
+    400,
+  );
+  const source = (await get('/api/app')).films.find(
+    (film) => path.resolve(film.path) === path.resolve(started.project),
+  );
+  assert.ok(source, 'the film that was started is on the list');
+  const fromFilm = await send(`/api/app/films/${source.id}/style`, 'POST', { name: 'Aus Film' });
+  assert.equal(fromFilm.status, 200, await fromFilm.clone().text());
+  const filmStyle = await fromFilm.json();
+  assert.equal(filmStyle.name, 'aus-film');
+  assert.match(
+    await readFile(path.join(isolated.SUPERINT_PRESETS, 'aus-film', 'STYLE.md'), 'utf8'),
+    /## Where this style comes from/,
+  );
+  assert.equal(
+    (await send('/api/app/films/0000000000000000/style', 'POST', { name: 'x' })).status,
+    404,
+  );
   passed = true;
   console.log(
     JSON.stringify(
@@ -559,6 +737,7 @@ try {
           'start page: app language, coding agents, install only for known tools',
           'start page: films folder, skills compared, a style exported and imported under a free name',
           'start page: a film duplicated into the films folder without its renders',
+          'start page: a style made from pictures and from a film, with the model answer from a file',
         ],
         projectPath,
       },
