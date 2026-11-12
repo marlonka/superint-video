@@ -60,6 +60,25 @@ enum Commands {
     },
     /// Create a minimal project with a working HTML scene.
     Init { directory: PathBuf },
+    /// Start a new film from a copy of another: brief, scenes, kit, references and sound come
+    /// along, so it plays at once; renders, the report, the status and reviews stay behind.
+    /// Without --to the copy goes into the user's films folder, named after the new film.
+    Duplicate {
+        /// The film to copy (its folder or its video.json).
+        film: PathBuf,
+        /// What the new film is about. Names the copy and its folder unless --name says.
+        #[arg(long)]
+        topic: Option<String>,
+        /// The copy's name (else the topic, else "<name> (copy)").
+        #[arg(long)]
+        name: Option<String>,
+        /// Folder for the copy; it must not exist yet.
+        #[arg(long)]
+        to: Option<PathBuf>,
+        /// Don't start Studio. Normally it opens so the user can watch.
+        #[arg(long)]
+        no_studio: bool,
+    },
     /// Create a project from a style preset and write brief.md for the agent.
     New {
         /// Folder for the film. Without one it goes into the user's films folder, named after
@@ -636,6 +655,42 @@ async fn run() -> Result<()> {
                 "manifest": "video.json",
                 "next": format!("superint-video studio \"{}\"", directory.display()),
             }));
+        }
+        Commands::Duplicate {
+            film,
+            topic,
+            name,
+            to,
+            no_studio,
+        } => {
+            let source = ProjectStore::open(&film)?;
+            let name = name
+                .or(topic)
+                .map(|text| text.trim().replace('*', ""))
+                .filter(|text| !text.is_empty())
+                .unwrap_or_else(|| format!("{} (copy)", source.manifest.name));
+            let directory = match to {
+                Some(directory) => directory,
+                None => {
+                    let folder = home::films_dir(&Settings::current())
+                        .context("No films folder on this computer: give a folder with --to")?;
+                    home::new_film_dir(&folder, &name)
+                }
+            };
+            let root = home::duplicate(&source.root, &directory, &name)?;
+            if let Some(home) = home::dir() {
+                home::remember(&home, &root, &name, true);
+            }
+            let mut copied = json!({
+                "project": root,
+                "from": display_path(&source.root)?,
+                "name": name,
+                "next": "Rewrite brief.md for the new film (topic, message, audience, length), then change only what it needs. Renders, report, status and reviews stayed behind: polish and render run fresh.",
+            });
+            if !no_studio {
+                copied["studio"] = json!(live::ensure_studio(&root).await);
+            }
+            print_json(copied);
         }
         Commands::New {
             directory,

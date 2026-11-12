@@ -1,6 +1,7 @@
 /** Real HTTP/application boundary. Uses its own temporary project and owned server. */
 import assert from 'node:assert/strict';
 import { execFileSync, spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { once } from 'node:events';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import http from 'node:http';
@@ -484,6 +485,29 @@ try {
   // Films have a folder without the user choosing one, and each agent says which skills differ.
   assert.equal(path.resolve(app.filmsFolder), path.resolve(isolated.SUPERINT_FILMS));
   assert.ok(app.setup.agents.every((agent) => Array.isArray(agent.outdated)));
+  // A film starts the next one: the copy lands in the films folder, named, without its renders.
+  const original = (await get('/api/app')).films.find((film) => film.current);
+  assert.ok(original, 'the open film is on the list');
+  await mkdir(path.join(original.path, 'renders'), { recursive: true });
+  await writeFile(path.join(original.path, 'renders', 'film.mp4'), 'rendered');
+  assert.equal(
+    (await send(`/api/app/films/${original.id}/duplicate`, 'POST', { name: ' ' })).status,
+    400,
+  );
+  const copied = await send(`/api/app/films/${original.id}/duplicate`, 'POST', {
+    name: 'Prüfung (Kopie)',
+  });
+  assert.equal(copied.status, 200, await copied.clone().text());
+  const made = await copied.json();
+  const copy = made.films.find((film) => film.id === made.id);
+  assert.equal(copy.name, 'Prüfung (Kopie)');
+  assert.equal(path.dirname(path.resolve(copy.path)), path.resolve(isolated.SUPERINT_FILMS));
+  assert.equal(
+    JSON.parse(await readFile(path.join(copy.path, 'video.json'), 'utf8')).name,
+    'Prüfung (Kopie)',
+  );
+  assert.ok(existsSync(path.join(original.path, 'renders')), 'the original keeps its renders');
+  assert.ok(!existsSync(path.join(copy.path, 'renders')), 'the copy has none');
   // A style travels as one file: the tool writes it, the start page takes it in. The export
   // route is not called here, because it opens the file manager.
   const exported = JSON.parse(
@@ -534,6 +558,7 @@ try {
           'start page: keys saved sealed and never returned, defaults validated',
           'start page: app language, coding agents, install only for known tools',
           'start page: films folder, skills compared, a style exported and imported under a free name',
+          'start page: a film duplicated into the films folder without its renders',
         ],
         projectPath,
       },

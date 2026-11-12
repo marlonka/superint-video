@@ -1,5 +1,11 @@
 # Versionsverlauf
 
+## Unveröffentlicht
+
+- **Von einem Film ausgehen:** Das Menü „⋯“ eines Films hat „Als Vorlage nutzen“ und „Duplizieren“. Die Vorlage steht dann unter „Neuer Film“ („Ausgehend von …“), und der Prompt sagt dem Coding-Agenten, eine Kopie anzulegen und nur zu ändern, was das neue Thema braucht. „Duplizieren“ legt die Kopie sofort an und öffnet sie. Neu dafür ist `superint-video duplicate <film> --topic "…"`: Briefing, Szenen, Kit, Referenzen und Ton kommen mit, fertige Videos, Bericht, Status und Prüfungen bleiben zurück.
+- **„Erstellte Filme“** heißt die Liste der Filme jetzt.
+- **Sauber ausgerichtet:** „Prompt kopieren“ schließt unten mit dem Prompt ab, die Überschrift „Stile“ steht mit Text und Knöpfen auf einer Linie, und „Passend zum Thema“ im Längenfeld hat dieselbe Schriftfarbe wie die Listen daneben.
+
 ## 0.4.0 — 2026-11-12
 
 - **Neuer Film wählt passend zum Thema:** Stil und Länge stehen zuerst auf „Passend zum Thema“, und der Prompt bittet den Coding-Agenten, beides nach dem Thema zu wählen. Ein Standard-Stil steht weiter vorne, „Frag mich vorher“ ist die letzte Wahl. Das Format ist 16:9, bis jemand ein anderes wählt. Die Sprache folgt dem Thema: Die App erkennt sie an Schrift und kleinen Wörtern und nennt sie im Prompt („Deutsch (wie das Thema)“); zur Wahl stehen 46 Sprachen statt 9. Die Länge ist ein Feld mit einer Vorschlagsliste, die aussieht und aufgeht wie die Listen daneben und sich mit den Pfeiltasten bedienen lässt, Vorschläge von 15 Sekunden bis 60 Minuten; Getipptes wird beim Verlassen ordentlich geschrieben („90 s“ wird „1 min 30 s“).

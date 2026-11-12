@@ -4,7 +4,7 @@
  */
 import { get, writable } from 'svelte/store';
 import { chooseLocale, isLocale, t, type Locale } from '../i18n';
-import type { Overview, Settings } from '../types';
+import type { Film, Overview, Settings } from '../types';
 
 export const overview = writable<Overview | null>(null);
 /** The action that is running, by a name its button knows; one at a time. */
@@ -13,6 +13,8 @@ export const busy = writable('');
 export const problem = writable('');
 /** A confirmation that goes away by itself. */
 export const toast = writable('');
+/** The film a new one starts from, chosen in a film's menu; the composer names it in the prompt. */
+export const baseFilm = writable<Film | null>(null);
 
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
 /** The app's language as the settings last had it; `undefined` before the first overview. */

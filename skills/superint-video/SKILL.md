@@ -41,6 +41,8 @@ More options: `--audience`, `--must "<text>"`, `--avoid "<text>"`, `--stop <name
 
 Then read the workflow skill and follow it. To edit an existing project (a folder with `video.json`), read [references/editing.md](references/editing.md) and change only what was asked.
 
+**Starting from another film.** When the user names one of their films as the base ("Nimm meinen Film … als Vorlage", "like my sleep film, but about dreams"), do not run `new`. Run `superint-video duplicate "<film folder>" --topic "<new topic>"`: it copies brief, scenes, kit, references, blocks and sound into a new folder in the films folder, names the copy, opens Studio and prints the new `project`; renders, `report.md`, `process/` (status, reviews, polish) and Studio's state stay behind. Work only in the copy. Rewrite `brief.md` for the new film first (topic, message, audience, length, language), then change only what the new topic needs and keep what still fits: the style, the world, the kit, the music if it suits. The copy needs its own polish pass and render.
+
 ## Let the user watch
 
 Studio shows the production live: the brief, the preset and skills in use, the references, your current step, the working documents, the latest changes, and the preview, which reloads whenever a scene or `video.json` changes.
@@ -99,6 +101,7 @@ Presets, their layout, where they live and how to make your own: [references/sty
 | `app [--no-open] [--stop]` | The app's start page: setup (coding agent with skills, tools, keys), prompt builder, films, defaults; in German or English. Starts in the background and returns its address at once |
 | `settings`, `settings set <key> <value>` | The user's choices: the default style `preset`, the films folder `projectsDir`, `window` and `follow`, the models. An empty value clears one |
 | `new [<dir>] [--preset <p>] … [--no-studio]` | Project from a style preset plus `brief.md`, with the chosen workflow and references; opens Studio. Without `--preset` it takes the user's default style. Without `<dir>`, the usual case, the film gets a folder named after the topic in the user's films folder |
+| `duplicate <film> [--topic "…"] [--name "…"] [--to <dir>] [--no-studio]` | A new film from a copy of another: sources, scenes and sound, without renders, report, status and reviews. Lands in the films folder named after the topic, opens Studio, prints `project` |
 | `preset list [--json]` | Presets with description, formats, default workflow and number of references |
 | `preset show <name>` | A preset's configuration, files and references |
 | `preset new <name> --from <preset> [--reference …]` | Fork a preset into the user folder, with new references |

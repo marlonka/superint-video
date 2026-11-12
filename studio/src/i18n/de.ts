@@ -206,6 +206,8 @@ export const de: Catalog = {
   'compose.lengthHelp': 'Zum Beispiel 3 min, 90 s oder 2:30, höchstens 60 min',
   'compose.topicLabel': 'Worum es im Film geht',
   'compose.lengthSuggestions': 'Vorschläge für die Länge',
+  'compose.base': 'Ausgehend von „{name}“',
+  'compose.baseClear': 'Ohne Vorlage',
   'compose.promptLabel': 'Der Prompt für deinen Coding-Agenten',
   'compose.copy': 'Prompt kopieren',
   'compose.copied': 'Kopiert. Füge ihn in {agents} ein.',
@@ -231,6 +233,7 @@ export const de: Catalog = {
   'choice.yourDefault': '{value} (Vorgabe)',
   'choice.fit': 'Passend zum Thema',
   'choice.ask': 'Frag mich vorher',
+  'choice.likeBase': 'Wie die Vorlage',
   'choice.topicLanguage': '{language} (wie das Thema)',
   'choice.topicLanguageOpen': 'Wie das Thema',
   'prompt.about': 'Mach ein Video mit Superint Video über: {topic}',
@@ -244,11 +247,17 @@ export const de: Catalog = {
   'prompt.fitBoth': 'Stil und Länge wählst du passend zum Thema.',
   'prompt.fitStyle': 'Den Stil wählst du passend zum Thema.',
   'prompt.fitLength': 'Die Länge wählst du passend zum Thema.',
+  'prompt.base':
+    'Nimm meinen Film „{name}“ als Vorlage ({path}): Leg mit superint-video duplicate eine Kopie für das neue Thema an und ändere nur, was es braucht.',
   'prompt.askStyle': 'Frag mich vor dem Start, welchen Stil ich möchte.',
   'prompt.program': 'Das Programm superint-video liegt hier: {path}',
 
   // Filme
-  'films.title': 'Filme',
+  'films.title': 'Erstellte Filme',
+  'films.startFrom': 'Als Vorlage nutzen',
+  'films.duplicate': 'Duplizieren',
+  'films.copyName': '{name} (Kopie)',
+  'films.copied': 'Kopie angelegt: {name}',
   'films.open': '{name} öffnen',
   'films.showFolder': 'Ordner anzeigen',
   'films.remove': 'Von der Liste nehmen',
@@ -261,8 +270,7 @@ export const de: Catalog = {
 
   // Vorgaben
   'styles.title': 'Stile',
-  'styles.lead':
-    'So sehen deine Filme aus. Der Standard-Stil steht bei „Neuer Film“ vorne; ohne ihn wählt der Agent den Stil passend zum Thema.',
+  'styles.lead': 'So sehen deine Filme aus.',
   'styles.folder': 'Ordner deiner Stile',
   'style.yours': 'eigener Stil',
   'style.about': 'etwa {length}',

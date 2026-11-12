@@ -255,6 +255,8 @@ export interface Style {
 export interface Film {
   id: string;
   name: string;
+  /** The film's folder, for a prompt that names it. */
+  path: string;
   createdAt: number;
   seenAt: number;
   exists: boolean;

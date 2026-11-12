@@ -4,7 +4,7 @@
   import MoreMenu from '../MoreMenu.svelte';
   import { format, t } from '../i18n';
   import type { Film, Overview } from '../types';
-  import { announce, busy, call, patch, reveal, run } from './session';
+  import { announce, baseFilm, busy, call, patch, reveal, run } from './session';
 
   export let overview: Overview;
   /** The time, kept by the page, so "5 minutes ago" moves on. */
@@ -12,6 +12,28 @@
   /** Opens a film; the page decides whether that is a new address or the editor underneath. */
   export let onopen: (film: Film) => void;
 
+  /** Copies a film into the films folder, then opens the copy once the copying is done. */
+  async function duplicate(film: Film) {
+    let copy: Film | undefined;
+    const done = await run(`film-${film.id}`, async () => {
+      const result = await call<{ id: string; films: Film[] }>(
+        `/api/app/films/${film.id}/duplicate`,
+        'POST',
+        { name: $t('films.copyName', { name: film.name }) },
+      );
+      patch({ films: result.films });
+      copy = result.films.find((entry) => entry.id === result.id);
+      announce($t('films.copied', { name: copy?.name ?? film.name }));
+    });
+    if (done && copy) onopen(copy);
+  }
+  /** Names the film as the start of the next one, in the prompt under "New film". */
+  function startFrom(film: Film) {
+    baseFilm.set(film);
+    document
+      .querySelector('[aria-labelledby="new-title"]')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
   function forget(film: Film) {
     void run(`film-${film.id}`, async () => {
       const result = await call<{ films: Film[] }>(`/api/app/films/${film.id}/forget`);
@@ -65,7 +87,14 @@
             >
           </button>
           <MoreMenu place="film-more" label={$t('menu.moreFor', { name: film.name })}>
-            {#if film.exists}<button
+            {#if film.exists}<button role="menuitem" onclick={() => startFrom(film)}
+                ><Icon name="film" />{$t('films.startFrom')}</button
+              ><button
+                role="menuitem"
+                disabled={$busy === `film-${film.id}`}
+                onclick={() => duplicate(film)}
+                ><Icon name="duplicate" />{$t('films.duplicate')}</button
+              ><button
                 role="menuitem"
                 onclick={() => void reveal(`/api/app/films/${film.id}/reveal`)}
                 ><Icon name="folder" />{$t('films.showFolder')}</button
