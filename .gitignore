@@ -2,6 +2,7 @@
 /dist/
 /studio/node_modules/
 /studio/dist/
+/studio/.svelte-check/
 **/.superint/
 **/renders/
 /artifacts/

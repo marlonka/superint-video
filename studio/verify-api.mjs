@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { once } from 'node:events';
-import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, realpath, writeFile, readFile, rm } from 'node:fs/promises';
 import http from 'node:http';
 import { tmpdir } from 'node:os';
 import { crc32, deflateSync } from 'node:zlib';
@@ -19,7 +19,9 @@ const binary =
     'debug',
     process.platform === 'win32' ? 'superint-video.exe' : 'superint-video',
   );
-const tempRoot = await mkdtemp(path.join(tmpdir(), 'superint-studio-api-'));
+// Windows runners may spell TEMP as a short path. The server reports canonical paths.
+const tempBase = await realpath(tmpdir());
+const tempRoot = await mkdtemp(path.join(tempBase, 'superint-studio-api-'));
 const projectPath = path.join(tempRoot, 'Prüfung with spaces');
 await mkdir(path.join(projectPath, 'scenes'), { recursive: true });
 await mkdir(path.join(projectPath, 'assets'));
@@ -54,6 +56,7 @@ await writeFile(path.join(projectPath, 'video.json'), JSON.stringify(manifest, n
 // Its own user folder and no .env: the run never reads or writes the developer's settings, keys,
 // films, styles or downloads.
 const homePath = path.join(tempRoot, 'home');
+await mkdir(homePath);
 await writeFile(path.join(tempRoot, 'empty.env'), '');
 // What a model would answer when asked for a style: a sheet of values, a line, the look
 // contract. The server reads it from this file, so the run asks no model and needs no key.
@@ -760,7 +763,7 @@ try {
   ]);
   const resolved = path.resolve(tempRoot);
   const allowed =
-    resolved.startsWith(path.resolve(tmpdir()) + path.sep) &&
+    path.dirname(resolved) === tempBase &&
     path.basename(resolved).startsWith('superint-studio-api-');
   if (passed && allowed) await rm(resolved, { recursive: true, force: true });
   else console.error(`Verification project retained: ${resolved}\n${stderr}`);

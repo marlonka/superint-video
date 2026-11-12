@@ -78,11 +78,12 @@ SOFTWARE.
 | bitflags | 1.3.2 | MIT/Apache-2.0 |
 | bitflags | 2.13.2 | MIT OR Apache-2.0 |
 | block-buffer | 0.10.4 | MIT OR Apache-2.0 |
+| block-buffer | 0.12.1 | MIT OR Apache-2.0 |
 | bumpalo | 3.20.3 | MIT OR Apache-2.0 |
 | bytemuck | 1.25.2 | Zlib OR Apache-2.0 OR MIT |
 | byteorder-lite | 0.1.0 | Unlicense OR MIT |
 | bytes | 1.12.1 | MIT |
-| cc | 1.10.0 | MIT OR Apache-2.0 |
+| cc | 1.11.1 | MIT OR Apache-2.0 |
 | cfg_aliases | 0.2.2 | MIT |
 | cfg-if | 1.0.5 | MIT OR Apache-2.0 |
 | chromiumoxide_cdp | 0.9.1 | MIT OR Apache-2.0 |
@@ -94,29 +95,33 @@ SOFTWARE.
 | clap_lex | 1.1.1 | MIT OR Apache-2.0 |
 | clap | 4.6.7 | MIT OR Apache-2.0 |
 | colorchoice | 1.0.5 | MIT OR Apache-2.0 |
+| const-oid | 0.10.3 | Apache-2.0 OR MIT |
 | constant_time_eq | 0.6.1 | CC0-1.0 OR MIT-0 OR Apache-2.0 |
 | core_detect | 1.0.0 | MIT/Apache-2.0 |
 | core-foundation-sys | 0.8.7 | MIT OR Apache-2.0 |
 | core-foundation | 0.10.1 | MIT OR Apache-2.0 |
 | cpufeatures | 0.2.17 | MIT OR Apache-2.0 |
-| crc32fast | 1.5.2 | MIT OR Apache-2.0 |
+| cpufeatures | 0.3.1 | MIT OR Apache-2.0 |
+| crc32fast | 1.5.5 | MIT OR Apache-2.0 |
 | crypto-common | 0.1.7 | MIT OR Apache-2.0 |
+| crypto-common | 0.2.2 | MIT OR Apache-2.0 |
 | dasp_frame | 0.11.0 | MIT OR Apache-2.0 |
 | dasp_sample | 0.11.0 | MIT OR Apache-2.0 |
 | data-encoding | 2.11.1 | MIT |
 | digest | 0.10.7 | MIT OR Apache-2.0 |
+| digest | 0.11.3 | MIT OR Apache-2.0 |
 | displaydoc | 0.2.7 | MIT OR Apache-2.0 |
 | dunce | 1.0.5 | CC0-1.0 OR MIT-0 OR Apache-2.0 |
 | dyn-clone | 1.0.20 | MIT OR Apache-2.0 |
 | ebur128 | 0.1.11 | MIT |
 | either | 1.19.0 | MIT OR Apache-2.0 |
-| encoding_rs | 0.8.42 | (Apache-2.0 OR MIT) AND BSD-3-Clause |
+| encoding_rs | 0.8.44 | (Apache-2.0 OR MIT) AND BSD-3-Clause |
 | equivalent | 1.0.3 | Apache-2.0 OR MIT |
-| errno | 0.3.14 | MIT OR Apache-2.0 |
+| errno | 0.3.15 | MIT OR Apache-2.0 |
 | fastrand | 2.5.0 | Apache-2.0 OR MIT |
 | fdeflate | 0.3.7 | MIT OR Apache-2.0 |
 | find-msvc-tools | 0.1.15 | MIT OR Apache-2.0 |
-| flate2 | 1.1.10 | MIT OR Apache-2.0 |
+| flate2 | 1.1.11 | MIT OR Apache-2.0 |
 | fnv | 1.0.7 | Apache-2.0 / MIT |
 | foreign-types-shared | 0.1.1 | MIT/Apache-2.0 |
 | foreign-types | 0.3.2 | MIT/Apache-2.0 |
@@ -145,17 +150,18 @@ SOFTWARE.
 | http | 1.5.0 | MIT OR Apache-2.0 |
 | httparse | 1.10.1 | MIT OR Apache-2.0 |
 | httpdate | 1.0.3 | MIT OR Apache-2.0 |
+| hybrid-array | 0.4.15 | MIT OR Apache-2.0 |
 | hyper-rustls | 0.27.10 | Apache-2.0 OR ISC OR MIT |
 | hyper-tls | 0.6.0 | MIT/Apache-2.0 |
 | hyper-util | 0.1.21 | MIT |
 | hyper | 1.12.0 | MIT |
-| icu_collections | 2.3.0 | Unicode-3.0 |
-| icu_locale_core | 2.3.0 | Unicode-3.0 |
-| icu_normalizer_data | 2.3.0 | Unicode-3.0 |
-| icu_normalizer | 2.3.0 | Unicode-3.0 |
-| icu_properties_data | 2.3.0 | Unicode-3.0 |
-| icu_properties | 2.3.0 | Unicode-3.0 |
-| icu_provider | 2.3.1 | Unicode-3.0 |
+| icu_collections | 2.4.0 | Unicode-3.0 |
+| icu_locale_core | 2.4.0 | Unicode-3.0 |
+| icu_normalizer_data | 2.4.0 | Unicode-3.0 |
+| icu_normalizer | 2.4.0 | Unicode-3.0 |
+| icu_properties_data | 2.4.0 | Unicode-3.0 |
+| icu_properties | 2.4.0 | Unicode-3.0 |
+| icu_provider | 2.4.0 | Unicode-3.0 |
 | idna_adapter | 1.2.2 | Apache-2.0 OR MIT |
 | idna | 1.1.0 | MIT OR Apache-2.0 |
 | image | 0.25.10 | MIT OR Apache-2.0 |
@@ -164,17 +170,17 @@ SOFTWARE.
 | indexmap | 2.14.2 | Apache-2.0 OR MIT |
 | ipnet | 2.12.2 | MIT OR Apache-2.0 |
 | is_terminal_polyfill | 1.70.2 | MIT OR Apache-2.0 |
-| itoa | 1.0.18 | MIT OR Apache-2.0 |
-| js-sys | 0.3.106 | MIT OR Apache-2.0 |
-| libc | 0.2.190 | MIT OR Apache-2.0 |
+| itoa | 1.0.19 | MIT OR Apache-2.0 |
+| js-sys | 0.3.107 | MIT OR Apache-2.0 |
+| libc | 0.2.191 | MIT OR Apache-2.0 |
 | linux-raw-sys | 0.12.1 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT |
 | litemap | 0.8.3 | Unicode-3.0 |
 | lock_api | 0.4.14 | MIT OR Apache-2.0 |
-| log | 0.4.34 | MIT OR Apache-2.0 |
+| log | 0.4.35 | MIT OR Apache-2.0 |
 | matchit | 0.8.4 | MIT AND BSD-3-Clause |
 | memchr | 2.8.3 | Unlicense OR MIT |
 | mime_guess | 2.0.5 | MIT |
-| mime | 0.3.17 | MIT OR Apache-2.0 |
+| mime | 0.3.18 | MIT OR Apache-2.0 |
 | miniz_oxide | 0.8.9 | MIT OR Zlib OR Apache-2.0 |
 | miniz_oxide | 0.9.1 | MIT OR Zlib OR Apache-2.0 |
 | mio | 1.2.4 | MIT |
@@ -188,8 +194,8 @@ SOFTWARE.
 | once_cell | 1.21.4 | MIT OR Apache-2.0 |
 | openssl-macros | 0.1.1 | MIT/Apache-2.0 |
 | openssl-probe | 0.2.2 | MIT OR Apache-2.0 |
-| openssl-sys | 0.9.117 | MIT |
-| openssl | 0.10.81 | Apache-2.0 |
+| openssl-sys | 0.9.118 | MIT |
+| openssl | 0.10.82 | Apache-2.0 |
 | parking_lot_core | 0.9.12 | MIT OR Apache-2.0 |
 | parking_lot | 0.12.5 | MIT OR Apache-2.0 |
 | percent-encoding | 2.3.2 | MIT OR Apache-2.0 |
@@ -214,54 +220,54 @@ SOFTWARE.
 | regex | 1.13.1 | MIT OR Apache-2.0 |
 | reqwest | 0.13.5 | MIT OR Apache-2.0 |
 | ring | 0.17.14 | Apache-2.0 AND ISC |
-| rustix | 1.1.5 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT |
-| rustls-pki-types | 1.15.1 | MIT OR Apache-2.0 |
-| rustls-webpki | 0.103.16 | ISC |
+| rustix | 1.1.6 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT |
+| rustls-pki-types | 1.16.0 | MIT OR Apache-2.0 |
+| rustls-webpki | 0.103.17 | ISC |
 | rustls | 0.23.46 | Apache-2.0 OR ISC OR MIT |
 | rustversion | 1.0.23 | MIT OR Apache-2.0 |
 | ryu | 1.0.23 | Apache-2.0 OR BSL-1.0 |
 | same-file | 1.0.6 | Unlicense/MIT |
 | schannel | 0.1.30 | MIT |
-| schemars_derive | 1.2.2 | MIT |
-| schemars | 1.2.2 | MIT |
+| schemars_derive | 1.2.3 | MIT |
+| schemars | 1.2.3 | MIT |
 | scopeguard | 1.2.0 | MIT OR Apache-2.0 |
 | security-framework-sys | 2.17.0 | MIT OR Apache-2.0 |
 | security-framework | 3.7.0 | MIT OR Apache-2.0 |
 | serde_core | 1.0.229 | MIT OR Apache-2.0 |
 | serde_derive_internals | 0.30.0 | MIT OR Apache-2.0 |
 | serde_derive | 1.0.229 | MIT OR Apache-2.0 |
-| serde_json | 1.0.151 | MIT OR Apache-2.0 |
+| serde_json | 1.0.154 | MIT OR Apache-2.0 |
 | serde_path_to_error | 0.1.20 | MIT OR Apache-2.0 |
 | serde_spanned | 1.1.3 | MIT OR Apache-2.0 |
 | serde_urlencoded | 0.7.1 | MIT/Apache-2.0 |
 | serde | 1.0.229 | MIT OR Apache-2.0 |
 | sha1 | 0.10.7 | MIT OR Apache-2.0 |
-| sha2 | 0.10.9 | MIT OR Apache-2.0 |
+| sha2 | 0.11.1 | MIT OR Apache-2.0 |
 | shlex | 2.0.1 | MIT OR Apache-2.0 |
 | signal-hook-registry | 1.4.8 | MIT OR Apache-2.0 |
 | simd-adler32 | 0.3.10 | MIT |
 | simdutf8 | 0.1.5 | MIT OR Apache-2.0 |
 | slab | 0.4.12 | MIT |
-| smallvec | 1.16.2 | MIT OR Apache-2.0 |
+| smallvec | 1.16.5 | MIT OR Apache-2.0 |
 | socket2 | 0.6.5 | MIT OR Apache-2.0 |
 | spin | 0.9.9 | MIT |
 | stable_deref_trait | 1.2.1 | MIT OR Apache-2.0 |
 | strsim | 0.11.1 | MIT |
 | subtle | 2.6.1 | BSD-3-Clause |
 | syn | 2.0.119 | MIT OR Apache-2.0 |
-| syn | 3.0.6 | MIT OR Apache-2.0 |
+| syn | 3.0.10 | MIT OR Apache-2.0 |
 | sync_wrapper | 1.0.2 | Apache-2.0 |
 | synstructure | 0.14.0 | MIT |
 | tempfile | 3.27.0 | MIT OR Apache-2.0 |
 | thiserror-impl | 2.0.21 | MIT OR Apache-2.0 |
 | thiserror | 2.0.21 | MIT OR Apache-2.0 |
-| tinystr | 0.8.4 | Unicode-3.0 |
+| tinystr | 0.8.5 | Unicode-3.0 |
 | tokio-macros | 2.7.2 | MIT |
 | tokio-native-tls | 0.3.1 | MIT |
 | tokio-rustls | 0.26.6 | MIT OR Apache-2.0 |
 | tokio-stream | 0.1.19 | MIT |
-| tokio-util | 0.7.19 | MIT |
-| tokio | 1.53.2 | MIT |
+| tokio-util | 0.7.20 | MIT |
+| tokio | 1.54.1 | MIT |
 | toml_datetime | 1.1.3+spec-1.1.0 | MIT OR Apache-2.0 |
 | toml_parser | 1.1.5+spec-1.1.0 | MIT OR Apache-2.0 |
 | toml_writer | 1.2.0+spec-1.1.0 | MIT OR Apache-2.0 |
@@ -278,26 +284,27 @@ SOFTWARE.
 | typed-path | 0.13.0 | MIT OR Apache-2.0 |
 | typenum | 1.20.1 | MIT OR Apache-2.0 |
 | unicase | 2.10.0 | MIT OR Apache-2.0 |
-| unicode-ident | 1.0.26 | (MIT OR Apache-2.0) AND Unicode-3.0 |
+| unicode-ident | 1.0.27 | (MIT OR Apache-2.0) AND Unicode-3.0 |
 | untrusted | 0.9.0 | ISC |
 | url | 2.5.8 | MIT OR Apache-2.0 |
 | utf-8 | 0.7.6 | MIT OR Apache-2.0 |
-| utf8_iter | 1.0.4 | Apache-2.0 OR MIT |
+| utf8_iter | 1.1.0 | Apache-2.0 OR MIT |
 | utf8parse | 0.2.2 | Apache-2.0 OR MIT |
-| uuid | 1.27.0 | Apache-2.0 OR MIT |
+| utf_types | 1.0.0 | Apache-2.0 OR MIT |
+| uuid | 1.29.2 | Apache-2.0 OR MIT |
 | vcpkg | 0.2.15 | MIT/Apache-2.0 |
 | version_check | 0.9.5 | MIT/Apache-2.0 |
 | walkdir | 2.5.0 | Unlicense/MIT |
 | want | 0.3.2 | MIT |
 | wasi | 0.11.1+wasi-snapshot-preview1 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT |
 | wasip2 | 1.0.4+wasi-0.2.12 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT |
-| wasm-bindgen-futures | 0.4.79 | MIT OR Apache-2.0 |
-| wasm-bindgen-macro-support | 0.2.129 | MIT OR Apache-2.0 |
-| wasm-bindgen-macro | 0.2.129 | MIT OR Apache-2.0 |
-| wasm-bindgen-shared | 0.2.129 | MIT OR Apache-2.0 |
-| wasm-bindgen | 0.2.129 | MIT OR Apache-2.0 |
+| wasm-bindgen-futures | 0.4.80 | MIT OR Apache-2.0 |
+| wasm-bindgen-macro-support | 0.2.130 | MIT OR Apache-2.0 |
+| wasm-bindgen-macro | 0.2.130 | MIT OR Apache-2.0 |
+| wasm-bindgen-shared | 0.2.130 | MIT OR Apache-2.0 |
+| wasm-bindgen | 0.2.130 | MIT OR Apache-2.0 |
 | wasm-streams | 0.5.0 | MIT OR Apache-2.0 |
-| web-sys | 0.3.106 | MIT OR Apache-2.0 |
+| web-sys | 0.3.107 | MIT OR Apache-2.0 |
 | which | 8.0.6 | MIT |
 | winapi-util | 0.1.11 | Unlicense OR MIT |
 | windows_aarch64_gnullvm | 0.52.6 | MIT OR Apache-2.0 |
@@ -320,16 +327,16 @@ SOFTWARE.
 | wit-bindgen | 0.57.1 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT |
 | writeable | 0.6.4 | Unicode-3.0 |
 | yoke-derive | 0.8.4 | Unicode-3.0 |
-| yoke | 0.8.3 | Unicode-3.0 |
-| zerocopy-derive | 0.8.62 | BSD-2-Clause OR Apache-2.0 OR MIT |
-| zerocopy | 0.8.62 | BSD-2-Clause OR Apache-2.0 OR MIT |
+| yoke | 0.8.4 | Unicode-3.0 |
+| zerocopy-derive | 0.8.63 | BSD-2-Clause OR Apache-2.0 OR MIT |
+| zerocopy | 0.8.63 | BSD-2-Clause OR Apache-2.0 OR MIT |
 | zerofrom-derive | 0.1.8 | Unicode-3.0 |
 | zerofrom | 0.1.8 | Unicode-3.0 |
 | zeroize_derive | 1.5.0 | Apache-2.0 OR MIT |
 | zeroize | 1.9.1 | Apache-2.0 OR MIT |
 | zerotrie | 0.2.5 | Unicode-3.0 |
-| zerovec-derive | 0.11.6 | Unicode-3.0 |
-| zerovec | 0.11.8 | Unicode-3.0 |
+| zerovec-derive | 0.11.7 | Unicode-3.0 |
+| zerovec | 0.11.9 | Unicode-3.0 |
 | zip | 9.5.1 | MIT |
 | zlib-rs | 0.6.8 | Zlib |
 | zmij | 1.0.23 | MIT |
@@ -340,100 +347,105 @@ SOFTWARE.
 
 | Package | Locked version | Declared license |
 |---|---|---|
-| @esbuild/aix-ppc64 | 0.28.2 | MIT |
-| @esbuild/android-arm | 0.28.2 | MIT |
-| @esbuild/android-arm64 | 0.28.2 | MIT |
-| @esbuild/android-x64 | 0.28.2 | MIT |
-| @esbuild/darwin-arm64 | 0.28.2 | MIT |
-| @esbuild/darwin-x64 | 0.28.2 | MIT |
-| @esbuild/freebsd-arm64 | 0.28.2 | MIT |
-| @esbuild/freebsd-x64 | 0.28.2 | MIT |
-| @esbuild/linux-arm | 0.28.2 | MIT |
-| @esbuild/linux-arm64 | 0.28.2 | MIT |
-| @esbuild/linux-ia32 | 0.28.2 | MIT |
-| @esbuild/linux-loong64 | 0.28.2 | MIT |
-| @esbuild/linux-mips64el | 0.28.2 | MIT |
-| @esbuild/linux-ppc64 | 0.28.2 | MIT |
-| @esbuild/linux-riscv64 | 0.28.2 | MIT |
-| @esbuild/linux-s390x | 0.28.2 | MIT |
-| @esbuild/linux-x64 | 0.28.2 | MIT |
-| @esbuild/netbsd-arm64 | 0.28.2 | MIT |
-| @esbuild/netbsd-x64 | 0.28.2 | MIT |
-| @esbuild/openbsd-arm64 | 0.28.2 | MIT |
-| @esbuild/openbsd-x64 | 0.28.2 | MIT |
-| @esbuild/openharmony-arm64 | 0.28.2 | MIT |
-| @esbuild/sunos-x64 | 0.28.2 | MIT |
-| @esbuild/win32-arm64 | 0.28.2 | MIT |
-| @esbuild/win32-ia32 | 0.28.2 | MIT |
-| @esbuild/win32-x64 | 0.28.2 | MIT |
+| @emnapi/core | 2.0.0-beta.2 | MIT |
+| @emnapi/runtime | 2.0.0-beta.2 | MIT |
+| @emnapi/wasi-threads | 2.2.0 | MIT |
 | @jridgewell/gen-mapping | 0.3.13 | MIT |
 | @jridgewell/remapping | 2.3.5 | MIT |
 | @jridgewell/resolve-uri | 3.1.2 | MIT |
 | @jridgewell/sourcemap-codec | 1.6.0 | MIT |
 | @jridgewell/trace-mapping | 0.3.31 | MIT |
-| @napi-rs/lzma-linux-x64-gnu | 1.5.1 | MIT |
-| @rollup/rollup-android-arm-eabi | 4.64.3 | MIT |
-| @rollup/rollup-android-arm64 | 4.64.3 | MIT |
-| @rollup/rollup-darwin-arm64 | 4.64.3 | MIT |
-| @rollup/rollup-darwin-x64 | 4.64.3 | MIT |
-| @rollup/rollup-freebsd-arm64 | 4.64.3 | MIT |
-| @rollup/rollup-freebsd-x64 | 4.64.3 | MIT |
-| @rollup/rollup-linux-arm-gnueabihf | 4.64.3 | MIT |
-| @rollup/rollup-linux-arm-musleabihf | 4.64.3 | MIT |
-| @rollup/rollup-linux-arm64-gnu | 4.64.3 | MIT |
-| @rollup/rollup-linux-arm64-musl | 4.64.3 | MIT |
-| @rollup/rollup-linux-loong64-gnu | 4.64.3 | MIT |
-| @rollup/rollup-linux-loong64-musl | 4.64.3 | MIT |
-| @rollup/rollup-linux-ppc64-gnu | 4.64.3 | MIT |
-| @rollup/rollup-linux-ppc64-musl | 4.64.3 | MIT |
-| @rollup/rollup-linux-riscv64-gnu | 4.64.3 | MIT |
-| @rollup/rollup-linux-riscv64-musl | 4.64.3 | MIT |
-| @rollup/rollup-linux-s390x-gnu | 4.64.3 | MIT |
-| @rollup/rollup-linux-x64-gnu | 4.64.3 | MIT |
-| @rollup/rollup-linux-x64-musl | 4.64.3 | MIT |
-| @rollup/rollup-openbsd-x64 | 4.64.3 | MIT |
-| @rollup/rollup-openharmony-arm64 | 4.64.3 | MIT |
-| @rollup/rollup-win32-arm64-msvc | 4.64.3 | MIT |
-| @rollup/rollup-win32-ia32-msvc | 4.64.3 | MIT |
-| @rollup/rollup-win32-x64-gnu | 4.64.3 | MIT |
-| @rollup/rollup-win32-x64-msvc | 4.64.3 | MIT |
+| @napi-rs/wasm-runtime | 1.2.6 | MIT |
+| @oxc-project/types | 0.156.0 | MIT |
+| @rolldown/binding-android-arm-eabi | 1.2.19 | MIT |
+| @rolldown/binding-android-arm64 | 1.2.19 | MIT |
+| @rolldown/binding-darwin-arm64 | 1.2.19 | MIT |
+| @rolldown/binding-darwin-x64 | 1.2.19 | MIT |
+| @rolldown/binding-freebsd-x64 | 1.2.19 | MIT |
+| @rolldown/binding-linux-arm-gnueabihf | 1.2.19 | MIT |
+| @rolldown/binding-linux-arm64-gnu | 1.2.19 | MIT |
+| @rolldown/binding-linux-arm64-musl | 1.2.19 | MIT |
+| @rolldown/binding-linux-ppc64-gnu | 1.2.19 | MIT |
+| @rolldown/binding-linux-s390x-gnu | 1.2.19 | MIT |
+| @rolldown/binding-linux-x64-gnu | 1.2.19 | MIT |
+| @rolldown/binding-linux-x64-musl | 1.2.19 | MIT |
+| @rolldown/binding-openharmony-arm64 | 1.2.19 | MIT |
+| @rolldown/binding-wasm32-wasi | 1.2.19 | MIT |
+| @rolldown/binding-win32-arm64-msvc | 1.2.19 | MIT |
+| @rolldown/binding-win32-x64-msvc | 1.2.19 | MIT |
+| @rolldown/pluginutils | 1.1.0 | MIT |
 | @sveltejs/acorn-typescript | 1.0.13 | MIT |
 | @sveltejs/load-config | 0.2.3 | MIT |
-| @sveltejs/vite-plugin-svelte-inspector | 5.0.2 | MIT |
-| @sveltejs/vite-plugin-svelte | 6.2.4 | MIT |
-| @types/estree | 1.0.9 | MIT |
+| @sveltejs/vite-plugin-svelte | 7.3.1 | MIT |
+| @tybys/wasm-util | 0.10.4 | MIT |
+| @types/estree | 1.0.10 | MIT |
+| @typescript/typescript-aix-ppc64 | 7.0.2 | Apache-2.0 |
+| @typescript/typescript-darwin-arm64 | 7.0.2 | Apache-2.0 |
+| @typescript/typescript-darwin-x64 | 7.0.2 | Apache-2.0 |
+| @typescript/typescript-freebsd-arm64 | 7.0.2 | Apache-2.0 |
+| @typescript/typescript-freebsd-x64 | 7.0.2 | Apache-2.0 |
+| @typescript/typescript-linux-arm | 7.0.2 | Apache-2.0 |
+| @typescript/typescript-linux-arm64 | 7.0.2 | Apache-2.0 |
+| @typescript/typescript-linux-loong64 | 7.0.2 | Apache-2.0 |
+| @typescript/typescript-linux-mips64el | 7.0.2 | Apache-2.0 |
+| @typescript/typescript-linux-ppc64 | 7.0.2 | Apache-2.0 |
+| @typescript/typescript-linux-riscv64 | 7.0.2 | Apache-2.0 |
+| @typescript/typescript-linux-s390x | 7.0.2 | Apache-2.0 |
+| @typescript/typescript-linux-x64 | 7.0.2 | Apache-2.0 |
+| @typescript/typescript-netbsd-arm64 | 7.0.2 | Apache-2.0 |
+| @typescript/typescript-netbsd-x64 | 7.0.2 | Apache-2.0 |
+| @typescript/typescript-openbsd-arm64 | 7.0.2 | Apache-2.0 |
+| @typescript/typescript-openbsd-x64 | 7.0.2 | Apache-2.0 |
+| @typescript/typescript-sunos-x64 | 7.0.2 | Apache-2.0 |
+| @typescript/typescript-win32-arm64 | 7.0.2 | Apache-2.0 |
+| @typescript/typescript-win32-x64 | 7.0.2 | Apache-2.0 |
 | acorn | 8.19.0 | MIT |
 | aria-query | 5.3.1 | Apache-2.0 |
 | axobject-query | 4.1.0 | Apache-2.0 |
 | chokidar | 4.0.3 | MIT |
 | clsx | 2.1.1 | MIT |
 | deepmerge | 4.3.1 | MIT |
+| detect-libc | 2.1.2 | Apache-2.0 |
 | devalue | 5.9.4 | MIT |
-| esbuild | 0.28.2 | MIT |
 | esm-env | 1.2.2 | MIT |
 | esrap | 2.4.0 | MIT |
 | fdir | 6.5.0 | MIT |
 | fsevents | 2.3.3 | MIT |
 | is-reference | 3.0.3 | MIT |
+| lightningcss | 1.33.0 | MPL-2.0 |
+| lightningcss-android-arm64 | 1.33.0 | MPL-2.0 |
+| lightningcss-darwin-arm64 | 1.33.0 | MPL-2.0 |
+| lightningcss-darwin-x64 | 1.33.0 | MPL-2.0 |
+| lightningcss-freebsd-x64 | 1.33.0 | MPL-2.0 |
+| lightningcss-linux-arm-gnueabihf | 1.33.0 | MPL-2.0 |
+| lightningcss-linux-arm64-gnu | 1.33.0 | MPL-2.0 |
+| lightningcss-linux-arm64-musl | 1.33.0 | MPL-2.0 |
+| lightningcss-linux-x64-gnu | 1.33.0 | MPL-2.0 |
+| lightningcss-linux-x64-musl | 1.33.0 | MPL-2.0 |
+| lightningcss-win32-arm64-msvc | 1.33.0 | MPL-2.0 |
+| lightningcss-win32-x64-msvc | 1.33.0 | MPL-2.0 |
 | locate-character | 3.0.0 | MIT |
 | magic-string | 0.30.21 | MIT |
+| magic-string | 1.4.5 | MIT |
 | mri | 1.2.0 | MIT |
 | nanoid | 3.3.20 | MIT |
 | obug | 2.2.1 | MIT |
 | picocolors | 1.1.1 | ISC |
 | picomatch | 4.0.7 | MIT |
-| postcss | 8.5.29 | MIT |
+| postcss | 8.5.32 | MIT |
 | prettier-plugin-svelte | 4.1.1 | MIT |
-| prettier | 3.9.9 | MIT |
+| prettier | 3.10.1 | MIT |
 | readdirp | 4.1.2 | MIT |
-| rollup | 4.64.3 | MIT |
+| rolldown | 1.2.19 | MIT |
 | sade | 1.8.1 | MIT |
 | source-map-js | 1.2.2 | BSD-3-Clause |
-| svelte-check | 4.7.6 | MIT |
-| svelte | 5.57.2 | MIT |
+| svelte-check | 4.7.8 | MIT |
+| svelte | 5.57.3 | MIT |
 | tinyglobby | 0.2.17 | MIT |
-| typescript | 5.9.3 | Apache-2.0 |
-| vite | 7.3.7 | MIT |
+| tslib | 2.9.1 | 0BSD |
+| typescript | 6.0.3 | Apache-2.0 |
+| typescript | 7.0.2 | Apache-2.0 |
+| vite | 8.3.8 | MIT |
 | vitefu | 1.1.3 | MIT |
 | zimmerframe | 1.1.5 | MIT |
 
@@ -443,58 +455,59 @@ The following entries have no matching top-level license file in the local packa
 
 - Rust: dasp_frame 0.11.0
 - Rust: dasp_sample 0.11.0
-- npm: @esbuild/aix-ppc64 0.28.2
-- npm: @esbuild/android-arm 0.28.2
-- npm: @esbuild/android-arm64 0.28.2
-- npm: @esbuild/android-x64 0.28.2
-- npm: @esbuild/darwin-arm64 0.28.2
-- npm: @esbuild/darwin-x64 0.28.2
-- npm: @esbuild/freebsd-arm64 0.28.2
-- npm: @esbuild/freebsd-x64 0.28.2
-- npm: @esbuild/linux-arm 0.28.2
-- npm: @esbuild/linux-arm64 0.28.2
-- npm: @esbuild/linux-ia32 0.28.2
-- npm: @esbuild/linux-loong64 0.28.2
-- npm: @esbuild/linux-mips64el 0.28.2
-- npm: @esbuild/linux-ppc64 0.28.2
-- npm: @esbuild/linux-riscv64 0.28.2
-- npm: @esbuild/linux-s390x 0.28.2
-- npm: @esbuild/linux-x64 0.28.2
-- npm: @esbuild/netbsd-arm64 0.28.2
-- npm: @esbuild/netbsd-x64 0.28.2
-- npm: @esbuild/openbsd-arm64 0.28.2
-- npm: @esbuild/openbsd-x64 0.28.2
-- npm: @esbuild/openharmony-arm64 0.28.2
-- npm: @esbuild/sunos-x64 0.28.2
-- npm: @esbuild/win32-arm64 0.28.2
-- npm: @esbuild/win32-ia32 0.28.2
-- npm: @esbuild/win32-x64 0.28.2
-- npm: @napi-rs/lzma-linux-x64-gnu 1.5.1
-- npm: @rollup/rollup-android-arm-eabi 4.64.3
-- npm: @rollup/rollup-android-arm64 4.64.3
-- npm: @rollup/rollup-darwin-arm64 4.64.3
-- npm: @rollup/rollup-darwin-x64 4.64.3
-- npm: @rollup/rollup-freebsd-arm64 4.64.3
-- npm: @rollup/rollup-freebsd-x64 4.64.3
-- npm: @rollup/rollup-linux-arm-gnueabihf 4.64.3
-- npm: @rollup/rollup-linux-arm-musleabihf 4.64.3
-- npm: @rollup/rollup-linux-arm64-gnu 4.64.3
-- npm: @rollup/rollup-linux-arm64-musl 4.64.3
-- npm: @rollup/rollup-linux-loong64-gnu 4.64.3
-- npm: @rollup/rollup-linux-loong64-musl 4.64.3
-- npm: @rollup/rollup-linux-ppc64-gnu 4.64.3
-- npm: @rollup/rollup-linux-ppc64-musl 4.64.3
-- npm: @rollup/rollup-linux-riscv64-gnu 4.64.3
-- npm: @rollup/rollup-linux-riscv64-musl 4.64.3
-- npm: @rollup/rollup-linux-s390x-gnu 4.64.3
-- npm: @rollup/rollup-linux-x64-gnu 4.64.3
-- npm: @rollup/rollup-linux-x64-musl 4.64.3
-- npm: @rollup/rollup-openbsd-x64 4.64.3
-- npm: @rollup/rollup-openharmony-arm64 4.64.3
-- npm: @rollup/rollup-win32-arm64-msvc 4.64.3
-- npm: @rollup/rollup-win32-ia32-msvc 4.64.3
-- npm: @rollup/rollup-win32-x64-gnu 4.64.3
-- npm: @rollup/rollup-win32-x64-msvc 4.64.3
+- Rust: r-efi 5.3.0
+- Rust: r-efi 6.0.0
+- npm: @emnapi/core 2.0.0-beta.2
+- npm: @emnapi/runtime 2.0.0-beta.2
+- npm: @emnapi/wasi-threads 2.2.0
+- npm: @napi-rs/wasm-runtime 1.2.6
+- npm: @rolldown/binding-android-arm-eabi 1.2.19
+- npm: @rolldown/binding-android-arm64 1.2.19
+- npm: @rolldown/binding-darwin-arm64 1.2.19
+- npm: @rolldown/binding-darwin-x64 1.2.19
+- npm: @rolldown/binding-freebsd-x64 1.2.19
+- npm: @rolldown/binding-linux-arm-gnueabihf 1.2.19
+- npm: @rolldown/binding-linux-arm64-gnu 1.2.19
+- npm: @rolldown/binding-linux-arm64-musl 1.2.19
+- npm: @rolldown/binding-linux-ppc64-gnu 1.2.19
+- npm: @rolldown/binding-linux-s390x-gnu 1.2.19
+- npm: @rolldown/binding-linux-x64-gnu 1.2.19
+- npm: @rolldown/binding-linux-x64-musl 1.2.19
+- npm: @rolldown/binding-openharmony-arm64 1.2.19
+- npm: @rolldown/binding-wasm32-wasi 1.2.19
+- npm: @rolldown/binding-win32-arm64-msvc 1.2.19
+- npm: @rolldown/binding-win32-x64-msvc 1.2.19
+- npm: @tybys/wasm-util 0.10.4
+- npm: @typescript/typescript-aix-ppc64 7.0.2
+- npm: @typescript/typescript-darwin-arm64 7.0.2
+- npm: @typescript/typescript-darwin-x64 7.0.2
+- npm: @typescript/typescript-freebsd-arm64 7.0.2
+- npm: @typescript/typescript-freebsd-x64 7.0.2
+- npm: @typescript/typescript-linux-arm 7.0.2
+- npm: @typescript/typescript-linux-arm64 7.0.2
+- npm: @typescript/typescript-linux-loong64 7.0.2
+- npm: @typescript/typescript-linux-mips64el 7.0.2
+- npm: @typescript/typescript-linux-ppc64 7.0.2
+- npm: @typescript/typescript-linux-riscv64 7.0.2
+- npm: @typescript/typescript-linux-s390x 7.0.2
+- npm: @typescript/typescript-linux-x64 7.0.2
+- npm: @typescript/typescript-netbsd-arm64 7.0.2
+- npm: @typescript/typescript-netbsd-x64 7.0.2
+- npm: @typescript/typescript-openbsd-arm64 7.0.2
+- npm: @typescript/typescript-openbsd-x64 7.0.2
+- npm: @typescript/typescript-sunos-x64 7.0.2
+- npm: @typescript/typescript-win32-arm64 7.0.2
 - npm: fsevents 2.3.3
 - npm: is-reference 3.0.3
+- npm: lightningcss-android-arm64 1.33.0
+- npm: lightningcss-darwin-arm64 1.33.0
+- npm: lightningcss-darwin-x64 1.33.0
+- npm: lightningcss-freebsd-x64 1.33.0
+- npm: lightningcss-linux-arm-gnueabihf 1.33.0
+- npm: lightningcss-linux-arm64-gnu 1.33.0
+- npm: lightningcss-linux-arm64-musl 1.33.0
+- npm: lightningcss-linux-x64-gnu 1.33.0
+- npm: lightningcss-linux-x64-musl 1.33.0
+- npm: lightningcss-win32-arm64-msvc 1.33.0
 - npm: locate-character 3.0.0
+- npm: tslib 2.9.1

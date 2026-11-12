@@ -4,7 +4,7 @@ Alles, was in die [README](../README.md) nicht passt: Installation im Detail, St
 
 ## Schnellstart: fertiges Windows-Paket
 
-1. Lade unter [Releases](https://github.com/marlonka/superint-video/releases/latest) die Datei `superint-video-0.6.0-windows-x64.zip` herunter.
+1. Lade unter [Releases](https://github.com/marlonka/superint-video/releases/latest) die Datei `superint-video-0.6.1-windows-x64.zip` herunter.
 2. Entpacke das ZIP in einen beschreibbaren Ordner.
 3. Stelle die Laufzeit-Abhängigkeiten bereit:
 
@@ -42,7 +42,7 @@ $env:SUPERINT_FFPROBE = 'C:\Tools\ffmpeg\bin\ffprobe.exe'
 Das Release enthält `SHA256SUMS.txt` mit den Prüfsummen des ZIPs und der EXE. Vergleiche den ZIP-Hash mit der entsprechenden Zeile:
 
 ```powershell
-Get-FileHash .\superint-video-0.6.0-windows-x64.zip -Algorithm SHA256
+Get-FileHash .\superint-video-0.6.1-windows-x64.zip -Algorithm SHA256
 ```
 
 ## Die App: Startseite und Einrichtung
@@ -285,7 +285,7 @@ Fonts, Bilder und Abhängigkeiten werden lokal eingebunden. Zeitgesteuertes Vide
 
 ## Aus dem Quellcode bauen
 
-Zusätzlich zu den Laufzeit-Abhängigkeiten benötigst du Rust mit Windows-MSVC-Buildtools, PowerShell und Node.js mit npm. Lokal geprüft: **Rust 1.99.0, Node.js 26.11.0**. Abhängigkeiten sind in `Cargo.lock` und `studio/package-lock.json` festgehalten.
+Zusätzlich zu den Laufzeit-Abhängigkeiten benötigst du Rust mit Windows-MSVC-Buildtools, PowerShell und Node.js mit npm. Lokal geprüft: **Rust 1.100.0, Node.js 26.13.1 LTS, npm 12.2.2**. Abhängigkeiten sind in `Cargo.lock` und `studio/package-lock.json` festgehalten.
 
 ```powershell
 git clone https://github.com/marlonka/superint-video.git
