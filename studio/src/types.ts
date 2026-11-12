@@ -227,6 +227,22 @@ export interface Agent {
   skills: number;
   canInstall: boolean;
   get: string;
+  /** It has Chrome DevTools MCP for every project: it can open web pages and take screenshots. */
+  browser: boolean;
+}
+/** A voice a narration model takes by name, and Google's word for how it sounds. */
+export interface Voice {
+  name: string;
+  sound?: string;
+}
+/** The voices of one family of narration models, and the one it speaks with unless chosen. */
+export interface VoiceFamily {
+  usual: string;
+  voices: Voice[];
+}
+export interface Voices {
+  gemini: VoiceFamily;
+  elevenlabs: VoiceFamily;
 }
 export interface Settings {
   preset: string | null;
@@ -299,6 +315,7 @@ export interface Overview {
       style: boolean;
     };
     models: UsualModels;
+    voices: Voices;
     /** The model a style would be written with now, and whose it is. */
     style: { model: string; provider: string } | null;
     agents: Agent[];

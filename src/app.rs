@@ -229,6 +229,7 @@ async fn payload(state: &AppState, fresh: bool) -> Result<Value> {
                 "tools": tools,
                 "keys": setup_keys,
                 "models": models,
+                "voices": voices(),
                 // Whose model it is: Google on either of its ways, as one of them steps in
                 // for the other.
                 "style": writes.map(|(route, model)| json!({
@@ -869,6 +870,29 @@ async fn import_style(State(state): State<AppState>, body: Bytes) -> ApiResult<J
         "title": imported.title,
         "styles": styles(&state)?,
     })))
+}
+
+/// The voices a narration model takes by name, for Setup to offer, with the one each family
+/// speaks with unless the user picks another: Gemini's 30, each with the word Google
+/// describes it by, and the ElevenLabs voices OpenRouter lists.
+fn voices() -> Value {
+    use crate::voice::check::{ELEVENLABS_VOICES, GEMINI_VOICES};
+    json!({
+        "gemini": {
+            "usual": providers::AI_STUDIO.voice,
+            "voices": GEMINI_VOICES
+                .iter()
+                .map(|(name, sound)| json!({"name": name, "sound": sound}))
+                .collect::<Vec<_>>(),
+        },
+        "elevenlabs": {
+            "usual": providers::OPENROUTER.voice,
+            "voices": ELEVENLABS_VOICES
+                .iter()
+                .map(|name| json!({"name": name}))
+                .collect::<Vec<_>>(),
+        },
+    })
 }
 
 /// What a style is written with: the generators with the user's keys, the model they chose, if

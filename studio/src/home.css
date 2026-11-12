@@ -449,7 +449,7 @@
   color: var(--secondary);
   font-size: 14px;
 }
-.models-fields input {
+.models-fields :is(input, select) {
   width: 100%;
   font-size: 15px;
 }
