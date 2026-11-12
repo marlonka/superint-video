@@ -82,6 +82,9 @@ pub struct Settings {
     pub google_cloud_location: Option<String>,
     /// OpenAI: `global` (unset) or `eu`, for a project with European data residency.
     pub open_ai_region: Option<String>,
+    /// Rounds of polish before a render, 1 to 3, one after the other: each is a new pair of
+    /// eyes over the whole film (`polish`). A film's `brief.md` can set its own.
+    pub polish_rounds: u8,
 }
 
 impl Default for Settings {
@@ -101,6 +104,7 @@ impl Default for Settings {
             google_cloud_project: None,
             google_cloud_location: None,
             open_ai_region: None,
+            polish_rounds: crate::polish::DEFAULT_ROUNDS,
         }
     }
 }
@@ -251,6 +255,9 @@ impl Settings {
         {
             bail!("OpenAI region is global or eu");
         }
+        if !(1..=crate::polish::MOST_ROUNDS).contains(&self.polish_rounds) {
+            bail!("polishRounds is 1, 2 or 3, not {}", self.polish_rounds);
+        }
         Ok(())
     }
 
@@ -298,6 +305,12 @@ impl Settings {
             "googleCloudProject" => self.google_cloud_project = text,
             "googleCloudLocation" => self.google_cloud_location = text,
             "openAiRegion" => self.open_ai_region = text,
+            "polishRounds" => {
+                self.polish_rounds = match text {
+                    None => crate::polish::DEFAULT_ROUNDS,
+                    Some(text) => crate::polish::parse_rounds(&text)?,
+                }
+            }
             _ => bail!(
                 "Unknown setting {key}. Known: {}",
                 setting_keys().join(", ")
@@ -908,6 +921,8 @@ mod tests {
         .unwrap();
         let old = Settings::load(home.path()).unwrap();
         assert_eq!(old.preset.as_deref(), Some("blank"));
+        // Files from before rounds of polish get one round.
+        assert_eq!(old.polish_rounds, 1);
         let mut settings = Settings::default();
         settings.set("preset", "flat-explainer").unwrap();
         settings.set("follow", "off").unwrap();
@@ -922,6 +937,7 @@ mod tests {
         settings.set("googleCloudProject", "my-films-123").unwrap();
         settings.set("googleCloudLocation", "US").unwrap();
         settings.set("openAiRegion", "eu").unwrap();
+        settings.set("polishRounds", " 3 ").unwrap();
         settings.save(home.path()).unwrap();
         let loaded = Settings::load(home.path()).unwrap();
         assert_eq!(loaded.preset.as_deref(), Some("flat-explainer"));
@@ -937,6 +953,7 @@ mod tests {
         );
         assert_eq!(loaded.google_cloud_location.as_deref(), Some("us"));
         assert_eq!(loaded.models()["voice"], "Charon");
+        assert_eq!(loaded.polish_rounds, 3);
 
         // A film's length, format and language are named in each prompt, not kept here.
         assert!(settings.clone().set("seconds", "90").is_err());
@@ -987,11 +1004,21 @@ mod tests {
                 .is_err()
         );
         assert!(settings.clone().set("openAiRegion", "jp").is_err());
+        for rounds in ["0", "4", "two"] {
+            assert!(settings.clone().set("polishRounds", rounds).is_err());
+        }
+        let more = Settings {
+            polish_rounds: 4,
+            ..Settings::default()
+        };
+        assert!(more.save(home.path()).is_err());
+        settings.set("polishRounds", "").unwrap();
+        assert_eq!(settings.polish_rounds, 1);
         settings.set("preset", "").unwrap();
         assert_eq!(settings.preset, None);
         // Every field of the file is set by its name, so none can be left out of `set`.
         let keys = setting_keys();
-        assert_eq!(keys.len(), 14);
+        assert_eq!(keys.len(), 15);
         for key in keys {
             Settings::default().set(&key, "").unwrap();
         }

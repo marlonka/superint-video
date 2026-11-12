@@ -43,7 +43,7 @@ Prioritäten in dieser Reihenfolge: verstanden → überraschend → schön → 
 - Die BOTSCHAFT ist der Winkel: Suche die stärksten belegten Gründe dafür und den stärksten Einwand. Wenn die Belege sie nicht tragen, sag es mir vor dem Skript, statt dir einen anderen Winkel zu suchen oder Vorbehalte wegzulassen.
 
 ## Abgabe
-Vor dem Render läuft ohne Nachfrage der Polish-Durchgang des Skills: Frische Augen (wenn möglich ein Sub-Agent mit dem stärksten verfügbaren Modell) sehen sich alle 5 s ein Standbild, Nahaufnahmen, jeden Schnitt und die schnellsten Bewegungen an und bessern nach, bis ein Durchgang sauber ist. Dann rendern und mir sofort MP4 und Studio-Adresse nennen, ohne weiteren Schritt.
+Vor dem Render läuft ohne Nachfrage der Polish-Durchgang des Skills: Frische Augen (wenn möglich ein Sub-Agent mit dem stärksten verfügbaren Modell) sehen sich alle 5 s ein Standbild, Nahaufnahmen, jeden Schnitt und die schnellsten Bewegungen an und bessern nach, bis ein Durchgang sauber ist, in so vielen Runden, wie in der Einrichtung unter „Feinschliff vor dem Render“ eingestellt. Dann rendern und mir sofort MP4 und Studio-Adresse nennen, ohne weiteren Schritt.
 
 Nach meiner Abnahme: Thumbnail, Kontaktbogen, research.md, concepts.md, direction.md, script.md, beats.md, process/ und report.md auf Deutsch mit: Botschaft und den Gründen, die der Film dafür gibt, gewähltem Konzept und Begründung, Gestaltungsentscheidungen, Titelvorschlag plus drei inhaltlich verschiedenen Alternativen, Beschreibung mit Quellen je Behauptung, gemessener Lautheit (falls Ton) und was geprüft bzw. nicht geprüft ist.
 ````

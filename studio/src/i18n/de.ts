@@ -50,6 +50,18 @@ export const de: Catalog = {
   'setup.films.opening': 'Öffnen',
   'setup.films.follow': 'Zu einem neuen Film wechseln, sobald der Coding-Agent ihn beginnt',
   'setup.films.window': 'In einem eigenen Fenster öffnen statt in einem Browser-Tab',
+  'setup.polish.title': 'Feinschliff vor dem Render',
+  'setup.polish.why':
+    'Ein Sub-Agent deines Coding-Agents sieht jedes Bild mit frischen Augen an und bessert nach, bevor der Film gerendert wird.',
+  'setup.polish.choice': 'Runden vor jedem Render',
+  'setup.polish.rounds': { one: '{count} Runde', other: '{count} Runden' },
+  'setup.polish.what1':
+    'Frische Augen prüfen jedes Standbild, jeden Schnitt und jede Bewegung und bessern nach. Die übliche Wahl.',
+  'setup.polish.what2':
+    'Nach der ersten Runde sucht eine zweite mit neuen Augen, was noch falsch ist, und arbeitet Details aus. Etwa doppelt so viel Zeit und Nutzung.',
+  'setup.polish.what3':
+    'Danach geht eine dritte Runde Material, Licht und Bewegung im ganzen Film durch. Etwa dreimal so viel Zeit und Nutzung.',
+  'setup.polish.saved': 'Feinschliff: {rounds} vor jedem Render',
   'settings.saved': 'Gespeichert',
   'setup.continue': 'Weiter zum ersten Film',
   'setup.ready': 'Bereit für {parts}',
@@ -489,6 +501,9 @@ export const de: Catalog = {
   'polish.state.accepted': 'Sauber: Dieses Bild darf gerendert werden',
   'polish.state.nothingLeft': 'In diesem Durchgang ist nichts mehr zu beheben',
   'polish.state.stale': 'Das Bild hat sich seit dem letzten sauberen Durchgang geändert',
+  'polish.state.nextRound': 'Runde {round} ist sauber, Runde {next} folgt mit frischen Augen',
+  'polish.round': 'Runde {round} von {rounds}',
+  'polish.headingRound': 'Feinschliff, Runde {round} von {rounds}, Durchgang {pass}',
   'polish.state.working': 'In Arbeit',
   'polish.summary': '{fine} von {listed} Bildern in Ordnung, {defects} zu beheben',
   'polish.lookedAt': 'Angesehen',

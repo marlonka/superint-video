@@ -35,7 +35,7 @@ Use the superint-video skill: a flat-vector explainer, 60 seconds,
 topic "Why sleep cleans the brain".
 ```
 
-The agent only asks about what it cannot decide well itself, such as screenshots of the look you want. Then it works in steps that each leave a file in the project: research with sources, three concepts, script, beats, style frames, scenes, sound, review, polish and render. The polish pass runs by itself before every render: fresh eyes look at every still, cut and movement and fix things until nothing stands out. After you accept the film, a report follows with a making-of to paste under the video.
+The agent only asks about what it cannot decide well itself, such as screenshots of the look you want. Then it works in steps that each leave a file in the project: research with sources, three concepts, script, beats, style frames, scenes, sound, review, polish and render. The polish pass runs by itself before every render: fresh eyes look at every still, cut and movement and fix things until nothing stands out. You choose the number of rounds in Setup beforehand: one, two or three, each with new eyes and a closer look at the detail. After you accept the film, a report follows with a making-of to paste under the video.
 
 - **One world instead of slides.** Every picture is a pure function of time, and every movement hangs on a word of the voice, so picture and word meet on the exact frame.
 - **Research that holds.** Every claim in the film has a source in the claim register. Three concepts and three script drafts compete; the best goes through rounds of critique.

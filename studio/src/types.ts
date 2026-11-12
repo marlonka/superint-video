@@ -134,7 +134,17 @@ export interface Polish {
   pass: number;
   folder: string;
   capturing: boolean;
-  record: { state: 'accepted' | 'stale' | 'missing'; pass?: number };
+  /** Whether the polish is done for the picture as it is: `next-round` when a round is clean
+   * and another is due. */
+  record: {
+    state: 'accepted' | 'next-round' | 'stale' | 'missing';
+    pass?: number;
+    round?: number;
+    rounds?: number;
+  };
+  /** The round of the latest pass and how many the film gets; absent while it is captured. */
+  round?: number;
+  rounds?: number;
   rows?: PolishRow[];
   counts?: {
     listed: number;
@@ -263,6 +273,8 @@ export interface Settings {
   googleCloudLocation: 'eu' | 'us' | 'global' | null;
   /** OpenAI: null is global. */
   openAiRegion: 'global' | 'eu' | null;
+  /** Rounds of polish the coding agent runs before a render, 1 to 3. */
+  polishRounds: number;
 }
 export interface Style {
   name: string;

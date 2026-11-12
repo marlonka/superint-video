@@ -1264,6 +1264,7 @@ mod tests {
                 stops: None,
                 script: None,
                 references: Vec::new(),
+                polish_rounds: None,
             },
         )
         .unwrap();

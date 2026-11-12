@@ -6,7 +6,7 @@
   import RenderLive from './RenderLive.svelte';
   import SetupBanner from './home/SetupBanner.svelte';
   import { announce, call, setLanguage, trust, type SetupNeed } from './home/session';
-  import { LOCALES, filmClock, format, locale, t, type MessageKey } from './i18n';
+  import { LOCALES, filmClock, format, locale, t, type MessageKey, type Translate } from './i18n';
   import { theme, toggleTheme } from './theme';
   import type {
     Asset,
@@ -149,13 +149,23 @@
         : row.verdict === polishFilter,
   );
   $: polishRow = polishRows.find((row) => row.file === polishFile) || polishRows[0] || null;
-  $: polishState = polish ? $t(polishStateKey(polish)) : '';
-  function polishStateKey(pass: Polish): MessageKey {
-    if (pass.capturing) return 'polish.state.capturing';
-    if (pass.record.state === 'accepted') return 'polish.state.accepted';
+  $: polishState = polish ? polishStateText(polish, $t) : '';
+  /** "Round 2 of 3 · pass 5", or the pass alone for a film that gets one round. */
+  $: polishPlace = polish
+    ? (polish.rounds ?? 1) > 1 && polish.round
+      ? `${$t('polish.round', { round: polish.round, rounds: polish.rounds ?? 1 })} · ${$t('polish.pass', { pass: polish.pass })}`
+      : $t('polish.pass', { pass: polish.pass })
+    : '';
+  function polishStateText(pass: Polish, tr: Translate): string {
+    if (pass.capturing) return tr('polish.state.capturing');
+    if (pass.record.state === 'accepted') return tr('polish.state.accepted');
+    // A round is clean and the next has not begun: the coding agent starts it with fresh eyes.
+    const clean = pass.record.round ?? 1;
+    if (pass.record.state === 'next-round' && (pass.round ?? 1) <= clean)
+      return tr('polish.state.nextRound', { round: clean, next: clean + 1 });
     if (pass.counts && pass.counts.defects + pass.counts.open === 0)
-      return 'polish.state.nothingLeft';
-    return pass.record.state === 'stale' ? 'polish.state.stale' : 'polish.state.working';
+      return tr('polish.state.nothingLeft');
+    return tr(pass.record.state === 'stale' ? 'polish.state.stale' : 'polish.state.working');
   }
   // A render fills the preview: the film appears there frame by frame, and the live preview unloads,
   // which leaves the graphics card to the render.
@@ -1778,7 +1788,7 @@
                 </section>{/if}
               {#if polish}<section class="inspector-section" aria-label={$t('polish.title')}>
                   <div class="section-label">
-                    {$t('polish.title')}<span>{$t('polish.pass', { pass: polish.pass })}</span>
+                    {$t('polish.title')}<span>{polishPlace}</span>
                   </div>
                   <p class="polish-line">
                     {#if polish.record.state === 'accepted'}<Icon
@@ -2682,7 +2692,15 @@
     >
       <div class="modal-heading">
         <div>
-          <h2 id="polish-title">{$t('polish.heading', { pass: polish.pass })}</h2>
+          <h2 id="polish-title">
+            {(polish.rounds ?? 1) > 1 && polish.round
+              ? $t('polish.headingRound', {
+                  round: polish.round,
+                  rounds: polish.rounds ?? 1,
+                  pass: polish.pass,
+                })
+              : $t('polish.heading', { pass: polish.pass })}
+          </h2>
           <p>{$t('polish.lead')} {polishState}.</p>
         </div>
         <button

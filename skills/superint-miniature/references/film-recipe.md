@@ -79,7 +79,7 @@ Some picture content depends on the voice and on earlier renders of this film. T
 - Contact sheet next to `references/` at full size and at thumbnail size.
 - Scan at 8 samples and 6 fps for dark or still stretches.
 - Hero frames at 64 samples, the count the film renders at: the only true judge of a close-up.
-- Last, the polish pass of the superint-video skill (`references/polish.md`): `superint-video polish .` for fresh eyes, then `polish --accept`. It draws its frames with the film renderer, about 600 of them for three minutes of film, so plan the time; `--every 8` halves the stills. `render` asks for the accepted pass.
+- Last, the polish pass of the superint-video skill (`references/polish.md`): `superint-video polish .` for fresh eyes, then `polish --accept`. It draws its frames with the film renderer, about 600 of them for three minutes of film, so plan the time; `--every 8` halves the stills. With two or three rounds (`polishRounds`) every round draws its own frames, and a later round adds close-ups of every still: plan each round at least as long as the first, and keep the same `--every` in every round, so the later stills fall between the earlier ones. `render` asks for the last round's accepted pass.
 
 ## Render
 
