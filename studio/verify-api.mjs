@@ -20,7 +20,8 @@ const binary =
     process.platform === 'win32' ? 'superint-video.exe' : 'superint-video',
   );
 // Windows runners may spell TEMP as a short path. The server reports canonical paths.
-const tempRoot = await realpath(await mkdtemp(path.join(tmpdir(), 'superint-studio-api-')));
+const tempBase = await realpath(tmpdir());
+const tempRoot = await mkdtemp(path.join(tempBase, 'superint-studio-api-'));
 const projectPath = path.join(tempRoot, 'Prüfung with spaces');
 await mkdir(path.join(projectPath, 'scenes'), { recursive: true });
 await mkdir(path.join(projectPath, 'assets'));
@@ -762,7 +763,7 @@ try {
   ]);
   const resolved = path.resolve(tempRoot);
   const allowed =
-    resolved.startsWith(path.resolve(tmpdir()) + path.sep) &&
+    path.dirname(resolved) === tempBase &&
     path.basename(resolved).startsWith('superint-studio-api-');
   if (passed && allowed) await rm(resolved, { recursive: true, force: true });
   else console.error(`Verification project retained: ${resolved}\n${stderr}`);
