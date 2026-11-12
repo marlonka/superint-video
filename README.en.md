@@ -52,7 +52,7 @@ The agent only asks about what it cannot decide well itself, such as screenshots
 
 Double-click `Superint Video.exe` to open the start page. Type a topic, pick style, length, format and language, press "Copy prompt" and paste it into Claude Code or ChatGPT Codex. Your films appear below with their status while they are being made.
 
-- **Setup nobody misses.** While something is missing, the app shows only that: a coding agent with the skills, Chrome and FFmpeg, an API key for voice and music. Every row has the one button that does it and names the models your key uses.
+- **Setup nobody misses.** While something is missing, the app shows only that: a coding agent with the skills, Chrome and FFmpeg. An API key is optional, and Setup says what works without one and what it adds. Every row has the one button that does it.
 - **Skills kept current.** One click copies the skills into your agent's folder. After an app update it offers "Update the skills"; whatever is replaced stays on your machine.
 - **Films in one place.** Every film is a folder with everything that belongs to it, in `Videos\Superint Video`. You can choose another one in Setup under "Where films are saved".
 - **Styles as files.** Choose a default style, add your own reference images, duplicate a style, or share it as a single `<name>.superint-style.zip`.
@@ -74,6 +74,7 @@ Every step is a command, and every command prints JSON. The CLI never writes tex
 ```powershell
 superint-video new .\sleep --preset flat-explainer --topic "Why sleep cleans the brain" --seconds 60
 superint-video voice takes .\sleep     # takes per paragraph, transcribed and measured
+superint-video voice own .\sleep --wait   # or: your own voice, recorded in Studio
 superint-video music .\sleep           # music variants, measured
 superint-video sfx kit .\sleep         # sounds from Earshot, placed on frames with sfx place
 superint-video mix .\sleep             # ducking, master at −14 LUFS
@@ -89,7 +90,7 @@ Every command and option is in `superint-video <command> --help` and in the (Ger
 - **One EXE and a launcher:** `superint-video.exe` is the Rust CLI with the embedded Studio (Svelte 5), scene runtime and presets; `Superint Video.exe` opens the app.
 - **Scenes are HTML:** every frame looks the same whether played forwards, backwards or after a jump. `video.json` stores all times as whole frames.
 - **Rendering:** Chrome captures the frames, several browsers in parallel; FFmpeg encodes HEVC or H.264 and checks the result.
-- **Sound:** the provider is configuration: Google AI Studio (`gemini-3.8-flash-tts`, `gemini-3.5-transcribe`, `lyria-3.5`) or OpenRouter. Every request is cached, and API keys are stored encrypted in the app or in a `.env`.
+- **Sound:** the provider is configuration: Google AI Studio (`gemini-3.8-flash-tts`, `gemini-3.5-transcribe`, `lyria-3.5`) or OpenRouter. Every request is cached, and API keys are stored encrypted in the app or in a `.env`. Without an API key: your own voice with estimated word times, sound effects from Earshot, and every MP4 has an audio track, a silent one if need be.
 - **Tested:** over 100 tests; `scripts/build.ps1` builds and checks everything locally, and CI runs it on every pull request.
 
 ## Get started
@@ -98,7 +99,7 @@ Every command and option is in `superint-video <command> --help` and in the (Ger
 2. Start **`Superint Video.exe`**. Setup shows what is missing, with one button per row:
    - **Coding agent:** Claude Code or ChatGPT Codex. One click copies the Superint skills into it. By hand, the folders from `skills/` go into `%USERPROFILE%\.claude\skills\` or `%USERPROFILE%\.codex\skills\`.
    - **Chrome** (or Edge) and **FFmpeg:** "Install" runs winget in a visible terminal window and agrees to nothing on your behalf.
-   - **An API key** from Google AI Studio or OpenRouter for voice and music. It stays encrypted on your machine.
+   - **An API key** from Google AI Studio or OpenRouter is optional. Without one you get picture, on-screen text and sound effects, and you narrate the film yourself or leave it without a voice. With one come the AI voice with exact word times, generated music, dictation and styles from pictures. It stays encrypted on your machine.
    - [Earshot](https://github.com/Leonxlnx/earshot) for sound effects is optional.
 3. Describe your film under "New film", copy the prompt and paste it into your coding agent.
 
@@ -109,7 +110,7 @@ Check the installation from the command line with `.\superint-video.exe doctor -
 
 ## Privacy and AI content
 
-Superint Video collects no usage data and needs no account. Picture, Studio and render stay on your machine. For voice, transcription and music, the texts and recordings your agent writes for them go to the provider you set up (Google AI Studio or OpenRouter), under its terms. On the free tier of the Gemini API, Google may use them to improve its products. What your coding agent does with your files is governed by its provider.
+Superint Video collects no usage data and needs no account. Picture, Studio and render stay on your machine, and so does your own voice as long as no API key measures its word times. For the AI voice, transcription and music, the texts and recordings your agent writes for them go to the provider you set up (Google AI Studio or OpenRouter), under its terms. On the free tier of the Gemini API, Google may use them to improve its products. What your coding agent does with your files is governed by its provider.
 
 Voice and music usually come from generative models. Every exported MP4 says so in its metadata. When you publish a film, label it visibly as AI-assisted too, and only recreate a real voice with that person's consent.
 

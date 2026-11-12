@@ -1,13 +1,23 @@
 ---
 name: superint-audio
-description: Voice, music, sound effects and mix for Superint Video projects - narration takes with measured word timings, generated music, Earshot SFX placed on frames, and a mastered -14 LUFS mix, through the superint-video CLI (voice, transcribe, music, sfx, mix). Use when a Superint Video project needs narration, a music bed, sound design or a final mix, or when switching TTS, transcription or music providers (Google AI Studio or OpenRouter). Read the superint-video skill first.
+description: Voice, music, sound effects and mix for Superint Video projects - narration takes with measured word timings, the user's own voice recorded in Studio or brought as a file, films without a voice, generated music, Earshot SFX placed on frames, and a mastered -14 LUFS mix, through the superint-video CLI (voice, transcribe, music, sfx, mix). Use when a Superint Video project needs narration, the user's own voice, a music bed, sound design or a final mix, when no API key is set up, or when switching TTS, transcription or music providers (Google AI Studio or OpenRouter). Read the superint-video skill first.
 ---
 
 # Superint Video audio
 
 The CLI does every API call, keeps the keys, caches each request, measures every take and cuts and mixes the result. You write every text a generator gets (`voice.md`, `music-prompt.md`, `audio/kit.json`, `sfx.json`, optionally `mix.json`), and the tool never changes a word.
 
-Generate audio only when the brief or the user asks for it and the key is present (`superint-video doctor --json`); otherwise render silent and say so in `report.md`. User-supplied audio (a voice recording, a licensed track) goes into `assets/` and onto the audio tracks; `transcribe` gives it word timings too.
+## Three routes, and none needs a key
+
+Who speaks is the user's choice, named in the prompt or `brief.md`; otherwise `superint-video doctor --json` → `capabilities` says what is set up (`aiVoice`, `transcription`, `music`, `soundEffects`, and `narration`: `ai` or `own`).
+
+| Route | How | Word times |
+| --- | --- | --- |
+| AI voice | `voice takes`, `voice assemble`; needs a key that reaches a TTS model | Measured |
+| The user's own voice | `source: own` in `voice.md`, `voice own <dir> --wait` (Studio's recording view, or a file), `voice assemble` | Measured with a transcription route, else estimated |
+| No voice | No `voice.md`; the picture follows reading time and beats | None |
+
+Music is generated only with a music route; without one the film has none, or a licensed track the user supplies (into `assets/`, onto the `music` track). Sound effects need Earshot and no key. `mix` and `render` work with whatever is there. Never stall a film to wait for a key, and never switch the route on your own. Read [references/own-voice.md](references/own-voice.md) before a film with the user's own voice, without a voice or without a key.
 
 ## Providers are configuration, not code you write
 
@@ -26,7 +36,7 @@ Generate audio only when the brief or the user asks for it and the key is presen
 - AI Studio is the default because the OpenRouter credits are limited. At a daily limit the tool switches by itself, Google Cloud → AI Studio → the same model on OpenRouter, as far as the keys reach, and says so; never wait for the reset. When OpenRouter answers 402, switch the route rather than retrying. A music model that answers without music (no audio, or Google's copyright/recitation block) is asked once more by itself and says so; when the second try fails too, reword the prompt (another tempo, key or instrumentation), never name a real song or artist.
 - One key is enough. With only `OPENROUTER_API_KEY`, the AI Studio models (`gemini-…`, `lyria-…`) run through OpenRouter by themselves; with only `GEMINI_API_KEY`, OpenRouter-only models such as ElevenLabs are out of reach, and the command says so before it costs anything.
 - A new provider needs an adapter in the CLI (`src/providers/`) and its own provider file here with access, prompting and house rules.
-- A voice of its own (a brand voice, a character, the user's own voice) comes from Google's Voices API: design, remix or, with consent, replicate it; the provider file says how. Its `voice_…` ID then goes into `voice.md` like a prebuilt name.
+- A synthetic voice of its own (a brand voice, a character, a replica of the user's voice) comes from Google's Voices API: design, remix or, with consent, replicate it; the provider file says how. The user speaking the film themselves is the own-voice route above, not this. Its `voice_…` ID then goes into `voice.md` like a prebuilt name.
 - The provider file is Google's and our best practice, not a script. A model or prompt that sounds better by ear and by measurement wins; write down what you changed in the report.
 
 ## Ears
@@ -39,7 +49,7 @@ You cannot hear. Three tools listen for you, and every take, music pick and fini
 | How loud, how peaky, which key? | `earshot measure <file>` (`--music` for the key); `mix` and `render` report loudness and true peak |
 | How does it sound? Natural or rushed, does the music mask words, does a hit land on the cut, does the ending work? | `superint-video listen <file> --question "…"` |
 
-`listen` runs Earshot's audio critic (`earshot llm`): the audio goes to Gemini with the project's `GEMINI_API_KEY`, and the answer comes back with scores, strengths and issues with start and end seconds plus a fix each, saved to `process/listen/<file>.json`. It costs a few cents per film and needs no download.
+`listen` runs Earshot's audio critic (`earshot llm`): the audio goes to Gemini with the project's `GEMINI_API_KEY`, and the answer comes back with scores, strengths and issues with start and end seconds plus a fix each, saved to `process/listen/<file>.json`. It costs a few cents per film and needs no download. Without a key `listen` and `transcribe` are out: quote the measurements of `voice assemble`, `mix` and `render`, and say in the report that only the user has heard the film.
 
 - Ask in the film's language and ask for timestamps: "Klingt die Stimme natürlich? Wo wirkt sie gehetzt oder flach? Mit Zeitstempeln."
 - Takes: listen to the recommended take of each paragraph, and to the alternative when the word error rates are close.
@@ -51,7 +61,7 @@ You cannot hear. Three tools listen for you, and every take, music pick and fini
 
 ## Workflow
 
-Read [references/workflow.md](references/workflow.md): voice (`voice check`, `voice takes`, `voice assemble`), timing from `audio/words.json` into clips and `scenes/cues.js`, music (`music`), SFX (`sfx kit`, `sfx place`) and the mix (`mix`, then `render --audio audio/master.wav`).
+Read [references/workflow.md](references/workflow.md): voice (`voice check`, `voice takes` or `voice own`, `voice assemble`), timing from `audio/words.json` into clips and `scenes/cues.js`, music (`music`), SFX (`sfx kit`, `sfx place`) and the mix (`mix`, then `render --audio audio/master.wav`).
 
 The workflow skill decides whether the film is voice-led (explainer) or music-led (launch film: the picture is cut to the track, with no voice or a short one). The rules here hold for both.
 
@@ -59,15 +69,16 @@ The workflow skill decides whether the film is voice-led (explainer) or music-le
 
 | Command | Use |
 | --- | --- |
-| `voice check <dir>` | Rules for `voice.md`; exit 2 on errors |
+| `voice check <dir>` | Rules for `voice.md` (for `source: own` only those that apply to a reader); exit 2 on errors |
 | `voice takes <dir> [--dry-run] [--takes N] [--paragraphs 2,4]` | Takes per paragraph, transcribed and measured, into `audio/takes/report.json` |
-| `voice assemble <dir> [--pick auto]` | `audio/voice.wav` and `audio/words.json` with seconds and frames |
+| `voice own <dir> [--wait] [--timeout 540] [--file <audio> [--paragraph N]]` | The user's own voice: opens Studio's recording view and, with `--wait`, returns when every paragraph is recorded (exit 3 when time ran out: run it again); `--file` takes a recording instead, whole or for one paragraph. Without flags it prints the state |
+| `voice assemble <dir> [--pick auto]` | `audio/voice.wav` and `audio/words.json` with seconds and frames, from TTS takes or the user's recordings; says whether the word times are `measured` or `estimated` |
 | `transcribe <file> [--reference voice.md] [--terms a,b]` | Word times and errors for any audio file |
 | `music <dir> [--variants 3] [--dry-run]` | Checks `music-prompt.md`, generates and measures variants |
 | `sfx list [--category <c>]` | The Earshot bank: timing, loudness, pitch range per sound |
 | `sfx kit <dir>` | Renders `audio/kit.json` through Earshot into `audio/sfx/` and audits every take; exit 2 on problems |
 | `sfx place <dir>` | Puts the cues of `sfx.json` on the `sfx` track by each take's measured sync point |
 | `listen <file> [--project <dir>] [--question …] [--video <mp4>] [--start s --end s]` | A hosted audio model listens through Earshot; answer in `process/listen/` |
-| `mix <dir>` | Ducking, music under the voice, −14 LUFS and a true-peak limiter into `audio/master.wav` |
+| `mix <dir>` | Ducking, music under the voice, −14 LUFS and a true-peak limiter into `audio/master.wav`; with no audio clips a silent master (`"silent": true`) |
 
 Earshot must be on PATH (or `SUPERINT_EARSHOT`); `doctor` reports it. Keys come from the app's Setup (`superint-video app`) or a `.env`; never ask for one in the chat, and never print, log, commit or paste them.

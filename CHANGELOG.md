@@ -1,5 +1,15 @@
 # Versionsverlauf
 
+## Unveröffentlicht
+
+- **Ohne API-Schlüssel:** Ein Film braucht nur noch einen Coding-Agenten, Chrome und FFmpeg. Die Einrichtung hält niemanden mehr wegen eines fehlenden API-Schlüssels auf und sagt, was ohne ihn geht (Bild, Text im Bild, Soundeffekte, die eigene Stimme) und was er dazubringt (KI-Stimme mit exakten Wort-Zeitpunkten, erzeugte Musik, Diktieren, Stile aus Bildern). Das Diktat und „Neuen Stil erstellen“ sagen an Ort und Stelle, dass sie einen brauchen.
+- **Wer spricht:** Unter „Neuer Film“ gibt es „Stimme“ mit „KI-Stimme“, „Eigene Stimme“ und „Ohne Stimme“. Vorgewählt ist, was eingerichtet ist; die Wahl steht im Prompt.
+- **Eigene Stimme einsprechen:** Der Coding-Agent schreibt den Sprechtext, Studio zeigt ihn Absatz für Absatz: Countdown, Pegel, anhören, noch einmal, übernehmen, alles auch mit Leertaste, `R`, Enter und den Pfeiltasten. Statt aufzunehmen geht eine Audiodatei, je Absatz oder für den ganzen Text (MP3, WAV, M4A, Ogg, WebM, FLAC). Die Aufnahmen bleiben auf dem Rechner, außer ein API-Schlüssel misst ihre Wort-Zeitpunkte.
+- **Wort-Zeitpunkte ohne API-Schlüssel:** Anfang, Ende und Pausen jeder Aufnahme sind gemessen, die Wörter dazwischen nach Silben geschätzt und in `audio/words.json` als `estimated` gekennzeichnet. Mit einem API-Schlüssel misst `voice assemble` dieselben Aufnahmen.
+- **Über den fertigen Film sprechen:** „Stimme“ im Studio → „Über den Film sprechen“ spielt den Film ohne Ton ab einer gewählten Stelle, während du sprichst; der Sprechtext steht daneben. Die Aufnahme wird die Stimme ab dieser Stelle.
+- **Für den Coding-Agenten:** `superint-video voice own <ordner> --wait` öffnet die Aufnahme und wartet, `--file` nimmt eine Datei, `source: own` in `voice.md` stellt `voice check` und `voice assemble` auf die eigene Stimme um. `doctor --json` zeigt unter `capabilities`, was gerade geht (`aiVoice`, `transcription`, `music`, `dictation`, `style`, `ownVoice`, `soundEffects`, `narration`). Die Skills kennen alle drei Wege und warten nie auf einen API-Schlüssel.
+- **Filme ohne Stimme oder Musik:** `mix` und `render` arbeiten mit dem, was da ist. Jedes MP4 hat eine Tonspur; ist nichts zu hören, ist sie still, weil manche Upload-Formulare, Schnittprogramme und Fernseher Dateien ohne Tonspur ablehnen. `mix` duckt die Musik auch unter einer Stimme, die über den Film gesprochen wurde.
+
 ## 0.7.0 — 2026-11-12
 
 - **Feinschliff in Runden:** Die Einrichtung hat „Feinschliff vor dem Render“ mit „Runden vor jedem Render“: 1, 2 oder 3, mit der Maus oder mit Tab und den Pfeiltasten. Darunter steht, was die Wahl bringt und was sie an Zeit und Nutzung kostet. Eine Runde ist ein neuer Sub-Agent des Coding-Agents mit frischen Augen; die Runden laufen nacheinander, jede auf dem Bild der vorigen. Die App bessert selbst nichts nach: `polish` nennt dem Agenten Runde und Zahl (`round`, `rounds`), `polish --accept` sagt in `next`, wenn die nächste Runde fällig ist, und `render` wartet, bis die letzte sauber ist. Einstellung `polishRounds` (`settings set polishRounds 2`); ein Film kann in seinem `brief.md` eine eigene Zahl haben, `new --polish-rounds` schreibt sie hinein.

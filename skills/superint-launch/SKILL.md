@@ -58,12 +58,13 @@ A film a product team would post on launch day: a stranger knows **what the prod
 
 ## Sound
 
-Launch films are music-led: the track is chosen before the timeline and the picture is cut to it. A voice is optional and short.
+Launch films are music-led: the track is chosen before the timeline and the picture is cut to it. A voice is optional and short: an AI voice, or the user's own (`voice own`, or spoken over the finished film in Studio; see `superint-audio`).
 
 - Prefer a licensed track the user supplies (`assets/`, with its licence noted in `report.md`). Otherwise generate one with the `superint-audio` skill (`music`), with a prompt that states BPM, bars, the lift on the reveal and a real ending on the end card.
 - Lyria keeps the tempo and key you ask for but not the length: a 32 s prompt came back as 66–83 s pieces built from 16 s (8-bar) sections. Cut the cue on bar lines instead of fading it: measure each variant's sections and attacks (`earshot measure --music` for tempo and key, the loudness per second for the sections), take whole bars of intro, build, lift and peak, and end on the variant's own struck final chord. Join with 40 ms equal-power crossfades that end just before each downbeat, write the cut as a script in `process/`, and let `listen` confirm the joins are inaudible. Check that the final chord rings out: one variant faded its chord out within half a second, another let it ring for 5 s.
 - Measure the bars: act changes on downbeats, seams on beats, the end card on the last phrase, the track's own ending, never a fade cut by hand. Keep every time in the scene as a beat of the cue (`grid` in the `launch` kit), so a new cut moves the picture with it.
 - SFX from Earshot for actions the picture shows (clicks, keys, toasts, snaps), one hit on the end card, nothing on every cut.
+- **Without music** (no licensed track from the user and no music route: `doctor --json` → `capabilities.music` is false): make a calm film with sound effects, and do not wait for a key. No fake bed from effects or code. Choose a tempo yourself (90–110 BPM suits most) and keep the `grid` of the `launch` kit on it, so the cut still has a pulse; fewer, longer shots than a film cut to a track; one sound per visible action, the reveal marked by its sound and the silence before it, one hit on the end card. Set the effect levels against each other by ear and measurement, the hit loudest. Say in `report.md` that the film has no music and why; a track added later goes on the same grid.
 - Credits never appear in the picture; they go into `report.md`.
 - Sound effects come from Earshot through `superint-audio` (`sfx kit`, `sfx place`): one kit per film, roles matched to the material of what moves. Without a voice their levels follow the music: under a bright electronic cue keys and ticks sat well at 31 dB under it, snaps at 26, the click at 22 and the hit on the final chord at 18; tune the hit to the cue's root.
 

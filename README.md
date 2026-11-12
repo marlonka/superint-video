@@ -43,11 +43,11 @@
     </td>
     <td width="25%" valign="top">
       <h3>Dein Agent führt Regie</h3>
-      Claude Code, ChatGPT Codex oder Google Antigravity recherchiert, schreibt, zeichnet und prüft. Es gibt keinen eingebauten Chat, und für das Bild brauchst du keinen API-Key.
+      Claude Code, ChatGPT Codex oder Google Antigravity recherchiert, schreibt, zeichnet und prüft. Es gibt keinen eingebauten Chat, und ein Film braucht keinen API-Schlüssel.
     </td>
     <td width="25%" valign="top">
       <h3>Ton mit Ohren</h3>
-      Stimme, Wortzeiten, Musik und Klänge mit gemessener Lautheit. Weil der Agent nicht hören kann, hört Earshot für ihn gegen.
+      Eine KI-Stimme oder deine eigene, in der App eingesprochen. Wortzeiten, Musik und Klänge mit gemessener Lautheit. Weil der Agent nicht hören kann, hört Earshot für ihn gegen.
     </td>
     <td width="25%" valign="top">
       <h3>Zuschauen</h3>
@@ -97,7 +97,7 @@ Ein Doppelklick auf `Superint Video.exe` öffnet die Startseite. Sie spricht Deu
     </td>
     <td width="50%" valign="top">
       <h3>Einrichtung, die niemand übersieht</h3>
-      Solange etwas fehlt, zeigt die App nur das: einen Coding-Agenten mit den Skills, Chrome und FFmpeg, einen API-Schlüssel für Stimme und Musik. Jede Zeile hat rechts den einen Knopf, der sie erledigt, und nennt die Modelle, die dein Schlüssel nutzt.
+      Solange etwas fehlt, zeigt die App nur das: einen Coding-Agenten mit den Skills, Chrome und FFmpeg. Ein API-Schlüssel ist freiwillig, und die Einrichtung sagt, was ohne ihn geht und was er dazubringt. Jede Zeile hat rechts den einen Knopf, der sie erledigt.
       <h3>Skills auf dem Stand der App</h3>
       Ein Klick kopiert die Skills in den Ordner deines Agenten. Nach einem Update der App steht dort „Skills aktualisieren“; was ersetzt wird, bleibt auf deinem Rechner erhalten.
       <h3>Filme an einem festen Ort</h3>
@@ -130,6 +130,7 @@ Jeder Schritt ist ein Befehl, und jeder Befehl gibt JSON aus. Die CLI schreibt n
 superint-video new .\schlaf --preset flat-explainer --topic "Warum Schlaf das Gehirn putzt" --seconds 60   # öffnet Studio; ohne Ordner landet der Film im Speicherort für Filme
 superint-video studio .\schlaf                  # holt Studio zurück
 superint-video voice takes .\schlaf             # Takes pro Absatz, transkribiert und gemessen
+superint-video voice own .\schlaf --wait        # oder: deine eigene Stimme, in Studio eingesprochen
 superint-video music .\schlaf                   # Musikvarianten, gemessen
 superint-video sfx kit .\schlaf                 # Klänge aus Earshot, auf die Frames gesetzt mit sfx place
 superint-video mix .\schlaf                     # Ducking, Master auf −14 LUFS
@@ -148,7 +149,7 @@ Alle Befehle und Optionen stehen im [Handbuch](docs/HANDBUCH.md) und in `superin
 - **Deutsch und Englisch:** App und Studio folgen der Sprache deines Systems, der Globus oben rechts stellt um. Die Texte liegen in einem Katalog je Sprache; Zahlen, Zeiten und Aufzählungen schreibt der Browser so, wie die Sprache es verlangt.
 - **Szenen sind HTML:** Jeder Frame sieht gleich aus, ob vorwärts, rückwärts oder nach einem Sprung abgespielt. `video.json` speichert alle Zeiten als ganze Frames.
 - **Rendering:** Chrome nimmt die Bilder auf, mehrere Browser parallel; FFmpeg kodiert HEVC oder H.264 und prüft das Ergebnis.
-- **Ton:** Der Anbieter ist Konfiguration: Google AI Studio (`gemini-3.8-flash-tts`, `gemini-3.5-transcribe`, `lyria-3.5`), dieselben Modelle über Google Cloud, oder OpenRouter. Jede Anfrage wird zwischengespeichert, und die API-Keys liegen verschlüsselt in der App oder in einer `.env`.
+- **Ton:** Der Anbieter ist Konfiguration: Google AI Studio (`gemini-3.8-flash-tts`, `gemini-3.5-transcribe`, `lyria-3.5`), dieselben Modelle über Google Cloud, oder OpenRouter. Jede Anfrage wird zwischengespeichert, und die API-Keys liegen verschlüsselt in der App oder in einer `.env`. Ohne API-Schlüssel: deine eigene Stimme mit geschätzten Wortzeiten, Soundeffekte aus Earshot, und jedes MP4 hat eine Tonspur, notfalls eine stille.
 - **Geprüft:** Über 100 Tests. `scripts/build.ps1` baut und prüft alles lokal.
 
 ## Loslegen
@@ -157,7 +158,7 @@ Alle Befehle und Optionen stehen im [Handbuch](docs/HANDBUCH.md) und in `superin
 2. Starte **`Superint Video.exe`**. Solange etwas fehlt, zeigt die App nur die Einrichtung. Jede Zeile hat rechts den einen Knopf, der sie erledigt:
    - **Coding-Agent:** Claude Code, ChatGPT Codex oder Google Antigravity. Ein Klick kopiert die Superint-Skills hinein. Von Hand gehören die Ordner aus `skills/` nach `%USERPROFILE%\.claude\skills\`, `%USERPROFILE%\.codex\skills\` oder `%USERPROFILE%\.gemini\config\skills\`.
    - **Chrome** (oder Edge) und **FFmpeg:** Fehlt eines, installiert „Installieren“ es über winget in einem sichtbaren Terminal-Fenster. Die App stimmt dabei nichts für dich zu.
-   - **Ein API-Schlüssel** von Google AI Studio oder OpenRouter für Stimme und Musik. Die Einrichtung nennt die Modelle, die damit laufen. Du trägst ihn dort ein, er bleibt verschlüsselt auf deinem Rechner.
+   - **Ein API-Schlüssel** von Google AI Studio oder OpenRouter ist freiwillig. Ohne ihn entstehen Bild, Text im Bild und Soundeffekte, und du sprichst den Film selbst ein oder lässt ihn ohne Stimme. Mit ihm kommen die KI-Stimme mit exakten Wortzeiten, erzeugte Musik, Diktieren und Stile aus Bildern dazu. Du trägst ihn in der Einrichtung ein, er bleibt verschlüsselt auf deinem Rechner.
    - [Earshot](https://github.com/Leonxlnx/earshot) für Soundeffekte ist freiwillig.
 3. Schreib unter „Neuer Film“, worum es gehen soll, kopiere den Prompt und füge ihn in Claude Code, ChatGPT Codex oder Google Antigravity ein. Stil und Länge sucht der Agent passend zum Thema aus, wenn du nichts anderes wählst. Der Film erscheint in der App, während er entsteht, und liegt danach in `Videos\Superint Video`.
 
@@ -174,7 +175,7 @@ Aus dem Quellcode: `git clone`, dann `.\scripts\build.ps1`. Dafür brauchst du R
 
 ## Datenschutz und KI-Inhalte
 
-Superint Video sammelt keine Nutzungsdaten und braucht kein Konto. Bild, Studio und Render bleiben auf deinem Rechner. Für Stimme, Transkription und Musik gehen die Texte und Aufnahmen, die dein Agent dafür schreibt, an den Anbieter, den du eingerichtet hast (Google AI Studio, Google Cloud oder OpenRouter, fürs Diktat auch OpenAI), zu dessen Bedingungen. Bei der kostenlosen Stufe der Gemini API darf Google sie zur Verbesserung seiner Produkte nutzen. Was dein Coding-Agent mit deinen Dateien macht, regelt dessen Anbieter.
+Superint Video sammelt keine Nutzungsdaten und braucht kein Konto. Bild, Studio und Render bleiben auf deinem Rechner, deine eigene Stimme auch, solange kein API-Schlüssel ihre Wortzeiten misst. Für KI-Stimme, Transkription und Musik gehen die Texte und Aufnahmen, die dein Agent dafür schreibt, an den Anbieter, den du eingerichtet hast (Google AI Studio, Google Cloud oder OpenRouter, fürs Diktat auch OpenAI), zu dessen Bedingungen. Bei der kostenlosen Stufe der Gemini API darf Google sie zur Verbesserung seiner Produkte nutzen. Was dein Coding-Agent mit deinen Dateien macht, regelt dessen Anbieter.
 
 Stimme und Musik kommen meist aus generativen Modellen. Jedes exportierte MP4 sagt das in seinen Metadaten. Kennzeichne deine Filme beim Veröffentlichen auch sichtbar als KI-gestützt, und bilde echte Stimmen nur mit Einwilligung nach. Mehr dazu im [Handbuch](docs/HANDBUCH.md#datenschutz-und-ki-kennzeichnung).
 

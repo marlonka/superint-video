@@ -42,7 +42,7 @@ Read for each step:
 - [references/composition.md](references/composition.md): shots, worlds, transitions, pacing. Read before steps 2 and 4–7.
 - [references/visual-devices.md](references/visual-devices.md): devices from reference films. Read before steps 2 and 4.
 - The project's `STYLE.md` and `references/`: the look. Read before steps 2 and 5–7.
-- The `superint-audio` skill: narration, timing from word timestamps, music, SFX and mastering. An explainer is voice-led: the picture follows the words.
+- The `superint-audio` skill: narration, timing from word timestamps, music, SFX and mastering. An explainer is voice-led: the picture follows the words. The voice is an AI voice or the user's own, as the prompt or brief says (else `doctor --json` → `capabilities.narration`); the steps are the same, only the voice step differs (`voice takes` or `voice own --wait`). No API key is no reason to stop.
 - With the preset `miniature-3d`: the `superint-miniature` skill. Its scenes are one WebGL2 world with a camera instead of HTML scenes per shot; the steps stay the same.
 
 **Critique loops.** Concept, script, beats, style frames and review each run at least two rounds, a third when the second still changed something substantial, at most five. Log each round briefly in `process/<step>.md`.
@@ -54,4 +54,6 @@ Read for each step:
 - Facts come from the claim register in `research.md`. No invented statistics, quotes, sources or expert reviews.
 - Sources stay out of the picture; they go into `report.md` and the video description, mapped to claim IDs.
 - Length follows the voice. The target is a guide: never cut a film to hit it, never speed up the voice.
+- **The user's own voice:** write the script for that person's mouth (their words, sentences they can say in one breath, nothing a TTS tag would have carried) and show it before the recording (stop `script` is worth it here: a re-recording costs their time). With estimated word times (`voice assemble` says so), put triggers on paragraph starts and on words next to a pause.
+- **No voice:** when the user wants none, the film is no longer voice-led. The script becomes the on-screen text (lines of at most seven words, one thought per card, every claim still tagged), `beats.md` carries frame ranges instead of trigger words, and each text stands long enough to be read (about a second per three words, at least 1.5 s). Research, concepts, reviews and the message stay as they are.
 - The film ends on its message, then an end card while the music resolves.

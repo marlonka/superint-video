@@ -17,7 +17,7 @@ SPRACHE:     de
 BRAND:       <Ordner mit Logo, Farben, Schriften, Screenshots | erfinden aus drei Wörtern: …>
 PRESET:      blank                # der Look; blank = Look kommt aus Brand und Referenzen
 REFERENZEN:  <optional: Standbilder/Screenshots von Filmen, deren Look du willst, kommagetrennt>
-TON:         <Musik-Datei mit Lizenz | Musik generieren | keiner>
+TON:         <Musik-Datei mit Lizenz | Musik generieren (braucht einen API-Schlüssel) | ohne Musik, nur Soundeffekte | keiner>
 STOPPS:      keine                # keine | direction, script, frames, contact
 ORDNER:      ./<ordnername>
 
