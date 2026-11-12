@@ -4,7 +4,7 @@
   import Icon from '../Icon.svelte';
   import { format, t, type MessageKey } from '../i18n';
   import { unfold } from '../motion';
-  import type { Agent, KeyCheck, KeyRow, Overview, Tool, UsualModels } from '../types';
+  import type { Agent, KeyCheck, KeyRow, Overview, Settings, Tool, UsualModels } from '../types';
   import SetupItem from './SetupItem.svelte';
   import {
     announce,
@@ -54,7 +54,7 @@
   /** The providers few people need are folded away until asked for or holding a key. */
   let moreOpen = false;
   /** Google Cloud: the user chose a key over the Google sign-in. */
-  let keyByHand: Record<string, boolean> = {};
+  let cloudByKey = false;
   /** Google Cloud: the sign-in window was opened from here. */
   let signingIn = false;
   // Google Cloud's project and region, while they are being changed.
@@ -99,7 +99,8 @@
   $: mainKeys = setup.keys.filter((key) => !key.more);
   $: moreKeys = setup.keys.filter((key) => key.more);
   // A provider with a key stays in sight.
-  $: moreShown = moreOpen || moreKeys.some((key) => key.present);
+  $: moreHeld = moreKeys.some((key) => key.present);
+  $: moreShown = moreOpen || moreHeld;
   $: chosenModels = MODEL_FIELDS.filter((field) => settings[field.setting]);
 
   /** The item whose action comes next. It alone carries the primary button. */
@@ -189,7 +190,13 @@
   function checkText(key: KeyRow, check: KeyCheck): string {
     if (check.state === 'none') return $t('setup.key.check.none');
     if (check.state === 'refused')
-      return $t('setup.key.check.refused', { detail: check.detail || '' });
+      return [
+        $t('setup.key.check.refused', { detail: check.detail || '' }),
+        // The EU address takes only projects that live in the EU, which most do not.
+        key.region === 'eu' ? $t('setup.openai.euRefused') : '',
+      ]
+        .filter(Boolean)
+        .join(' ');
     if (check.state === 'partial')
       return $t('setup.key.check.partial', { models: $format.and(check.missing || []) });
     if (typeof check.creditLeft === 'number')
@@ -198,15 +205,6 @@
     if (key.name === 'OPENAI_API_KEY') return $t('setup.key.check.worksDictation');
     if (key.name === 'GOOGLE_CLOUD_API_KEY') return $t('setup.key.check.worksCloud');
     return $t('setup.key.check.worksAll');
-  }
-
-  /** A model ID as it is pasted: without spaces, quotes or the `models/` Google puts in front. */
-  function modelId(text: string) {
-    const plain = text
-      .trim()
-      .replace(/^["']|["']$/g, '')
-      .trim();
-    return plain.startsWith('models/') ? plain.slice('models/'.length) : plain;
   }
 
   /** Opens the window that signs the user in with Google; the app notices the sign-in itself. */
@@ -221,30 +219,34 @@
     placeLocation = settings.googleCloudLocation ?? 'eu';
     placeOpen = true;
   }
+  /** Saves where a key's requests go and asks the provider again; says whether it was saved. */
+  async function saveAndCheck(key: KeyRow, changes: Partial<Settings>, said: string) {
+    const saved = await saveSettings(changes, said);
+    if (saved) {
+      await refresh();
+      if (key.present) await checkKey(key);
+    }
+    return saved;
+  }
   function savePlace(key: KeyRow) {
-    void saveSettings(
+    // The server cleans the project ID; the EU is the default and is saved as no choice.
+    void saveAndCheck(
+      key,
       {
-        googleCloudProject: placeProject.trim().toLowerCase() || null,
-        // The EU is the default and is saved as no choice.
+        googleCloudProject: placeProject || null,
         googleCloudLocation: placeLocation === 'eu' ? null : placeLocation,
       },
       $t('setup.cloud.saved'),
-    ).then(async (saved) => {
-      if (!saved) return;
-      placeOpen = false;
-      await refresh();
-      if (key.present) await checkKey(key);
+    ).then((saved) => {
+      if (saved) placeOpen = false;
     });
   }
   function setOpenAiRegion(key: KeyRow, eu: boolean) {
-    void saveSettings(
+    void saveAndCheck(
+      key,
       { openAiRegion: eu ? 'eu' : null },
       $t('setup.openai.saved', { address: eu ? 'eu.api.openai.com' : 'api.openai.com' }),
-    ).then(async (saved) => {
-      if (!saved) return;
-      await refresh();
-      if (key.present) await checkKey(key);
-    });
+    );
   }
 
   function openModels() {
@@ -253,12 +255,10 @@
   }
   /** Saves the typed models; an empty field keeps the usual one. */
   function saveModels(reset = false) {
+    // The server cleans what was pasted: spaces, quotes, the `models/` Google puts in front.
     const changes: Partial<Record<ModelSetting, string | null>> = {};
-    for (const field of MODEL_FIELDS) {
-      const typed = reset ? '' : modelDrafts[field.setting];
-      changes[field.setting] =
-        (field.setting === 'narrationVoice' ? typed.trim() : modelId(typed)) || null;
-    }
+    for (const field of MODEL_FIELDS)
+      changes[field.setting] = (!reset && modelDrafts[field.setting]) || null;
     // A model the server refused leaves the form open with what was typed.
     void saveSettings(changes, $t('setup.models.saved')).then(async (saved) => {
       if (!saved) return;
@@ -285,7 +285,7 @@
   {@const typed = !!(drafts[key.name] || '').trim()}
   {@const own = key.present && key.source === 'app'}
   {@const refused = typeof check === 'object' && check.state === 'refused'}
-  {@const google = !!key.signIn && !key.present}
+  {@const google = !!key.place && !key.present}
   <SetupItem title={key.title} done={key.present && key.ready !== false && !refused}>
     <span>{$t(`setup.key.${key.name}.why`)}</span>
     <dl class="setup-models">
@@ -297,13 +297,11 @@
     {#if google}<span>{$t('setup.cloud.signInWhy')}</span>
       {#if signingIn}<span class="setup-note" role="status">{$t('setup.cloud.signingIn')}</span
         >{/if}
-      {#if !keyByHand[key.name]}<button
-          class="text-link"
-          onclick={() => (keyByHand = { ...keyByHand, [key.name]: true })}
+      {#if !cloudByKey}<button class="text-link" onclick={() => (cloudByKey = true)}
           >{$t('setup.cloud.useKey')}</button
         >{/if}
     {/if}
-    {#if key.place && (key.present || keyByHand[key.name])}
+    {#if key.place && (key.present || cloudByKey)}
       {#if key.source === 'google' && !key.place.project}<span class="setup-note failed"
           >{$t('setup.cloud.needsProject')}</span
         >{:else}<span
@@ -360,7 +358,7 @@
         >{:else}{@render site(key.get, $t('setup.key.get'), next === id && !typed)}{/if}
     </svelte:fragment>
     <svelte:fragment slot="below">
-      {#if (!key.present && (!google || keyByHand[key.name])) || (own && replacing[key.name])}
+      {#if (!key.present && (!google || cloudByKey)) || (own && replacing[key.name])}
         <form
           class="key-form"
           onsubmit={(event) => {
@@ -554,7 +552,7 @@
           <ul class="setup-list">
             {#each mainKeys as key (key.name)}{@render keyItem(key)}{/each}
           </ul>
-          {#if moreKeys.length && !moreKeys.some((key) => key.present)}<button
+          {#if moreKeys.length && !moreHeld}<button
               class="text-link setup-more"
               aria-expanded={moreShown}
               aria-controls="setup-more-keys"
@@ -575,21 +573,18 @@
         <section class="setup-group" aria-labelledby="setup-models">
           {@render heading(null, 'setup-models', $t('setup.models.title'), $t('setup.models.why'))}
           <ul class="setup-list">
-            <li class="setup-item">
-              <span class="setup-mark blank" aria-hidden="true"></span>
-              <div class="setup-text">
-                <strong
-                  >{$t(chosenModels.length ? 'setup.models.own' : 'setup.models.usual')}</strong
-                >
-                <span
-                  >{chosenModels.length
-                    ? chosenModels
-                        .map((field) => `${$t(field.label)} ${settings[field.setting]}`)
-                        .join(' · ')
-                    : $t('setup.models.usualWhy')}</span
-                >
-              </div>
-              <div class="setup-action">
+            <SetupItem
+              title={$t(chosenModels.length ? 'setup.models.own' : 'setup.models.usual')}
+              done={null}
+            >
+              <span
+                >{chosenModels.length
+                  ? chosenModels
+                      .map((field) => `${$t(field.label)} ${settings[field.setting]}`)
+                      .join(' · ')
+                  : $t('setup.models.usualWhy')}</span
+              >
+              <svelte:fragment slot="action">
                 <button
                   class="button"
                   aria-expanded={modelsOpen}
@@ -597,52 +592,54 @@
                   onclick={() => (modelsOpen ? (modelsOpen = false) : openModels())}
                   >{$t('setup.models.change')}</button
                 >
-              </div>
-              {#if modelsOpen}
-                <form
-                  class="models-form"
-                  id="models-form"
-                  transition:unfold
-                  onsubmit={(event) => {
-                    event.preventDefault();
-                    saveModels();
-                  }}
-                >
-                  <div class="models-fields">
-                    {#each MODEL_FIELDS as field (field.setting)}
-                      <label
-                        ><span>{$t(field.label)}</span>
-                        <input
-                          type="text"
-                          class:model-id={field.setting !== 'narrationVoice'}
-                          name={field.setting}
-                          autocomplete="off"
-                          spellcheck="false"
-                          placeholder={setup.models[field.usual]}
-                          aria-describedby="models-hint"
-                          bind:value={modelDrafts[field.setting]}
-                        /></label
-                      >
-                    {/each}
-                  </div>
-                  <p class="model-hint" id="models-hint">{$t('setup.models.hint')}</p>
-                  <button class="button" type="submit" disabled={$busy === 'settings'}
-                    >{$t('common.save')}</button
+              </svelte:fragment>
+              <svelte:fragment slot="below">
+                {#if modelsOpen}
+                  <form
+                    class="models-form"
+                    id="models-form"
+                    transition:unfold
+                    onsubmit={(event) => {
+                      event.preventDefault();
+                      saveModels();
+                    }}
                   >
-                  <span class="setup-links">
-                    {#if chosenModels.length}<button
-                        class="text-link"
-                        type="button"
-                        disabled={$busy === 'settings'}
-                        onclick={() => saveModels(true)}>{$t('setup.models.reset')}</button
-                      >{/if}
-                    <button class="text-link" type="button" onclick={() => (modelsOpen = false)}
-                      >{$t('common.cancel')}</button
+                    <div class="models-fields">
+                      {#each MODEL_FIELDS as field (field.setting)}
+                        <label
+                          ><span>{$t(field.label)}</span>
+                          <input
+                            type="text"
+                            class:model-id={field.setting !== 'narrationVoice'}
+                            name={field.setting}
+                            autocomplete="off"
+                            spellcheck="false"
+                            placeholder={setup.models[field.usual]}
+                            aria-describedby="models-hint"
+                            bind:value={modelDrafts[field.setting]}
+                          /></label
+                        >
+                      {/each}
+                    </div>
+                    <p class="model-hint" id="models-hint">{$t('setup.models.hint')}</p>
+                    <button class="button" type="submit" disabled={$busy === 'settings'}
+                      >{$t('common.save')}</button
                     >
-                  </span>
-                </form>
-              {/if}
-            </li>
+                    <span class="setup-links">
+                      {#if chosenModels.length}<button
+                          class="text-link"
+                          type="button"
+                          disabled={$busy === 'settings'}
+                          onclick={() => saveModels(true)}>{$t('setup.models.reset')}</button
+                        >{/if}
+                      <button class="text-link" type="button" onclick={() => (modelsOpen = false)}
+                        >{$t('common.cancel')}</button
+                      >
+                    </span>
+                  </form>
+                {/if}
+              </svelte:fragment>
+            </SetupItem>
           </ul>
         </section>
       {/if}

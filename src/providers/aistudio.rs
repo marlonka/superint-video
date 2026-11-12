@@ -3,7 +3,7 @@
 //! nesting between API versions do not break parsing.
 use super::{
     Generators, Provider, SpeechRequest, TranscribeRequest, Transcript, Word, language_tag, mime,
-    pcm_wav, sniff,
+    pcm_wav, sniff, with_headers,
 };
 use crate::env;
 use anyhow::{Context, Result, bail};
@@ -112,19 +112,11 @@ pub(super) async fn music(g: &Generators, model: &str, prompt: &str) -> Result<V
 /// Whether this key sees a model (`GET /v1beta/models/{model}`).
 pub async fn visible(g: &Generators, model: &str) -> Result<bool> {
     let key = g.keys.require(env::GEMINI)?;
-    let response = g
+    let request = g
         .http
         .get(format!("{BASE}/v1beta/models/{model}"))
-        .header("x-goog-api-key", key.expose())
-        .timeout(Duration::from_secs(20))
-        .send()
-        .await
-        .map_err(|e| g.transport(e))?;
-    match response.status().as_u16() {
-        200 => Ok(true),
-        404 => Ok(false),
-        _ => Err(g.failure(Provider::AiStudio, response).await),
-    }
+        .header("x-goog-api-key", key.expose());
+    g.probe(Provider::AiStudio, request).await
 }
 
 async fn interact(g: &Generators, body: &Value, timeout: Duration) -> Result<Value> {
@@ -145,15 +137,11 @@ pub(super) async fn interact_at(
     timeout: Duration,
 ) -> Result<Value> {
     let label = provider.label();
-    let with_auth = |mut request: reqwest::RequestBuilder| {
-        for (name, value) in auth {
-            request = request.header(*name, value);
-        }
-        request
-    };
     let response = g
         .send(provider, || {
-            with_auth(g.http.post(url)).json(body).timeout(timeout)
+            with_headers(g.http.post(url), auth)
+                .json(body)
+                .timeout(timeout)
         })
         .await?;
     let mut value: Value = response.json().await.map_err(|e| g.transport(e))?;
@@ -175,7 +163,7 @@ pub(super) async fn interact_at(
         tokio::time::sleep(Duration::from_secs(2)).await;
         value = g
             .send(provider, || {
-                with_auth(g.http.get(&poll)).timeout(Duration::from_secs(60))
+                with_headers(g.http.get(&poll), auth).timeout(Duration::from_secs(60))
             })
             .await?
             .json()

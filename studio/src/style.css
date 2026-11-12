@@ -20,6 +20,7 @@
   --action-text: #111111;
   --focus: #b4b4b4;
   --error: #ffb4ab;
+  --mono: Consolas, 'SFMono-Regular', ui-monospace, monospace;
   /* The one colour: a microphone that is listening. */
   --live: #3f7ff0;
   --live-text: #ffffff;

@@ -2,6 +2,8 @@
 
 ## Unveröffentlicht
 
+- **Google Antigravity als Coding-Agent:** Die Einrichtung erkennt Antigravity (App oder CLI) und kopiert die Superint-Skills mit einem Klick nach `%USERPROFILE%\.gemini\config\skills`, wo App und CLI sie finden. Der Auftrag für Earshot heißt jetzt „Auftrag für deinen Coding-Agenten kopieren“.
+
 - **Google Cloud mit Google-Anmeldung:** „Mit Google anmelden (ADC)“ ist jetzt der empfohlene Weg zu Google Cloud, Googles Application Default Credentials statt eines API-Schlüssels. Ein Fenster holt bei Bedarf die Google Cloud CLI über winget und öffnet `gcloud auth application-default login` im Browser; die App holt sich danach kurzlebige Zugangsschlüssel für dein Konto und speichert selbst nichts davon. Gebraucht wird eine Projekt-ID (Einrichtung, `GOOGLE_CLOUD_PROJECT` oder das Abrechnungsprojekt der Anmeldung). Der API-Schlüssel bleibt als „Stattdessen einen API-Schlüssel eintragen“ und geht vor, wenn einer gespeichert ist.
 
 - **Mikrofon im Feld:** Statt „Sprechen“ steht ein Mikrofon-Knopf unten rechts im Eingabefeld. Während der Aufnahme sind er und der Rand des Felds blau, die einzige Farbe der App, und derselbe Knopf schreibt die Aufnahme auf; „✕“ oder Escape verwirft sie.

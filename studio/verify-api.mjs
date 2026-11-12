@@ -457,7 +457,7 @@ try {
   // only, so this check can never start an installation.
   assert.deepEqual(
     app.setup.agents.map((agent) => agent.id),
-    ['claude', 'codex'],
+    ['claude', 'codex', 'antigravity'],
   );
   assert.ok(app.setup.tools.every((tool) => typeof tool.install === 'boolean'));
   assert.ok(app.styles.every((style) => typeof style.translations === 'object'));

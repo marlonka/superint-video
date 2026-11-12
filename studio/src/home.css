@@ -390,7 +390,7 @@
 }
 .place-fields > input {
   flex: 1;
-  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-family: var(--mono);
   font-size: 15px;
 }
 .place-fields > select {
@@ -457,7 +457,7 @@
   font-size: 15px;
 }
 .models-fields input.model-id {
-  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-family: var(--mono);
 }
 .models-form > .button {
   grid-column: 2;

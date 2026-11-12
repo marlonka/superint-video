@@ -98,8 +98,8 @@ export const en = {
   'setup.tool.installing':
     'A terminal window is installing {name}. Close it when it is done, then choose "Check again".',
   'setup.tool.page': 'Download page',
-  'setup.tool.copyTask': 'Copy a task for Claude Code or Codex',
-  'setup.tool.taskCopied': 'Copied. Paste the task into Claude Code or Codex.',
+  'setup.tool.copyTask': 'Copy a task for your coding agent',
+  'setup.tool.taskCopied': 'Copied. Paste the task into your coding agent.',
   'setup.tool.project': 'Project page',
   'setup.tool.earshot.task':
     'Please install Earshot for Superint Video: the sound effects tool from {url}, not the PyPI package of the same name. Its README says: {command}. If uv is missing, install it first (on Windows: winget install --id astral-sh.uv). Then check with earshot sfx list --json that it runs.',
@@ -123,7 +123,7 @@ export const en = {
   'setup.cloud.signInWhy':
     'Recommended: sign in to Google Cloud with your Google account (ADC, Application Default Credentials) instead of an API key. A window brings the Google Cloud CLI if needed and opens the sign-in in your browser.',
   'setup.cloud.signingIn':
-    'A window walks you through the sign-in. The app notices it by itself once it is done.',
+    'A window walks you through the sign-in; installing the Google Cloud CLI takes a minute or two. If Windows asks for administrator rights, that sometimes only flashes in the taskbar. The app notices the sign-in by itself.',
   'setup.cloud.useKey': 'Use an API key instead',
   'setup.cloud.needsProject':
     'The sign-in still needs the project ID: enter it under "Project and region".',
@@ -142,7 +142,10 @@ export const en = {
     'With a project, voice, word timings and dictation are made in the region. Without one, an express-mode key is served globally. Music (Lyria 3) is served globally only.',
   'setup.cloud.saved': 'Google Cloud: saved',
   'setup.openai.eu': 'Process in the EU (eu.api.openai.com)',
-  'setup.openai.euHint': 'For an OpenAI project with data residency in Europe.',
+  'setup.openai.euHint':
+    'Only when platform.openai.com shows Europe under Settings, Project, "Project Residency". Most projects are Global; then leave it off.',
+  'setup.openai.euRefused':
+    'If your OpenAI project says "Project Residency: Global", eu.api.openai.com does not take it: turn "Process in the EU" off.',
   'setup.openai.saved': 'OpenAI now goes to {address}',
   'setup.models.title': 'Models',
   'setup.models.why':

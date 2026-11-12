@@ -96,8 +96,8 @@ export const de: Catalog = {
   'setup.tool.installing':
     'Ein Terminal-Fenster installiert {name}. Schließe es danach und wähle „Erneut prüfen“.',
   'setup.tool.page': 'Download-Seite',
-  'setup.tool.copyTask': 'Auftrag für Claude Code oder Codex kopieren',
-  'setup.tool.taskCopied': 'Kopiert. Füge den Auftrag in Claude Code oder Codex ein.',
+  'setup.tool.copyTask': 'Auftrag für deinen Coding-Agenten kopieren',
+  'setup.tool.taskCopied': 'Kopiert. Füge den Auftrag in deinen Coding-Agenten ein.',
   'setup.tool.project': 'Projektseite',
   'setup.tool.earshot.task':
     'Installiere bitte Earshot für Superint Video: das Werkzeug für Soundeffekte von {url}, nicht das gleichnamige Paket auf PyPI. Laut Anleitung: {command}. Fehlt uv, installiere es vorher (unter Windows mit winget install --id astral-sh.uv). Prüfe danach mit earshot sfx list --json, dass es läuft.',
@@ -121,7 +121,7 @@ export const de: Catalog = {
   'setup.cloud.signInWhy':
     'Empfohlen: die Anmeldung bei Google Cloud mit deinem Google-Konto (ADC, Application Default Credentials) statt eines API-Schlüssels. Ein Fenster holt dafür bei Bedarf die Google Cloud CLI und öffnet die Anmeldung im Browser.',
   'setup.cloud.signingIn':
-    'Ein Fenster führt durch die Anmeldung. Die App bemerkt sie von selbst, sobald sie fertig ist.',
+    'Ein Fenster führt durch die Anmeldung; das Installieren der Google Cloud CLI dauert ein, zwei Minuten. Fragt Windows nach Administratorrechten, blinkt das manchmal nur in der Taskleiste. Die App bemerkt die Anmeldung von selbst.',
   'setup.cloud.useKey': 'Stattdessen einen API-Schlüssel eintragen',
   'setup.cloud.needsProject':
     'Für die Anmeldung fehlt noch die Projekt-ID: unter „Projekt und Region“ eintragen.',
@@ -140,7 +140,10 @@ export const de: Catalog = {
     'Mit Projekt entstehen Stimme, Wort-Zeitpunkte und Diktat in der Region. Ohne Projekt verarbeitet Google einen Schlüssel aus dem Express-Modus global. Musik (Lyria 3) gibt es nur global.',
   'setup.cloud.saved': 'Google Cloud: gespeichert',
   'setup.openai.eu': 'In der EU verarbeiten (eu.api.openai.com)',
-  'setup.openai.euHint': 'Für ein OpenAI-Projekt mit Datenresidenz in Europa.',
+  'setup.openai.euHint':
+    'Nur wenn auf platform.openai.com unter Settings, Project bei „Project Residency“ Europa steht. Die meisten Projekte sind Global, dann bleibt das aus.',
+  'setup.openai.euRefused':
+    'Steht bei deinem OpenAI-Projekt „Project Residency: Global“, nimmt eu.api.openai.com es nicht an: „In der EU verarbeiten“ ausschalten.',
   'setup.openai.saved': 'OpenAI geht jetzt an {address}',
   'setup.models.title': 'Modelle',
   'setup.models.why':

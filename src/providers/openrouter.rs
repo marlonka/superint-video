@@ -1,6 +1,7 @@
 //! OpenRouter: ElevenLabs TTS, MAI-Transcribe and Lyria, plus the live catalog and credits.
 use super::{
     Generators, Provider, SpeechRequest, TranscribeRequest, Transcript, Word, language_code,
+    text_of,
 };
 use crate::env;
 use anyhow::{Context, Result, bail};
@@ -90,11 +91,7 @@ pub(super) async fn transcribe(
         .collect();
     Ok(Transcript {
         model: request.model.into(),
-        text: value["text"]
-            .as_str()
-            .unwrap_or_default()
-            .trim()
-            .to_string(),
+        text: text_of(&value),
         words,
         biased: None,
     })
@@ -117,11 +114,7 @@ pub(super) async fn dictate(g: &Generators, wav: &[u8], model: &str) -> Result<S
         .json()
         .await
         .map_err(|e| g.transport(e))?;
-    Ok(value["text"]
-        .as_str()
-        .unwrap_or_default()
-        .trim()
-        .to_string())
+    Ok(text_of(&value))
 }
 
 /// Lyria through chat completions: audio arrives as base64 pieces in the SSE deltas.

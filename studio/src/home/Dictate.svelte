@@ -4,7 +4,7 @@
   // into the field where the cursor was. Escape or the cross throws the recording away.
   import { onDestroy, tick } from 'svelte';
   import Icon from '../Icon.svelte';
-  import { t } from '../i18n';
+  import { filmClock, t } from '../i18n';
   import type { Dictation } from '../types';
   import { MicrophoneError, canRecord, record, type Recording } from './recorder';
   import { announce, call, fail } from './session';
@@ -16,9 +16,10 @@
   /** A recording is running or being written down; the field waits meanwhile. */
   export let active = false;
 
-  /** The longest recording. It is written down when it gets there. */
+  /** The longest recording. It is written down when it gets there. The server takes up to ten
+   * minutes, so a recording that arrives a little late still fits. */
   const MOST_SECONDS = 300;
-  /** Shorter than this is a slip of the finger, not a sentence. */
+  /** Shorter than this is a slip of the finger, not a sentence (the server refuses below 0.2 s). */
   const LEAST_SECONDS = 0.5;
   /** One bar of the waveform stands for this long, and is this wide with this gap. */
   const BAR_MS = 70;
@@ -38,6 +39,9 @@
   let canvas: HTMLCanvasElement | undefined;
   /** One button starts and ends a recording, so it never moves and focus stays on it. */
   let mic: HTMLButtonElement | undefined;
+  /** The waveform's colour, and the phase it was read for. */
+  let ink = '';
+  let inkFor = '';
   /** The last thing a screen reader heard about the dictation. */
   let said = '';
 
@@ -88,8 +92,10 @@
       peak = 0;
       barAt += due * BAR_MS;
     }
-    seconds = recording.elapsed();
-    if (seconds >= MOST_SECONDS) {
+    const elapsed = recording.elapsed();
+    // The clock shows whole seconds: the page changes once a second, not with every frame.
+    if (Math.floor(elapsed) !== Math.floor(seconds)) seconds = elapsed;
+    if (elapsed >= MOST_SECONDS) {
       void finish();
       return;
     }
@@ -177,7 +183,12 @@
     if (!pen) return;
     pen.setTransform(ratio, 0, 0, ratio, 0, 0);
     pen.clearRect(0, 0, width, height);
-    pen.fillStyle = getComputedStyle(canvas).color;
+    // The colour follows the phase (CSS); it is read again only when the phase changes.
+    if (inkFor !== phase) {
+      ink = getComputedStyle(canvas).color;
+      inkFor = phase;
+    }
+    pen.fillStyle = ink;
     const step = BAR + GAP;
     const count = Math.max(1, Math.floor((width + GAP) / step));
     const left = width - count * step + GAP;
@@ -192,11 +203,6 @@
       pen.fill();
     }
     pen.globalAlpha = 1;
-  }
-
-  function clock(value: number) {
-    const whole = Math.floor(value);
-    return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
   }
 
   function onkeydown(event: KeyboardEvent) {
@@ -234,7 +240,7 @@
       <span class="dictate-time"
         >{#if phase === 'writing'}{$t('dictate.writing')}{:else if phase === 'starting'}{$t(
             'dictate.starting',
-          )}{:else}{clock(seconds)}{/if}</span
+          )}{:else}{filmClock(seconds)}{/if}</span
       >
     {:else if !available}
       <span class="dictate-hint">{$t('dictate.needsKey')}</span>

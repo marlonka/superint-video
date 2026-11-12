@@ -219,9 +219,11 @@ fn read(root: &Path) -> Result<(MusicDoc, String, Vec<String>)> {
             path.display()
         )
     })?;
+    let settings = crate::home::Settings::current();
     // The model the user chose in Setup, else the preset's, else the usual one.
-    let default_model = crate::home::Settings::current()
+    let default_model = settings
         .music_model
+        .clone()
         .or_else(|| {
             fs::read(root.join(crate::preset::CONFIG))
                 .ok()
@@ -241,7 +243,7 @@ fn read(root: &Path) -> Result<(MusicDoc, String, Vec<String>)> {
         .unwrap_or_default();
     let terms = fs::read_to_string(root.join(voice::FILE))
         .ok()
-        .and_then(|text| VoiceDoc::parse(&text, &Defaults::for_project(root)).ok())
+        .and_then(|text| VoiceDoc::parse(&text, &Defaults::for_project_with(root, &settings)).ok())
         .map(|doc| doc.terms)
         .unwrap_or_default();
     Ok((doc, topic, terms))

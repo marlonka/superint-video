@@ -53,7 +53,7 @@ fn default_file() -> Option<PathBuf> {
 }
 
 fn read(file: &Path) -> Option<Adc> {
-    let value: Value = serde_json::from_slice(&std::fs::read(file).ok()?).ok()?;
+    let value = crate::home::read_json(file)?;
     let kind = value["type"].as_str()?.to_string();
     Some(Adc {
         file: file.to_path_buf(),
@@ -162,30 +162,16 @@ async fn cli_token() -> Result<String> {
 
 /// The Google Cloud CLI: on the search path, or where its installer puts it on Windows.
 pub fn cli() -> Option<PathBuf> {
-    #[cfg(windows)]
-    {
-        if let Some(found) = crate::process::find_command("gcloud.cmd") {
-            return Some(found);
-        }
-        let folders = [
-            std::env::var_os("LOCALAPPDATA").map(|dir| PathBuf::from(dir).join("Google")),
-            std::env::var_os("ProgramFiles(x86)").map(|dir| PathBuf::from(dir).join("Google")),
-            std::env::var_os("ProgramFiles").map(|dir| PathBuf::from(dir).join("Google")),
-        ];
-        folders
+    if !cfg!(windows) {
+        return crate::process::find_command("gcloud");
+    }
+    crate::process::find_command("gcloud.cmd").or_else(|| {
+        let folders = ["LOCALAPPDATA", "ProgramFiles(x86)", "ProgramFiles"]
             .into_iter()
-            .flatten()
-            .map(|dir| dir.join(r"Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"))
-            .find(|file| file.is_file())
-    }
-    #[cfg(not(windows))]
-    {
-        std::env::var_os("PATH").and_then(|path| {
-            std::env::split_paths(&path)
-                .map(|dir| dir.join("gcloud"))
-                .find(|file| file.is_file())
-        })
-    }
+            .filter_map(std::env::var_os)
+            .map(|dir| PathBuf::from(dir).join(r"Google\Cloud SDK\google-cloud-sdk\bin"));
+        crate::process::first_file(folders, "gcloud.cmd")
+    })
 }
 
 /// Percent-encoding for a form body.

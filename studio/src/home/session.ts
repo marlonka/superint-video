@@ -98,8 +98,8 @@ export async function refresh(fresh = false): Promise<Overview | null> {
   }
 }
 
-/** Runs one action at a time and shows its failure where the user reads it. */
-/** Runs one piece of work at a time; says whether it was done, after showing why not. */
+/** Runs one piece of work at a time and shows its failure where the user reads it; says
+ * whether it was done. */
 export async function run(name: string, work: () => Promise<void>): Promise<boolean> {
   if (get(busy)) return false;
   busy.set(name);

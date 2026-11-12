@@ -133,9 +133,55 @@ impl Settings {
             .unwrap_or_default()
     }
 
+    /// The values as they are meant: no spaces around them, nothing for an empty one, model IDs
+    /// without the `models/` Google puts in front, the Google Cloud project and the regions in
+    /// lower case. Values come typed, pasted and from the command line; `set` and `save` both
+    /// clean them here.
+    pub fn normalize(&mut self) {
+        for value in [
+            &mut self.preset,
+            &mut self.format,
+            &mut self.language,
+            &mut self.ui_language,
+            &mut self.narration_voice,
+            &mut self.google_cloud_project,
+            &mut self.google_cloud_location,
+            &mut self.open_ai_region,
+            &mut self.narration_model,
+            &mut self.transcription_model,
+            &mut self.music_model,
+            &mut self.dictation_model,
+        ] {
+            *value = value
+                .take()
+                .map(|text| text.trim().to_string())
+                .filter(|text| !text.is_empty());
+        }
+        for model in [
+            &mut self.narration_model,
+            &mut self.transcription_model,
+            &mut self.music_model,
+            &mut self.dictation_model,
+        ] {
+            *model = model
+                .take()
+                .map(|id| model_id(&id))
+                .filter(|id| !id.is_empty());
+        }
+        for value in [
+            &mut self.google_cloud_project,
+            &mut self.google_cloud_location,
+            &mut self.open_ai_region,
+        ] {
+            *value = value.take().map(|text| text.to_lowercase());
+        }
+    }
+
     pub fn save(&self, home: &Path) -> Result<()> {
-        self.validate()?;
-        let mut bytes = serde_json::to_vec_pretty(self)?;
+        let mut clean = self.clone();
+        clean.normalize();
+        clean.validate()?;
+        let mut bytes = serde_json::to_vec_pretty(&clean)?;
         bytes.push(b'\n');
         write(&home.join(SETTINGS), &bytes)
     }
@@ -269,19 +315,20 @@ impl Settings {
                 }
             }
             "uiLanguage" => self.ui_language = text,
-            "narrationModel" => self.narration_model = text.map(|t| model_id(&t)),
+            "narrationModel" => self.narration_model = text,
             "narrationVoice" => self.narration_voice = text,
-            "transcriptionModel" => self.transcription_model = text.map(|t| model_id(&t)),
-            "musicModel" => self.music_model = text.map(|t| model_id(&t)),
-            "dictationModel" => self.dictation_model = text.map(|t| model_id(&t)),
+            "transcriptionModel" => self.transcription_model = text,
+            "musicModel" => self.music_model = text,
+            "dictationModel" => self.dictation_model = text,
             "googleCloudProject" => self.google_cloud_project = text,
-            "googleCloudLocation" => self.google_cloud_location = text.map(|t| t.to_lowercase()),
-            "openAiRegion" => self.open_ai_region = text.map(|t| t.to_lowercase()),
+            "googleCloudLocation" => self.google_cloud_location = text,
+            "openAiRegion" => self.open_ai_region = text,
             _ => bail!(
                 "Unknown setting {key}. Known: {}",
                 setting_keys().join(", ")
             ),
         }
+        self.normalize();
         self.validate()
     }
 }

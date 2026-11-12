@@ -182,8 +182,8 @@ if (typeof window !== 'undefined' && window.parent !== window) {
         await assetReadiness();
         // A layout read flushes author style changes before the parent's capture.
         document.documentElement.getBoundingClientRect();
-        // Only the preview asks where the texts are: a render never needs them.
-        const texts = context.preview ? textBoxes(document.body, definition?.props, props) : [];
+        // Only the paused preview asks where the texts are, to let the user retype them.
+        const texts = context.texts ? textBoxes(document.body, definition?.props, props) : [];
         post({ type: 'frame', requestId: message.requestId, frame: context.frame, actors, texts });
       } catch (error) {
         post({ type: 'error', requestId: message.requestId, message: error?.stack || String(error) });

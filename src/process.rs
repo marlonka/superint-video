@@ -87,39 +87,60 @@ pub fn binary(name: &str) -> PathBuf {
 pub fn installed(name: &str) -> bool {
     on_search_path(name) || elsewhere(name).is_some()
 }
+#[cfg(not(windows))]
+pub fn installed(name: &str) -> bool {
+    find_command(name).is_some()
+}
 
 #[cfg(windows)]
 fn elsewhere(name: &str) -> Option<PathBuf> {
-    winget_link(name)
-        .or_else(|| tool_link(name))
-        .or_else(|| on_saved_path(name))
+    first_file(install_folders(), &format!("{name}.exe"))
 }
 
-/// The search path a program started now would get: the machine's and the user's, as Windows
-/// keeps them. winget adds a tool's folder there when it cannot make a link, and installers
-/// add theirs; this process, started before, still has the old one.
-#[cfg(windows)]
-fn on_saved_path(name: &str) -> Option<PathBuf> {
-    let file = format!("{name}.exe");
-    saved_folders()
+/// The first of these folders that holds `file`.
+pub(crate) fn first_file(
+    folders: impl IntoIterator<Item = PathBuf>,
+    file: &str,
+) -> Option<PathBuf> {
+    folders
         .into_iter()
-        .map(|folder| folder.join(&file))
-        .find(|path| path.is_file())
-}
-
-/// A command by its whole file name, such as `gcloud.cmd`: on this process's search path, else
-/// on the one Windows has saved since.
-#[cfg(windows)]
-pub fn find_command(file: &str) -> Option<PathBuf> {
-    std::env::var_os("PATH")
-        .map(|path| std::env::split_paths(&path).collect::<Vec<_>>())
-        .unwrap_or_default()
-        .into_iter()
-        .chain(saved_folders())
         .map(|folder| folder.join(file))
         .find(|path| path.is_file())
 }
 
+/// Where a tool installed while this program runs may be: winget's links, the one folder uv
+/// and pipx put commands in, then the search path Windows has saved since, which a program
+/// started before does not have yet. That last one is read only when the others fail.
+#[cfg(windows)]
+fn install_folders() -> impl Iterator<Item = PathBuf> {
+    [
+        std::env::var_os("LOCALAPPDATA")
+            .map(|dir| PathBuf::from(dir).join("Microsoft/WinGet/Links")),
+        std::env::var_os("UV_TOOL_BIN_DIR").map(PathBuf::from),
+        std::env::var_os("XDG_BIN_HOME").map(PathBuf::from),
+        std::env::var_os("USERPROFILE").map(|home| PathBuf::from(home).join(".local/bin")),
+    ]
+    .into_iter()
+    .flatten()
+    .chain(std::iter::once(()).flat_map(|()| saved_folders()))
+}
+
+/// A command by its whole file name, such as `gcloud.cmd`: on this process's search path, else
+/// where a later installation put it.
+pub fn find_command(file: &str) -> Option<PathBuf> {
+    let path: Vec<PathBuf> = std::env::var_os("PATH")
+        .map(|path| std::env::split_paths(&path).collect())
+        .unwrap_or_default();
+    #[cfg(windows)]
+    let later = install_folders();
+    #[cfg(not(windows))]
+    let later = std::iter::empty();
+    first_file(path.into_iter().chain(later), file)
+}
+
+/// The search path a program started now would get: the machine's and the user's, as Windows
+/// keeps them. winget adds a tool's folder there when it cannot make a link, and installers
+/// add theirs.
 #[cfg(windows)]
 fn saved_folders() -> Vec<PathBuf> {
     [
@@ -239,22 +260,6 @@ mod registry {
     }
 }
 
-/// uv and pipx put the commands they install into one folder of the user. A program started
-/// before the installation does not have that folder on its PATH yet, so it is asked directly.
-#[cfg(windows)]
-fn tool_link(name: &str) -> Option<PathBuf> {
-    let folders = [
-        std::env::var_os("UV_TOOL_BIN_DIR").map(PathBuf::from),
-        std::env::var_os("XDG_BIN_HOME").map(PathBuf::from),
-        std::env::var_os("USERPROFILE").map(|home| PathBuf::from(home).join(".local/bin")),
-    ];
-    folders
-        .into_iter()
-        .flatten()
-        .map(|folder| folder.join(format!("{name}.exe")))
-        .find(|link| link.is_file())
-}
-
 /// Asks without following links: the aliases Windows keeps for Store apps, winget among them,
 /// cannot be opened like files.
 #[cfg(windows)]
@@ -267,15 +272,6 @@ fn on_search_path(name: &str) -> bool {
                 .is_ok()
         })
     })
-}
-
-/// winget puts a link to every command-line tool it installs into one folder of the user.
-#[cfg(windows)]
-fn winget_link(name: &str) -> Option<PathBuf> {
-    let link = PathBuf::from(std::env::var_os("LOCALAPPDATA")?)
-        .join("Microsoft/WinGet/Links")
-        .join(format!("{name}.exe"));
-    link.is_file().then_some(link)
 }
 
 /// Whether winget, the package manager that ships with Windows, can be asked to install a tool.
@@ -446,7 +442,8 @@ mod tests {
         );
         assert_eq!(super::expand("50%"), "50%");
         // The machine's search path holds Windows' own folder, and cmd with it.
-        assert!(super::on_saved_path("cmd").is_some());
+        assert!(super::first_file(super::saved_folders(), "cmd.exe").is_some());
+        assert!(super::find_command("cmd.exe").is_some());
     }
 
     #[cfg(windows)]

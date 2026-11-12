@@ -78,7 +78,8 @@ addEventListener('message', event => {
     switch (message.action) {
       case 'seek': pause(); await seek(message.frame); break;
       case 'play': await play(); break;
-      case 'pause': pause(); break;
+      // Paused, the picture is drawn once more with the places of its texts (see evaluate).
+      case 'pause': pause(); await seek(frame); break;
     }
   };
   run().catch(report);
@@ -134,7 +135,7 @@ async function evaluate(at, expectedGeneration) {
     try {
       if (clip.type === 'scene') {
         if (layer.wrapper.style.visibility === 'hidden') { layer.wrapper.style.opacity = '0'; layer.wrapper.style.visibility = 'visible'; }
-        const reply = await sceneRequest(layer, 'frame', { frame: local, time: seconds(local), fps: manifest.fps, width: manifest.width, height: manifest.height, props: clip.props || {}, preview: !captureMode });
+        const reply = await sceneRequest(layer, 'frame', { frame: local, time: seconds(local), fps: manifest.fps, width: manifest.width, height: manifest.height, props: clip.props || {}, preview: !captureMode, texts: !captureMode && !playing });
         layer.actors = reply.actors || [];
         layer.texts = reply.texts || [];
       } else if (clip.type === 'video' && layer.loadedFrame !== local) {

@@ -12,7 +12,7 @@
 //! only, so music goes there.
 use super::{
     Generators, Provider, SpeechRequest, TranscribeRequest, Transcript, Word, aistudio, gauth,
-    language_tag,
+    language_tag, with_headers,
 };
 use crate::{
     env::{self, Keys},
@@ -128,18 +128,14 @@ pub(super) async fn auth(g: &Generators) -> Result<Vec<(&'static str, String)>> 
     ])
 }
 
-fn with(request: reqwest::RequestBuilder, auth: &[(&str, String)]) -> reqwest::RequestBuilder {
-    auth.iter().fold(request, |request, (name, value)| {
-        request.header(*name, value)
-    })
-}
-
 async fn generate(g: &Generators, model: &str, body: &Value, timeout: Duration) -> Result<Value> {
     let auth = auth(g).await?;
     let url = g.cloud.model_url(model, "generateContent");
     let value: Value = g
         .send(Provider::GoogleCloud, || {
-            with(g.http.post(&url), &auth).json(body).timeout(timeout)
+            with_headers(g.http.post(&url), &auth)
+                .json(body)
+                .timeout(timeout)
         })
         .await?
         .json()
@@ -208,27 +204,33 @@ pub(super) async fn transcribe(
     request: &TranscribeRequest<'_>,
 ) -> Result<Transcript> {
     let wav = crate::audio::wav_16k(path).await?;
-    let audio = audio_part("audio/wav", &wav);
-    let language = request.language.map(language_tag);
-    let body = |extra: (&str, Value)| {
-        let mut config = json!({"mode": "VERBATIM"});
-        if let Some(language) = &language {
-            config["languageCodes"] = json!([language]);
-        }
-        config[extra.0] = extra.1;
-        json!({
-            "contents": [{"role": "user", "parts": [audio]}],
-            "generationConfig": {"audioTranscriptionConfig": config},
-        })
-    };
+    let mut config = json!({"mode": "VERBATIM", "wordTimestamp": true});
+    if let Some(language) = request.language.map(language_tag) {
+        config["languageCodes"] = json!([language]);
+    }
+    let timed_body = json!({
+        "contents": [{"role": "user", "parts": [audio_part("audio/wav", &wav)]}],
+        "generationConfig": {"audioTranscriptionConfig": config},
+    });
     let timeout = Duration::from_secs(900);
-    let timed = generate(
-        g,
-        request.model,
-        &body(("wordTimestamp", json!(true))),
-        timeout,
-    )
-    .await?;
+    // The biased pass needs nothing from the timed one: both run at once.
+    let biased_pass = async {
+        if request.terms.is_empty() {
+            return Ok(None);
+        }
+        let mut body = timed_body.clone();
+        let config = &mut body["generationConfig"]["audioTranscriptionConfig"];
+        config
+            .as_object_mut()
+            .map(|config| config.remove("wordTimestamp"));
+        config["customVocabulary"] = json!(request.terms);
+        let response = generate(g, request.model, &body, timeout).await?;
+        Ok(Some(transcript(&response).0))
+    };
+    let (timed, biased) = tokio::try_join!(
+        generate(g, request.model, &timed_body, timeout),
+        biased_pass
+    )?;
     let (text, words) = transcript(&timed);
     if words.is_empty() {
         bail!(
@@ -237,18 +239,6 @@ pub(super) async fn transcribe(
             ended(&timed)
         );
     }
-    let biased = if request.terms.is_empty() {
-        None
-    } else {
-        let response = generate(
-            g,
-            request.model,
-            &body(("customVocabulary", json!(request.terms))),
-            timeout,
-        )
-        .await?;
-        Some(transcript(&response).0)
-    };
     Ok(Transcript {
         model: request.model.into(),
         text,
@@ -290,7 +280,7 @@ pub(super) async fn music(g: &Generators, model: &str, prompt: &str) -> Result<V
 /// model it does not have, and 401 or 403 (or 400 naming the key) for a key it does not take.
 pub async fn visible(g: &Generators, model: &str) -> Result<bool> {
     let auth = auth(g).await?;
-    let response = with(
+    let response = with_headers(
         g.http.post(g.cloud.model_url(model, "generateContent")),
         &auth,
     )

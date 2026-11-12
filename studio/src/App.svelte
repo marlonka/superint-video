@@ -783,7 +783,11 @@
     return propDefinitions[text.clipId]?.[text.prop]?.label || text.prop;
   }
   function textValue(text: TextSpot) {
-    const clip = manifest?.clips.find((item) => item.id === text.clipId);
+    // As the inspector shows it: a clip being dragged has its draft.
+    const clip =
+      draftClip?.id === text.clipId
+        ? draftClip
+        : manifest?.clips.find((item) => item.id === text.clipId);
     return String(
       clip?.props?.[text.prop] ?? propDefinitions[text.clipId]?.[text.prop]?.default ?? '',
     );

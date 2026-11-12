@@ -7,7 +7,7 @@ use crate::{
     home::{self, KeyStore, Settings},
     live, polish, preset, process, production,
     project::modified_ms,
-    providers,
+    providers::{self, Provider},
     server::{ApiError, ApiResult, bytes_response},
     skills::{self, Agent},
 };
@@ -169,12 +169,21 @@ async fn payload(state: &AppState, fresh: bool) -> Result<Value> {
     let state = state.clone();
     // Keys, settings, styles, skills and films are all read from disk.
     tokio::task::spawn_blocking(move || {
-        let keys = Keys::load(state.start())?;
-        let settings = Settings::load(&state.home)?;
-        // OpenAI's key writes down dictations only; a film needs one of the others. A Google
-        // sign-in with a project stands for a Google Cloud key.
-        let signed_in = signed_in(&keys, &settings);
-        let film_key = keys.any(providers::FILM_KEYS) || signed_in;
+        let Access {
+            keys,
+            settings,
+            sign_in,
+            place,
+        } = Access::load(&state)?;
+        let reaches = |route| providers::ready(&keys, sign_in.as_ref(), &place, route);
+        // OpenAI writes down dictations only; a film needs one of the others.
+        let film_key = [
+            Provider::AiStudio,
+            Provider::GoogleCloud,
+            Provider::OpenRouter,
+        ]
+        .into_iter()
+        .any(reaches);
         let project = state.project.as_ref().map(|root| {
             let manifest = home::read_json(&root.join("video.json"));
             json!({"name": manifest.and_then(|m| m["name"].as_str().map(str::to_owned))})
@@ -190,11 +199,11 @@ async fn payload(state: &AppState, fresh: bool) -> Result<Value> {
                     "voice": film_key,
                     "music": film_key,
                     "soundEffects": ready(&tools, "earshot"),
-                    "dictate": keys.any(env::KNOWN) || signed_in,
+                    "dictate": film_key || reaches(Provider::OpenAi),
                 },
                 "tools": tools,
-                "keys": key_rows(&keys, &settings),
-                "models": usual_models(&keys, signed_in),
+                "keys": key_rows(&keys, &settings, sign_in.as_ref(), &place),
+                "models": usual_models(reaches),
                 "agents": agents(&state, fresh),
             },
             "filmsFolder": home::films_dir(&settings),
@@ -260,38 +269,70 @@ struct Tool {
     winget: Option<&'static str>,
     /// The command that installs it outside winget, for the user or a coding agent to run.
     command: Option<&'static str>,
+    /// A script that installs it in a window of its own.
+    script: Option<Script>,
+}
+
+/// An installer the app writes into its folder and runs in a terminal window. It needs one
+/// command first, which it fetches through winget when it is missing.
+#[derive(Clone, Copy)]
+struct Script {
+    file: &'static str,
+    text: &'static str,
+    needs: &'static str,
+}
+
+/// Writes an installer script into the app's folder, with Windows line ends, and gives its path.
+fn write_script(home: &Path, file: &str, text: &str) -> Result<String> {
+    std::fs::create_dir_all(home)?;
+    let path = home.join(file);
+    std::fs::write(&path, text.replace('\n', "\r\n"))?;
+    Ok(path.display().to_string())
 }
 
 /// Earshot as its README installs it (checked 2026-11-12): from GitHub with uv, which brings
 /// its own Python. `pip install earshot` would fetch another project of the same name.
-const EARSHOT_INSTALL: &str =
-    r#"uv tool install "earshot[mcp,llm] @ git+https://github.com/Leonxlnx/earshot""#;
+macro_rules! earshot_source {
+    () => {
+        r#""earshot[mcp,llm] @ git+https://github.com/Leonxlnx/earshot""#
+    };
+}
+pub(crate) const EARSHOT_INSTALL: &str = concat!("uv tool install ", earshot_source!());
 /// The window that installs Earshot: uv first through winget when it is missing, then
 /// Earshot. Nothing is agreed to for the user; winget asks in the window.
-const EARSHOT_SCRIPT: &str = r#"@echo off
+const EARSHOT_SCRIPT: &str = concat!(
+    r#"@echo off
 echo Superint Video installs Earshot, the sound effects tool (github.com/Leonxlnx/earshot).
 echo.
+call :find
+if not defined UV (
+  echo First uv, which installs Python tools:
+  winget install --id astral-sh.uv --exact --source winget
+  call :find
+)
+if not defined UV (
+  echo uv could not be installed. See https://docs.astral.sh/uv/
+  exit /b 1
+)
+"%UV%" tool install --force "#,
+    earshot_source!(),
+    r#"
+if errorlevel 1 exit /b 1
+echo.
+echo Done. Close this window and choose "Check again" in Superint Video.
+exit /b 0
+
+rem uv on the search path, in winget's links, in winget's package folder (where winget leaves
+rem it when Windows lets it make no link), or where uv's own installer puts it.
+:find
 set "UV="
 where uv >nul 2>nul && set "UV=uv"
 if not defined UV if exist "%LOCALAPPDATA%\Microsoft\WinGet\Links\uv.exe" set "UV=%LOCALAPPDATA%\Microsoft\WinGet\Links\uv.exe"
 if not defined UV if exist "%USERPROFILE%\.local\bin\uv.exe" set "UV=%USERPROFILE%\.local\bin\uv.exe"
 if not defined UV for /d %%D in ("%LOCALAPPDATA%\Microsoft\WinGet\Packages\astral-sh.uv_*") do if exist "%%D\uv.exe" set "UV=%%D\uv.exe"
-if not defined UV (
-  echo First uv, which installs Python tools:
-  winget install --id astral-sh.uv --exact --source winget
-)
-rem winget makes a link to uv when Windows lets it, else it leaves uv in its package folder.
-if not defined UV if exist "%LOCALAPPDATA%\Microsoft\WinGet\Links\uv.exe" set "UV=%LOCALAPPDATA%\Microsoft\WinGet\Links\uv.exe"
-if not defined UV for /d %%D in ("%LOCALAPPDATA%\Microsoft\WinGet\Packages\astral-sh.uv_*") do if exist "%%D\uv.exe" set "UV=%%D\uv.exe"
-if not defined UV (
-  echo uv could not be installed. See https://docs.astral.sh/uv/
-  exit /b 1
-)
-"%UV%" tool install --force "earshot[mcp,llm] @ git+https://github.com/Leonxlnx/earshot"
-if errorlevel 1 exit /b 1
-echo.
-echo Done. Close this window and choose "Check again" in Superint Video.
-"#;
+exit /b 0
+"#
+);
 
 const TOOLS: &[Tool] = &[
     Tool {
@@ -302,6 +343,7 @@ const TOOLS: &[Tool] = &[
         get: "https://www.google.com/chrome/",
         winget: Some("Google.Chrome"),
         command: None,
+        script: None,
     },
     Tool {
         id: "ffmpeg",
@@ -311,6 +353,7 @@ const TOOLS: &[Tool] = &[
         get: "https://ffmpeg.org/download.html",
         winget: Some("Gyan.FFmpeg"),
         command: None,
+        script: None,
     },
     Tool {
         id: "earshot",
@@ -320,6 +363,11 @@ const TOOLS: &[Tool] = &[
         get: "https://github.com/Leonxlnx/earshot",
         winget: None,
         command: Some(EARSHOT_INSTALL),
+        script: Some(Script {
+            file: "install-earshot.cmd",
+            text: EARSHOT_SCRIPT,
+            needs: "uv",
+        }),
     },
 ];
 
@@ -331,11 +379,6 @@ async fn tools(state: &AppState, fresh: bool) -> Value {
     let found = dependencies().await;
     let part = |name: &str| found.iter().find(|d| d["name"] == name);
     let winget = process::winget();
-    // Earshot comes through uv, which winget brings along when it is missing.
-    #[cfg(windows)]
-    let uv = winget || process::installed("uv");
-    #[cfg(not(windows))]
-    let uv = false;
     let tools: Vec<Value> = TOOLS
         .iter()
         .map(|tool| {
@@ -347,7 +390,11 @@ async fn tools(state: &AppState, fresh: bool) -> Value {
                 "optional": tool.optional,
                 "sounds": first.and_then(|d| d["sounds"].as_u64()),
                 "get": tool.get,
-                "install": if tool.id == "earshot" { uv } else { winget && tool.winget.is_some() },
+                // A script brings what it needs through winget when that is missing.
+                "install": match tool.script {
+                    Some(script) => winget || process::installed(script.needs),
+                    None => winget && tool.winget.is_some(),
+                },
                 "command": tool.command,
             })
         })
@@ -362,15 +409,6 @@ fn install_command(tool: &Tool) -> Option<String> {
         .map(|id| format!("winget install --id {id} --exact --source winget"))
 }
 
-/// Earshot's installer as a script in the app's folder, run in the window instead of a line:
-/// it decides whether uv has to come first.
-fn earshot_installer(home: &Path) -> Result<String> {
-    std::fs::create_dir_all(home)?;
-    let script = home.join("install-earshot.cmd");
-    std::fs::write(&script, EARSHOT_SCRIPT.replace('\n', "\r\n"))?;
-    Ok(script.display().to_string())
-}
-
 /// Starts the installation in a terminal window of its own, so the user sees what happens and
 /// answers winget's questions there.
 async fn install_tool(
@@ -381,10 +419,9 @@ async fn install_tool(
         .iter()
         .find(|tool| tool.id == id)
         .ok_or_else(|| ApiError::bad("Unknown tool"))?;
-    let command = if tool.id == "earshot" {
-        Some(earshot_installer(&state.home)?)
-    } else {
-        install_command(tool).filter(|_| process::winget())
+    let command = match tool.script {
+        Some(script) => Some(write_script(&state.home, script.file, script.text)?),
+        None => install_command(tool).filter(|_| process::winget()),
     }
     .ok_or_else(|| ApiError::bad("This tool cannot be installed from here"))?;
     if ready(&tools(&state, true).await, tool.id) {
@@ -413,83 +450,104 @@ fn open_terminal(_title: &str, _command: &str) -> Result<()> {
     bail!("Installing from the app works on Windows only")
 }
 
+/// What this computer can reach, read once per request: the keys, the settings, the user's
+/// Google sign-in and where Google Cloud requests go.
+struct Access {
+    keys: Keys,
+    settings: Settings,
+    sign_in: Option<providers::gauth::Adc>,
+    place: providers::cloud::Place,
+}
+
+impl Access {
+    fn load(state: &AppState) -> Result<Self> {
+        let keys = Keys::load(state.start())?;
+        let settings = Settings::load(&state.home)?;
+        let sign_in = providers::gauth::find();
+        let place = providers::cloud::Place::of(&keys, &settings, sign_in.as_ref());
+        Ok(Self {
+            keys,
+            settings,
+            sign_in,
+            place,
+        })
+    }
+
+    fn key_rows(&self) -> Vec<Value> {
+        key_rows(
+            &self.keys,
+            &self.settings,
+            self.sign_in.as_ref(),
+            &self.place,
+        )
+    }
+}
+
 /// One row per provider. Never a value: only whether a key is there, where it comes from and
 /// the models it is used with unless the user, a style or a film names others. With an
 /// OpenRouter key alone, Google's models are reached through OpenRouter, and Google Cloud
-/// reaches the same models as AI Studio; OpenAI writes down dictations only. Rows marked
-/// `more` are for few users and are folded away in Setup until they hold a key.
-fn key_rows(keys: &Keys, settings: &Settings) -> Vec<Value> {
+/// reaches the same models as AI Studio; OpenAI writes down dictations only. Google Cloud and
+/// OpenAI are for few users and are folded away in Setup (`more`) until they hold a key.
+fn key_rows(
+    keys: &Keys,
+    settings: &Settings,
+    sign_in: Option<&providers::gauth::Adc>,
+    place: &providers::cloud::Place,
+) -> Vec<Value> {
     let status = keys.status();
-    let usual = providers::AI_STUDIO;
-    let row = |name: &str, title: &str, get: &str, more: bool, models: Value| {
+    let row = |route: Provider, title: &str, get: &str| {
+        let name = route.key();
         let found = status.iter().find(|s| s.name == name);
+        let models: serde_json::Map<String, Value> = providers::usual_models(route)
+            .into_iter()
+            .map(|(job, model)| (job.to_string(), json!(model)))
+            .collect();
         json!({
-            "name": name, "title": title, "recommended": name == env::GEMINI, "get": get,
-            "more": more,
+            "name": name, "title": title, "recommended": route == Provider::AiStudio, "get": get,
+            "more": matches!(route, Provider::GoogleCloud | Provider::OpenAi),
             "present": found.is_some_and(|s| s.present),
             "source": found.and_then(|s| s.source.as_ref()).map(env::Source::kind),
             "models": models,
         })
     };
-    let twin = |model: &str| providers::openrouter_twin(model).unwrap_or_else(|| model.into());
-    let sign_in = providers::gauth::find();
-    let place = providers::cloud::Place::of(keys, settings, sign_in.as_ref());
     let mut cloud = row(
-        env::GOOGLE_CLOUD,
+        Provider::GoogleCloud,
         "Google Cloud",
         "https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/start/api-keys",
-        true,
-        json!({
-            "voice": usual.speech, "timings": usual.transcription,
-            "music": providers::cloud::model(usual.music), "dictation": providers::DICTATION_GOOGLE,
-        }),
     );
     cloud["place"] = json!({
         "project": place.project, "location": place.location, "servedIn": place.served_in(),
         // Set outside the app (GOOGLE_CLOUD_PROJECT, GOOGLE_CLOUD_LOCATION), so Setup shows it.
         "fixed": keys.cloud_project.is_some() || keys.cloud_location.is_some(),
     });
-    // Google's recommended way in: the user's Google sign-in. A saved key stays the user's
+    // Google's recommended way in is the user's Google sign-in. A saved key stays the user's
     // choice and wins; without one, the sign-in counts as the key.
-    cloud["signIn"] = json!({
-        "found": sign_in.is_some(),
-        "kind": sign_in.as_ref().map(|adc| adc.kind.clone()),
-        "cli": providers::gauth::cli().is_some(),
-    });
-    let cloud_key = keys.get(env::GOOGLE_CLOUD).is_some();
-    if !cloud_key && sign_in.is_some() {
+    if keys.get(env::GOOGLE_CLOUD).is_none() && sign_in.is_some() {
         cloud["present"] = json!(true);
         cloud["source"] = json!("google");
     }
-    cloud["ready"] = json!(cloud_key || (sign_in.is_some() && place.project.is_some()));
+    cloud["ready"] = json!(providers::ready(
+        keys,
+        sign_in,
+        place,
+        Provider::GoogleCloud
+    ));
     let mut openai = row(
-        env::OPENAI,
+        Provider::OpenAi,
         "OpenAI",
         "https://platform.openai.com/api-keys",
-        true,
-        json!({"dictation": providers::DICTATION_OPENAI}),
     );
     openai["region"] = json!(settings.open_ai_region.as_deref().unwrap_or("global"));
     vec![
         row(
-            env::GEMINI,
+            Provider::AiStudio,
             "Google AI Studio",
             "https://aistudio.google.com/apikey",
-            false,
-            json!({
-                "voice": usual.speech, "timings": usual.transcription, "music": usual.music,
-                "dictation": providers::DICTATION_GOOGLE,
-            }),
         ),
         row(
-            env::OPENROUTER,
+            Provider::OpenRouter,
             "OpenRouter",
             "https://openrouter.ai/settings/keys",
-            false,
-            json!({
-                "voice": twin(usual.speech), "timings": twin(usual.transcription),
-                "music": twin(usual.music), "dictation": providers::DICTATION_OPENROUTER,
-            }),
         ),
         cloud,
         openai,
@@ -497,21 +555,12 @@ fn key_rows(keys: &Keys, settings: &Settings) -> Vec<Value> {
 }
 
 /// The models a film and a dictation use when the user names none, for Setup's models form.
-fn usual_models(keys: &Keys, signed_in: bool) -> Value {
+fn usual_models(ready: impl Fn(Provider) -> bool) -> Value {
     let usual = providers::AI_STUDIO;
     json!({
         "narration": usual.speech, "voice": usual.voice, "transcription": usual.transcription,
-        "music": usual.music, "dictation": providers::usual_dictation(keys, signed_in),
+        "music": usual.music, "dictation": providers::usual_dictation(ready),
     })
-}
-
-/// A Google sign-in that can reach Google Cloud: one is there and a project is known.
-fn signed_in(keys: &Keys, settings: &Settings) -> bool {
-    let sign_in = providers::gauth::find();
-    sign_in.is_some()
-        && providers::cloud::Place::of(keys, settings, sign_in.as_ref())
-            .project
-            .is_some()
 }
 
 /// The window that signs the user in to Google Cloud: the Google Cloud CLI first through winget
@@ -521,18 +570,14 @@ const GOOGLE_SIGN_IN_SCRIPT: &str = r#"@echo off
 echo Superint Video signs you in to Google Cloud with your Google account.
 echo Google calls this Application Default Credentials: no API key, no secret to copy.
 echo.
-set "GCLOUD="
-for %%G in (gcloud.cmd) do if not "%%~$PATH:G"=="" set "GCLOUD=%%~$PATH:G"
-if not defined GCLOUD if exist "%LOCALAPPDATA%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd" set "GCLOUD=%LOCALAPPDATA%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
-if not defined GCLOUD if exist "%ProgramFiles(x86)%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd" set "GCLOUD=%ProgramFiles(x86)%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
-if not defined GCLOUD if exist "%ProgramFiles%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd" set "GCLOUD=%ProgramFiles%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
+call :find
 if not defined GCLOUD (
-  echo First the Google Cloud CLI, which does the sign-in:
+  echo First the Google Cloud CLI, which does the sign-in. This takes a minute or two.
+  echo Windows may ask for administrator rights: if nothing shows up, look for a
+  echo flashing shield in the taskbar.
   winget install --id Google.CloudSDK --exact --source winget
+  call :find
 )
-if not defined GCLOUD if exist "%LOCALAPPDATA%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd" set "GCLOUD=%LOCALAPPDATA%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
-if not defined GCLOUD if exist "%ProgramFiles(x86)%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd" set "GCLOUD=%ProgramFiles(x86)%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
-if not defined GCLOUD if exist "%ProgramFiles%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd" set "GCLOUD=%ProgramFiles%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
 if not defined GCLOUD (
   echo The Google Cloud CLI could not be installed. See https://cloud.google.com/sdk/docs/install
   exit /b 1
@@ -542,18 +587,22 @@ call "%GCLOUD%" auth application-default login
 if errorlevel 1 exit /b 1
 echo.
 echo Done. Close this window; Superint Video sees the sign-in by itself.
+exit /b 0
+
+rem The Google Cloud CLI on the search path, or where its installer puts it (as gauth::cli).
+:find
+set "GCLOUD="
+for %%G in (gcloud.cmd) do if not "%%~$PATH:G"=="" set "GCLOUD=%%~$PATH:G"
+if not defined GCLOUD if exist "%LOCALAPPDATA%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd" set "GCLOUD=%LOCALAPPDATA%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
+if not defined GCLOUD if exist "%ProgramFiles(x86)%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd" set "GCLOUD=%ProgramFiles(x86)%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
+if not defined GCLOUD if exist "%ProgramFiles%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd" set "GCLOUD=%ProgramFiles%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
+exit /b 0
 "#;
 
 /// Opens the sign-in window. Google's own CLI keeps the sign-in; the app saves nothing of it.
 async fn google_sign_in(State(state): State<AppState>) -> ApiResult<Json<Value>> {
-    std::fs::create_dir_all(&state.home).map_err(anyhow::Error::from)?;
-    let script = state.home.join("google-sign-in.cmd");
-    std::fs::write(&script, GOOGLE_SIGN_IN_SCRIPT.replace('\n', "\r\n"))
-        .map_err(anyhow::Error::from)?;
-    open_terminal(
-        "Superint Video: Google sign-in",
-        &script.display().to_string(),
-    )?;
+    let script = write_script(&state.home, "google-sign-in.cmd", GOOGLE_SIGN_IN_SCRIPT)?;
+    open_terminal("Superint Video: Google sign-in", &script)?;
     Ok(Json(json!({"started": true})))
 }
 
@@ -579,10 +628,7 @@ async fn save_key(
 ) -> ApiResult<Json<Value>> {
     let name = known_key(&name)?;
     KeyStore::at(&state.home).set(name, &body.value)?;
-    let settings = Settings::load(&state.home)?;
-    Ok(Json(
-        json!({"keys": key_rows(&Keys::load(state.start())?, &settings)}),
-    ))
+    Ok(Json(json!({"keys": Access::load(&state)?.key_rows()})))
 }
 
 async fn remove_key(
@@ -591,10 +637,7 @@ async fn remove_key(
 ) -> ApiResult<Json<Value>> {
     let name = known_key(&name)?;
     KeyStore::at(&state.home).remove(name)?;
-    let settings = Settings::load(&state.home)?;
-    Ok(Json(
-        json!({"keys": key_rows(&Keys::load(state.start())?, &settings)}),
-    ))
+    Ok(Json(json!({"keys": Access::load(&state)?.key_rows()})))
 }
 
 async fn test_key(
@@ -621,17 +664,34 @@ async fn dictate(State(state): State<AppState>, body: Bytes) -> ApiResult<Json<V
     if seconds > providers::MOST_DICTATION_SECONDS {
         return Err(ApiError::bad("The recording is longer than ten minutes"));
     }
-    let keys = Keys::load(state.start())?;
-    if !env::KNOWN.iter().any(|name| keys.get(name).is_some()) {
+    let Access {
+        keys,
+        settings,
+        sign_in,
+        place,
+    } = Access::load(&state)?;
+    // The same answer the start page gave when it showed the microphone.
+    let any = [
+        Provider::AiStudio,
+        Provider::GoogleCloud,
+        Provider::OpenAi,
+        Provider::OpenRouter,
+    ]
+    .into_iter()
+    .any(|route| providers::ready(&keys, sign_in.as_ref(), &place, route));
+    if !any {
         return Err(ApiError::bad(
             "Dictation needs an API key: add one under Setup",
         ));
     }
-    let settings = Settings::load(&state.home)?;
-    let generators =
-        providers::Generators::new(keys, std::env::temp_dir().join("superint-video-dictation"))?;
+    let generators = providers::Generators::with(
+        keys,
+        std::env::temp_dir().join("superint-video-dictation"),
+        &settings,
+        sign_in,
+    )?;
     let dictation = generators
-        .dictate(body.to_vec(), settings.dictation_model.as_deref())
+        .dictate(&body, settings.dictation_model.as_deref())
         .await?;
     Ok(Json(json!(dictation)))
 }
@@ -642,35 +702,7 @@ async fn save_settings(
     State(state): State<AppState>,
     Json(mut settings): Json<Settings>,
 ) -> ApiResult<Json<Value>> {
-    // Model IDs are pasted from the provider's pages: `models/` in front and spaces come along.
-    for model in [
-        &mut settings.narration_model,
-        &mut settings.transcription_model,
-        &mut settings.music_model,
-        &mut settings.dictation_model,
-    ] {
-        *model = model
-            .take()
-            .map(|m| home::model_id(&m))
-            .filter(|m| !m.is_empty());
-    }
-    for value in [
-        &mut settings.narration_voice,
-        &mut settings.google_cloud_project,
-        &mut settings.google_cloud_location,
-        &mut settings.open_ai_region,
-    ] {
-        *value = value
-            .take()
-            .map(|v| v.trim().to_string())
-            .filter(|v| !v.is_empty());
-    }
-    for value in [
-        &mut settings.google_cloud_location,
-        &mut settings.open_ai_region,
-    ] {
-        *value = value.take().map(|v| v.to_lowercase());
-    }
+    settings.normalize();
     settings.save(&state.home)?;
     Ok(Json(json!({"settings": settings})))
 }
@@ -1093,7 +1125,8 @@ mod tests {
         let keys = Keys::load_with(project.path(), Some(home.path())).unwrap();
         let mut settings = Settings::default();
         settings.set("openAiRegion", "eu").unwrap();
-        let rows = json!(key_rows(&keys, &settings)).to_string();
+        let place = providers::cloud::Place::of(&keys, &settings, None);
+        let rows = json!(key_rows(&keys, &settings, None, &place)).to_string();
         assert!(!rows.contains("value-that-must-not-leak-01"));
         assert!(rows.contains("aistudio.google.com"));
         // Each provider names the models its key is used with by default.

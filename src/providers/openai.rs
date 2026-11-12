@@ -2,15 +2,16 @@
 //! models end on 2027-01-06, their successor is a conversation model that does not promise to
 //! read a text word for word, and only whisper-1 (ending 2027-02-26) gives word timings
 //! (checked 2026-11-12).
-use super::{Generators, Provider};
+use super::{Generators, Provider, text_of};
 use crate::env;
 use anyhow::Result;
 use reqwest::multipart::{Form, Part};
 use serde_json::Value;
 use std::time::Duration;
 
-/// The regions a request can be served in, with their address. A project with European data
-/// residency is reached through `eu.api.openai.com`; any key can ask for processing there.
+/// The regions a request can be served in, with their address. `eu.api.openai.com` takes only
+/// projects whose residency is Europe (Settings, Project, "Project Residency" on
+/// platform.openai.com); most projects are Global.
 pub const REGIONS: &[(&str, &str)] = &[
     ("global", "https://api.openai.com/v1"),
     ("eu", "https://eu.api.openai.com/v1"),
@@ -46,29 +47,17 @@ pub(super) async fn dictate(g: &Generators, wav: &[u8], model: &str) -> Result<S
         .json()
         .await
         .map_err(|e| g.transport(e))?;
-    Ok(value["text"]
-        .as_str()
-        .unwrap_or_default()
-        .trim()
-        .to_string())
+    Ok(text_of(&value))
 }
 
 /// Whether this key sees a model (`GET /models/{model}`).
 pub async fn visible(g: &Generators, model: &str) -> Result<bool> {
     let key = g.keys.require(env::OPENAI)?;
-    let response = g
+    let request = g
         .http
         .get(format!("{}/models/{model}", g.openai))
-        .bearer_auth(key.expose())
-        .timeout(Duration::from_secs(20))
-        .send()
-        .await
-        .map_err(|e| g.transport(e))?;
-    match response.status().as_u16() {
-        200 => Ok(true),
-        404 => Ok(false),
-        _ => Err(g.failure(Provider::OpenAi, response).await),
-    }
+        .bearer_auth(key.expose());
+    g.probe(Provider::OpenAi, request).await
 }
 
 #[cfg(test)]
