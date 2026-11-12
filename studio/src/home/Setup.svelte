@@ -20,6 +20,7 @@
     reveal,
     run,
     saveSettings,
+    skillsBehind,
   } from './session';
 
   export let overview: Overview;
@@ -102,10 +103,7 @@
     .filter((part) => setup.can[part])
     .map((part) => $t(`setup.part.${part}`));
   $: readyAgents = setup.agents.filter((agent) => agent.ready).map((agent) => agent.title);
-  // Agents that work, with skills the app could bring to its own version.
-  $: behind = setup.agents
-    .filter((agent) => agent.ready && agent.canInstall && agent.outdated.length)
-    .map((agent) => agent.title);
+  $: behind = skillsBehind(setup).map((agent) => agent.title);
   $: mainKeys = setup.keys.filter((key) => !key.more);
   $: moreKeys = setup.keys.filter((key) => key.more);
   // A provider with a key stays in sight.

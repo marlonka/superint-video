@@ -223,7 +223,11 @@ struct Identity {
 
 impl Identity {
     fn of(sheet: &Sheet, given: Option<&str>) -> Result<Self> {
-        let given = given.map(|name| line(name, 60)).filter(|n| !n.is_empty());
+        // One rule for a name from typed text, then this style's own length.
+        let given = given
+            .and_then(home::film_name)
+            .map(|name| line(&name, 60))
+            .filter(|n| !n.is_empty());
         let title = given.clone().unwrap_or_else(|| line(&sheet.title.en, 60));
         ensure!(!title.is_empty(), "The model's answer names no title");
         let description = line(&sheet.description.en, 320);

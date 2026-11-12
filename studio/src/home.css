@@ -55,9 +55,6 @@
   margin-bottom: 20px;
 }
 /* A folded section is its heading alone. */
-.home-heading:last-child {
-  margin-bottom: 0;
-}
 .home-heading > h2 {
   margin: 0;
   font-size: 22px;
@@ -71,9 +68,6 @@
   color: var(--secondary);
   font-size: 15px;
   line-height: 1.45;
-}
-.home-heading > .button {
-  align-self: center;
 }
 /* The actions that belong to a whole section, at the end of its heading. */
 .home-heading-actions {

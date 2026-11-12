@@ -6,7 +6,7 @@
   import Icon from '../Icon.svelte';
   import { format, locale, t, type Formats, type Translate } from '../i18n';
   import type { Film, Overview } from '../types';
-  import { tick } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import {
     FILM_LANGUAGES,
     FORMATS,
@@ -30,7 +30,6 @@
   let topic = '';
   /** Empty is the first choice of a list: the default style, or the one the topic suits. */
   let pick = { style: '', format: '', language: '' };
-  let lengthText = '';
   let seconds: number | null = null;
   let copied = false;
   let field: HTMLTextAreaElement;
@@ -53,11 +52,20 @@
   $: base = $baseFilm
     ? overview.films.find((film) => film.id === $baseFilm.id && film.exists) || null
     : null;
-  // A newly chosen base brings the topic field into reach.
-  let shownBase: string | null = null;
-  $: if ((base?.id ?? null) !== shownBase) {
-    shownBase = base?.id ?? null;
-    if (shownBase) void tick().then(() => field?.focus({ preventScroll: true }));
+  // Choosing a base, the same one again too, brings this section into view, ready for the
+  // topic. A base still chosen when the page comes back leaves the page where it is.
+  let section: HTMLElement;
+  onMount(() => {
+    let mounted = false;
+    const stop = baseFilm.subscribe((film) => {
+      if (film && mounted) void tick().then(showBase);
+    });
+    mounted = true;
+    return stop;
+  });
+  function showBase() {
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    field.focus({ preventScroll: true });
   }
   $: styles = overview.styles;
   $: defaultStyle = styles.find((style) => style.name === overview.settings.preset) || null;
@@ -149,7 +157,7 @@
   }
 </script>
 
-<section class="home-section" aria-labelledby="new-title">
+<section class="home-section" aria-labelledby="new-title" bind:this={section}>
   <div class="home-heading">
     <h2 id="new-title">{$t('compose.title')}</h2>
     <p class="home-summary">{$t('compose.lead', { agents })}</p>
@@ -183,7 +191,7 @@
                 : $t('choice.fit')}</option
             >
             {#if defaultStyle}<option value={FIT}>{$t('choice.fit')}</option>{/if}
-            {#each styles.filter((entry) => entry !== defaultStyle) as entry (entry.name)}<option
+            {#each styles.filter((entry) => entry.name !== defaultStyle?.name) as entry (entry.name)}<option
                 value={entry.name}>{styleText(entry, $locale).title}</option
               >{/each}
             <option value={ASK}>{$t('choice.ask')}</option>
@@ -191,12 +199,7 @@
       </div>
       <div class="composer-choice">
         <label for="film-length">{$t('field.length')}</label>
-        <LengthField
-          id="film-length"
-          empty={$t('choice.fit')}
-          bind:text={lengthText}
-          bind:seconds
-        />
+        <LengthField id="film-length" empty={$t('choice.fit')} bind:seconds />
       </div>
       <div class="composer-choice">
         <label for="film-format">{$t('field.format')}</label>

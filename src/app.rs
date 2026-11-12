@@ -1122,10 +1122,9 @@ async fn duplicate_film(
     if !root.join("video.json").is_file() {
         return Err(ApiError::bad("The folder of this film is gone"));
     }
-    let name = body.name.trim().replace('*', "");
-    if name.is_empty() {
+    let Some(name) = home::film_name(&body.name) else {
         return Err(ApiError::bad("The copy needs a name"));
-    }
+    };
     let settings = Settings::load(&state.home)?;
     let folder = home::films_dir(&settings).context("No films folder is set")?;
     let target = home::new_film_dir(&folder, &name);

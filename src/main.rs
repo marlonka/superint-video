@@ -731,8 +731,7 @@ async fn run() -> Result<()> {
             let source = ProjectStore::open(&film)?;
             let name = name
                 .or(topic)
-                .map(|text| text.trim().replace('*', ""))
-                .filter(|text| !text.is_empty())
+                .and_then(|text| home::film_name(&text))
                 .unwrap_or_else(|| format!("{} (copy)", source.manifest.name));
             let directory = match to {
                 Some(directory) => directory,
@@ -840,7 +839,8 @@ async fn run() -> Result<()> {
             created["fromSettings"] = json!(from_settings);
             let root = ProjectStore::open(&directory)?.root;
             if let Some(home) = home::dir() {
-                let name = topic.as_deref().unwrap_or("Untitled").replace('*', "");
+                let name = home::film_name(topic.as_deref().unwrap_or_default())
+                    .unwrap_or_else(|| "Untitled".into());
                 home::remember(&home, &root, &name, true);
             }
             // The user watches from the first minute: Studio opens right away, or the app's

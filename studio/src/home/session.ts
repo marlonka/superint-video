@@ -180,6 +180,13 @@ export function needs(state: Overview): SetupNeed[] {
   return missing;
 }
 
+/** Agents that work, with skills older than the app that the app can bring up to date. */
+export function skillsBehind(setup: Overview['setup']) {
+  return setup.agents.filter(
+    (agent) => agent.ready && agent.canInstall && agent.outdated.length > 0,
+  );
+}
+
 const SKIPPED = 'superint-setup-skipped';
 function wasSkipped() {
   try {

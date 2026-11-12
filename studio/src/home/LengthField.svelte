@@ -3,6 +3,7 @@
   // suggestions, in a field that looks and opens like the lists beside it. Empty leaves the
   // length to the topic. Arrow keys move through the suggestions, Enter takes one, Escape
   // closes them; a typed length is written out the usual way when the field is left.
+  import { tick } from 'svelte';
   import Icon from '../Icon.svelte';
   import { lengthLabel, t } from '../i18n';
   import { LENGTHS, parseLength } from './choices';
@@ -36,12 +37,21 @@
   /** The suggestion that stands for what the field holds now; -1 for a length of its own. */
   $: selected = !text.trim() ? 0 : seconds ? choices.indexOf(seconds) : -1;
 
+  /** Opens the list on what the field holds, or on the next longer suggestion. */
   function show() {
-    // The list opens on what the field holds, or on the next longer suggestion.
-    const next = seconds ? choices.findIndex((choice) => choice && choice >= seconds!) : 0;
-    active = selected >= 0 ? selected : Math.max(0, next);
+    const wanted = seconds;
+    const longer = wanted ? choices.findIndex((choice) => choice !== null && choice >= wanted) : 0;
+    active = selected >= 0 ? selected : Math.max(0, longer);
     open = true;
-    queueMicrotask(reveal);
+    void tick().then(reveal);
+  }
+  function toggle() {
+    if (open) open = false;
+    else show();
+  }
+  function move(step: number) {
+    active = Math.min(choices.length - 1, Math.max(0, active + step));
+    reveal();
   }
   /** Scrolls the list, and only the list, so the highlighted suggestion is in view. */
   function reveal() {
@@ -64,13 +74,8 @@
   }
   function key(event: KeyboardEvent) {
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      if (!open) show();
-      else
-        active = Math.min(
-          choices.length - 1,
-          Math.max(0, active + (event.key === 'ArrowDown' ? 1 : -1)),
-        );
-      queueMicrotask(reveal);
+      if (open) move(event.key === 'ArrowDown' ? 1 : -1);
+      else show();
     } else if (event.key === 'Enter') {
       if (open) take(active);
       else tidy();
@@ -107,7 +112,7 @@
     aria-describedby={note ? `${id}-note` : undefined}
     bind:value={text}
     oninput={() => (open = false)}
-    onclick={() => (open ? (open = false) : show())}
+    onclick={toggle}
     onkeydown={key}
     onblur={() => {
       open = false;
@@ -121,8 +126,7 @@
     aria-label={$t('compose.lengthSuggestions')}
     onpointerdown={(event) => event.preventDefault()}
     onclick={() => {
-      if (open) open = false;
-      else show();
+      toggle();
       field.focus();
     }}><Icon name="chevron" size={18} /></button
   >
@@ -136,6 +140,7 @@
       {#each choices as choice, index (choice ?? 0)}
         {@const chosen = index === selected}
         <!-- The field keeps the focus; the arrow keys drive the list. -->
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
         <div
           id={`${id}-${index}`}
           role="option"
@@ -145,7 +150,6 @@
           onpointerdown={(event) => event.preventDefault()}
           onpointermove={() => (active = index)}
           onclick={() => take(index)}
-          onkeydown={() => {}}
         >
           <span>{choice ? lengthLabel(choice) : empty}</span>{#if chosen}<Icon
               name="check"
