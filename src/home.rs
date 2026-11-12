@@ -39,14 +39,23 @@ pub fn dir() -> Option<PathBuf> {
 /// user's profile is the same for every program.
 #[cfg(windows)]
 fn user_folder() -> Option<PathBuf> {
-    static GATHERED: std::sync::Once = std::sync::Once::new();
-    let home = PathBuf::from(std::env::var_os("USERPROFILE")?).join(format!(".{NAME}"));
-    GATHERED.call_once(|| {
-        if let Err(error) = gather(&home, &earlier_folders()) {
-            eprintln!("Could not bring over the settings of earlier versions: {error:#}");
-        }
-    });
-    Some(home)
+    Some(PathBuf::from(std::env::var_os("USERPROFILE")?).join(format!(".{NAME}")))
+}
+
+/// Run once as the program starts, before anything reads the folder: the first time, the user's
+/// folder is filled from where versions up to 0.7.0 kept it. A folder `SUPERINT_HOME` names
+/// is left alone.
+#[cfg(windows)]
+pub fn move_in() {
+    if std::env::var_os("SUPERINT_HOME").is_some_and(|d| !d.is_empty()) {
+        return;
+    }
+    let Some(home) = user_folder().filter(|home| !home.exists()) else {
+        return;
+    };
+    if let Err(error) = gather(&home, &earlier_folders()) {
+        eprintln!("Could not bring over the settings of earlier versions: {error:#}");
+    }
 }
 
 #[cfg(not(windows))]
