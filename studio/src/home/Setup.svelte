@@ -8,6 +8,7 @@
   import type { Agent, KeyCheck, KeyRow, Overview, Settings, Tool, UsualModels } from '../types';
   import SetupFilms from './SetupFilms.svelte';
   import SetupItem from './SetupItem.svelte';
+  import VoiceChoice from './VoiceChoice.svelte';
   import {
     announce,
     busy,
@@ -148,6 +149,16 @@
       installing = { ...installing, [tool.id]: true };
     });
   }
+  /** Chrome DevTools MCP: its project, and the coding agents that have it or lack it. */
+  const BROWSER_PAGE = 'https://github.com/ChromeDevTools/chrome-devtools-mcp';
+  $: agentsHere = setup.agents.filter((agent) => agent.found);
+  $: withBrowser = agentsHere.filter((agent) => agent.browser).map((agent) => agent.title);
+  $: withoutBrowser = agentsHere.filter((agent) => !agent.browser).map((agent) => agent.title);
+  async function copyBrowserTask() {
+    const task = $t('setup.browser.task', { url: BROWSER_PAGE });
+    if (!(await copyText(task, $t('setup.tool.taskCopied')))) fail($t('common.copyBlocked'));
+  }
+
   /** A task the coding agent can carry out instead of the user typing commands. */
   async function copyTask(tool: Tool) {
     // Earshot is the one tool that comes with a command of its own.
@@ -617,16 +628,23 @@
                     {#each MODEL_FIELDS as field (field.setting)}
                       <label
                         ><span>{$t(field.label)}</span>
-                        <input
-                          type="text"
-                          class:model-id={field.setting !== 'narrationVoice'}
-                          name={field.setting}
-                          autocomplete="off"
-                          spellcheck="false"
-                          placeholder={setup.models[field.usual]}
-                          aria-describedby="models-hint"
-                          bind:value={modelDrafts[field.setting]}
-                        /></label
+                        {#if field.setting === 'narrationVoice'}<VoiceChoice
+                            model={modelDrafts.narrationModel.trim() || setup.models.narration}
+                            voices={setup.voices}
+                            name={field.setting}
+                            placeholder={setup.models.voice}
+                            describedby="models-hint"
+                            bind:value={modelDrafts.narrationVoice}
+                          />{:else}<input
+                            type="text"
+                            class="model-id"
+                            name={field.setting}
+                            autocomplete="off"
+                            spellcheck="false"
+                            placeholder={setup.models[field.usual]}
+                            aria-describedby="models-hint"
+                            bind:value={modelDrafts[field.setting]}
+                          />{/if}</label
                       >
                     {/each}
                   </div>
@@ -689,6 +707,29 @@
               </svelte:fragment>
             </SetupItem>
           {/each}
+          <SetupItem
+            title="Chrome DevTools MCP"
+            done={agentsHere.length > 0 && withoutBrowser.length === 0}
+          >
+            <span
+              >{$t('setup.browser.why')}{withBrowser.length
+                ? ` ${$t('setup.browser.has', { agents: $format.and(withBrowser) })}`
+                : ''}{withBrowser.length && withoutBrowser.length
+                ? ` ${$t('setup.browser.lacks', { agents: $format.and(withoutBrowser) })}`
+                : ''}</span
+            >
+            {#if !agentsHere.length || withoutBrowser.length}<span class="setup-links"
+                ><a class="text-link" href={BROWSER_PAGE} target="_blank" rel="noreferrer"
+                  >{$t('setup.tool.project')}</a
+                ></span
+              >{/if}
+            <svelte:fragment slot="action">
+              {#if !agentsHere.length || withoutBrowser.length}<button
+                  class="button"
+                  onclick={copyBrowserTask}>{$t('setup.browser.copy')}</button
+                >{/if}
+            </svelte:fragment>
+          </SetupItem>
         </ul>
       </section>
     {/if}

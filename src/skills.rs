@@ -25,8 +25,16 @@ pub struct Agent {
     folder: &'static str,
     /// Folders in the user's home that are there once it is installed.
     found_by: &'static [&'static str],
+    /// Files in the user's home where it keeps the MCP servers of every project.
+    mcp_files: &'static [&'static str],
     pub get: &'static str,
 }
+
+/// The MCP server that lets a coding agent open web pages and take screenshots of them, as
+/// its package is named in the agents' settings (github.com/ChromeDevTools/chrome-devtools-mcp).
+pub const BROWSER_SERVER: &str = "chrome-devtools-mcp";
+/// Claude Code's file of its own settings, which also holds each project's MCP servers.
+const CLAUDE_FILE: &str = ".claude.json";
 
 pub const AGENTS: &[Agent] = &[
     Agent {
@@ -34,6 +42,8 @@ pub const AGENTS: &[Agent] = &[
         title: "Claude Code",
         folder: ".claude",
         found_by: &[".claude"],
+        // Its own servers, and the plugin that brings the server with skills.
+        mcp_files: &[CLAUDE_FILE, ".claude/plugins/installed_plugins.json"],
         get: "https://claude.com/product/claude-code",
     },
     Agent {
@@ -41,6 +51,7 @@ pub const AGENTS: &[Agent] = &[
         title: "ChatGPT Codex",
         folder: ".codex",
         found_by: &[".codex"],
+        mcp_files: &[".codex/config.toml"],
         get: "https://openai.com/codex/",
     },
     // Global skills live in `~/.gemini/config/skills`, shared by the Antigravity app and its
@@ -54,6 +65,12 @@ pub const AGENTS: &[Agent] = &[
             ".gemini/antigravity",
             ".gemini/antigravity-cli",
             ".gemini/config",
+        ],
+        // The global MCP servers (antigravity.google/docs/mcp, checked 2026-11-12), and where
+        // the app kept them before.
+        mcp_files: &[
+            ".gemini/config/mcp_config.json",
+            ".gemini/antigravity/mcp_config.json",
         ],
         get: "https://antigravity.google/",
     },
@@ -80,6 +97,27 @@ impl Agent {
 
     pub fn skills_dir(&self) -> Option<PathBuf> {
         Some(self.home()?.join("skills"))
+    }
+
+    /// Whether the agent can open web pages through the Chrome DevTools MCP server in every
+    /// project. Its settings are read, never changed.
+    pub fn has_browser(&self) -> bool {
+        Self::user().is_some_and(|user| self.has_browser_in(&user))
+    }
+
+    fn has_browser_in(&self, user: &Path) -> bool {
+        self.mcp_files.iter().any(|file| {
+            let Ok(text) = fs::read_to_string(user.join(file)) else {
+                return false;
+            };
+            // Claude Code keeps every project's servers in the same file: only its own count.
+            if *file == CLAUDE_FILE {
+                return serde_json::from_str::<Value>(&text).is_ok_and(|settings| {
+                    settings["mcpServers"].to_string().contains(BROWSER_SERVER)
+                });
+            }
+            text.contains(BROWSER_SERVER)
+        })
     }
 }
 
@@ -196,6 +234,7 @@ pub fn describe() -> Vec<Value> {
                 "id": agent.id,
                 "title": agent.title,
                 "found": agent.installed(),
+                "browser": agent.installed() && agent.has_browser(),
                 "ready": missing.is_empty(),
                 "missing": missing,
                 "outdated": named(State::Differs),
@@ -398,5 +437,38 @@ mod tests {
             assert_eq!(agent["ready"], missing == 0);
             assert!(agent["outdated"].is_array());
         }
+    }
+
+    #[test]
+    fn the_browser_server_is_found_where_each_agent_keeps_its_own() {
+        let user = TempDir::new().unwrap();
+        let agent = |id| Agent::find(id).unwrap();
+        for id in ["claude", "codex", "antigravity"] {
+            assert!(!agent(id).has_browser_in(user.path()), "{id}");
+        }
+        // Claude Code: a server of one project is not the agent's own; its own is.
+        write(
+            user.path().join(CLAUDE_FILE),
+            r#"{"projects": {"C:/x": {"mcpServers": {"chrome-devtools": {"command": "npx", "args": ["chrome-devtools-mcp@latest"]}}}}}"#,
+        );
+        assert!(!agent("claude").has_browser_in(user.path()));
+        write(
+            user.path().join(CLAUDE_FILE),
+            r#"{"mcpServers": {"chrome-devtools": {"command": "cmd", "args": ["/c", "npx", "-y", "chrome-devtools-mcp@latest"]}}}"#,
+        );
+        assert!(agent("claude").has_browser_in(user.path()));
+        write(
+            user.path().join(".codex/config.toml"),
+            "[mcp_servers.chrome-devtools]
+command = \"cmd\"
+args = [\"/c\", \"npx\", \"-y\", \"chrome-devtools-mcp@latest\"]
+",
+        );
+        assert!(agent("codex").has_browser_in(user.path()));
+        write(
+            user.path().join(".gemini/config/mcp_config.json"),
+            r#"{"mcpServers": {"chrome-devtools": {"command": "npx", "args": ["-y", "chrome-devtools-mcp@latest"]}}}"#,
+        );
+        assert!(agent("antigravity").has_browser_in(user.path()));
     }
 }

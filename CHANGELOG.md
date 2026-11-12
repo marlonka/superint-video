@@ -1,5 +1,11 @@
 # Versionsverlauf
 
+## 0.6.0 — 2026-11-12
+
+- **Chrome DevTools MCP unter „Freiwillig“:** Die Einrichtung zeigt, bei welchem Coding-Agenten [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp) eingerichtet ist und bei welchem es fehlt. Damit öffnet der Agent Websites und macht Screenshots, etwa für einen Launch-Film über eine Website. „Auftrag kopieren“ gibt ihm die Anleitung für Claude Code, ChatGPT Codex und Google Antigravity, mit `--no-usage-statistics`. Die App liest dafür nur die Einstellungen der Agenten. Der Skill `superint-launch` sagt dem Agenten, wie er damit Screenshots einer Website in `references/` legt.
+- **Stimme aus einer Liste:** Unter „Modelle“ → „Modelle wählen“ ist „Stimme: Name“ bei Gemini-Modellen eine Liste der 30 Stimmen, jede mit dem Wort, mit dem Google sie beschreibt („Kore · bestimmt“), bei ElevenLabs über OpenRouter eine Liste seiner Stimmen. Wechselt das Modell zu einer anderen Familie, gilt wieder deren übliche Stimme. Andere Modelle behalten das Textfeld.
+- **Klarer:** Unter „Standardmodelle“ steht jetzt „Die üblichen Modelle der Anbieter, für die du einen API-Schlüssel hast.“
+
 ## 0.5.0 — 2026-11-12
 
 - **Eigenen Stil erstellen:** Unter „Stile“ steht vorne „Neuen Stil erstellen“, an der Stelle der Karte „Neutral“; den neutralen Stil gibt es unter „Neuer Film“ weiter. Bis zu 12 Bilder hineinziehen, einfügen oder auswählen, den Look tippen oder einsprechen, einen Namen geben, „Stil erstellen“. Ein Modell deines API-Schlüssels sieht sich die Bilder an und schreibt den Look als Regeln auf: Farben, Schrift aus den mitgelieferten Schriften, Formen, Licht, Bewegung, Bildaufbau, was dazugehört und was nicht. Nach ein bis zwei Minuten steht der Stil als Karte bei deinen Stilen, mit den Bildern als Referenzen und mit „Als Standard“. Er hält fest, wie etwas aussieht, und übernimmt keine Motive, Logos oder Figuren.

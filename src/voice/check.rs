@@ -66,37 +66,38 @@ pub const GEMINI_TAGS: &[&str] = &[
     "whispering",
     "yawn",
 ];
-pub const GEMINI_VOICES: &[&str] = &[
-    "Zephyr",
-    "Puck",
-    "Charon",
-    "Kore",
-    "Fenrir",
-    "Leda",
-    "Orus",
-    "Aoede",
-    "Callirrhoe",
-    "Autonoe",
-    "Enceladus",
-    "Iapetus",
-    "Umbriel",
-    "Algieba",
-    "Despina",
-    "Erinome",
-    "Algenib",
-    "Rasalgethi",
-    "Laomedeia",
-    "Achernar",
-    "Alnilam",
-    "Schedar",
-    "Gacrux",
-    "Pulcherrima",
-    "Achird",
-    "Zubenelgenubi",
-    "Vindemiatrix",
-    "Sadachbia",
-    "Sadaltager",
-    "Sulafat",
+/// The 30 featured Gemini voices, each with the word Google describes it by.
+pub const GEMINI_VOICES: &[(&str, &str)] = &[
+    ("Zephyr", "bright"),
+    ("Puck", "upbeat"),
+    ("Charon", "informative"),
+    ("Kore", "firm"),
+    ("Fenrir", "excitable"),
+    ("Leda", "youthful"),
+    ("Orus", "firm"),
+    ("Aoede", "breezy"),
+    ("Callirrhoe", "easy-going"),
+    ("Autonoe", "bright"),
+    ("Enceladus", "breathy"),
+    ("Iapetus", "clear"),
+    ("Umbriel", "easy-going"),
+    ("Algieba", "smooth"),
+    ("Despina", "smooth"),
+    ("Erinome", "clear"),
+    ("Algenib", "gravelly"),
+    ("Rasalgethi", "informative"),
+    ("Laomedeia", "upbeat"),
+    ("Achernar", "soft"),
+    ("Alnilam", "firm"),
+    ("Schedar", "even"),
+    ("Gacrux", "mature"),
+    ("Pulcherrima", "forward"),
+    ("Achird", "friendly"),
+    ("Zubenelgenubi", "casual"),
+    ("Vindemiatrix", "gentle"),
+    ("Sadachbia", "lively"),
+    ("Sadaltager", "knowledgeable"),
+    ("Sulafat", "warm"),
 ];
 pub const ELEVENLABS_VOICES: &[&str] = &[
     "george", "sarah", "adam", "alice", "bella", "bill", "brian", "callum", "charlie", "chris",
@@ -378,7 +379,7 @@ pub fn check(doc: &VoiceDoc, script: Option<&str>) -> Vec<Issue> {
             }
             if !GEMINI_VOICES
                 .iter()
-                .any(|v| v.eq_ignore_ascii_case(&doc.voice))
+                .any(|(v, _)| v.eq_ignore_ascii_case(&doc.voice))
                 && !doc.voice.starts_with("voice_")
                 && !doc.voice.starts_with("voicekey_")
             {
