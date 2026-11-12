@@ -27,22 +27,25 @@ jobs:
         shell: pwsh
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: "26.11.0"
+          node-version: "26.13.1"
           cache: npm
           cache-dependency-path: studio/package-lock.json
 
+      - name: npm
+        run: npm install --global npm@12.2.2
+
       - name: Rust
         run: |
-          rustup toolchain install 1.99.0 --profile minimal --component rustfmt
+          rustup toolchain install 1.100.0 --profile minimal --component rustfmt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          rustup override set 1.99.0
+          rustup override set 1.100.0
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Build and checks
