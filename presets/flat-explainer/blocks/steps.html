@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../kit/theme.css">
+  <style>
+    .ui { justify-content: flex-start; }
+    .caption { margin: 0; max-width: 80vw; font-size: 4.6vmin; font-weight: 900; text-wrap: balance; }
+    .step { position: absolute; width: 34vmin; margin-left: -17vmin; text-align: center; text-wrap: balance; }
+    .portrait .step { width: 52vmin; margin-left: 0; text-align: left; }
+  </style>
+</head>
+<body>
+  <div class="sky"></div>
+  <div class="stage" id="stage"><svg class="art" id="art"></svg><div id="labels"></div></div>
+  <div class="ui"><p class="caption" id="caption"></p></div>
+  <div class="vignette"></div>
+  <script type="module">
+    import { defineScene } from '/runtime/scene.js';
+    import { fontsReady, once, fitSvg, el, orb, color, enter, between, drift, rise, pop, markup, drawable, draw, starField, twinkle } from '../kit/kit.js';
+
+    const stage = document.getElementById('stage'), art = document.getElementById('art');
+    const caption = document.getElementById('caption'), labels = document.getElementById('labels');
+    const palette = ['sky', 'teal', 'sun', 'coral'];
+
+    const layout = once(({ width, height }) => {
+      const L = fitSvg(art, width, height);
+      document.documentElement.classList.toggle('portrait', L.portrait);
+      L.stars = starField(art, { w: width, h: height, seed: 'steps', count: 50 });
+      L.track = el('path', { fill: 'none', stroke: color('dusk'), 'stroke-width': L.u * 0.9, 'stroke-linecap': 'round', 'stroke-dasharray': `${L.u * 0.1} ${L.u * 2.2}` }, art);
+      L.line = el('path', { fill: 'none', stroke: color('paper'), 'stroke-width': L.u * 0.9, 'stroke-linecap': 'round' }, art);
+      return L;
+    });
+
+    let built = null;
+    function build(L, steps) {
+      // Nodes sit on a gentle wave (landscape) or a vertical spine (portrait).
+      const n = steps.length;
+      const points = steps.map((_, i) => L.portrait
+        ? [L.w * 0.2, L.h * (0.3 + (0.58 * i) / Math.max(1, n - 1))]
+        : [L.w * (0.5 + (i - (n - 1) / 2) * Math.min(0.24, 0.8 / n)), L.h * (0.52 + (i % 2 ? 0.06 : -0.04))]);
+      let d = `M${points[0][0]},${points[0][1]}`;
+      for (let i = 1; i < n; i++) {
+        const [x0, y0] = points[i - 1], [x1, y1] = points[i];
+        d += L.portrait ? ` L${x1},${y1}` : ` C${(x0 + x1) / 2},${y0} ${(x0 + x1) / 2},${y1} ${x1},${y1}`;
+      }
+      L.track.setAttribute('d', d);
+      L.line.setAttribute('d', d);
+      drawable(L.line);
+      built?.nodes.forEach(node => node.remove());
+      labels.replaceChildren();
+      const nodes = points.map((_, i) => {
+        const g = el('g', {}, art);
+        orb(g, { r: 5.2 * L.u, fill: color(palette[i % palette.length]), glow: true });
+        const t = el('text', { 'text-anchor': 'middle', 'dominant-baseline': 'central', fill: color('night'), 'font-size': 4.6 * L.u, 'font-weight': 1000, 'font-family': 'Nunito' }, g);
+        t.textContent = i + 1;
+        return g;
+      });
+      const boxes = steps.map((text, i) => {
+        const box = document.createElement('div');
+        box.className = 'step label';
+        box.innerHTML = markup(text);
+        const [x, y] = points[i];
+        box.style.left = `${L.portrait ? x + 9 * L.u : x}px`;
+        box.style.top = `${L.portrait ? y - 2.2 * L.u : y + 8 * L.u}px`;
+        labels.appendChild(box);
+        return box;
+      });
+      return { key: JSON.stringify(steps), points, nodes, boxes };
+    }
+
+    defineScene({
+      ready: fontsReady,
+      props: {
+        caption: { type: 'text', default: 'So entsteht ein *Regenbogen*', label: 'Caption (*word* = accent)' },
+        step1: { type: 'text', default: 'Sonnenlicht trifft auf Tropfen', label: 'Step 1' },
+        step2: { type: 'text', default: 'Licht wird gebrochen', label: 'Step 2' },
+        step3: { type: 'text', default: 'Farben fächern auf', label: 'Step 3' },
+        step4: { type: 'text', default: 'Wir sehen den *Bogen*', label: 'Step 4 (empty = hidden)' },
+        stepSeconds: { type: 'number', default: 0.9, label: 'Seconds between steps', min: 0.2, max: 4 },
+      },
+      render(context) {
+        const { time, props } = context;
+        const L = layout(context);
+        const steps = [props.step1, props.step2, props.step3, props.step4].filter(s => s.trim());
+        if (built?.key !== JSON.stringify(steps)) built = build(L, steps);
+        caption.innerHTML = markup(props.caption);
+        rise(caption, enter(time, 0.05));
+
+        const gap = props.stepSeconds, start = 0.4;
+        draw(L.line, between(time, start, start + gap * (steps.length - 1) + 0.01));
+        built.nodes.forEach((node, i) => {
+          const p = enter(time, start + i * gap - 0.1, { stiffness: 180, damping: 13 });
+          const [x, y] = built.points[i];
+          node.setAttribute('transform', `translate(${x} ${y}) scale(${Math.max(0, p)})`);
+          rise(built.boxes[i], enter(time, start + i * gap + 0.1), 2);
+        });
+        drift(stage, time, { zoom: 0.006, y: 0 });
+        twinkle(L.stars, time);
+      },
+    });
+  </script>
+</body>
+</html>

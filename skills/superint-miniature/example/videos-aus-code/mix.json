@@ -1,0 +1,43 @@
+{
+ "loudness": -14,
+ "ceiling": -3.4,
+ "musicUnder": 22,
+ "duckDb": 3,
+ "rides": [
+  {
+   "from": 1226,
+   "to": 1980,
+   "db": 9,
+   "rampFrames": 30,
+   "note": "Klavier allein ist leiser als das Trio"
+  },
+  {
+   "from": 4187,
+   "to": 4808,
+   "db": 3,
+   "rampFrames": 90,
+   "note": "die Steigerung bis zum Blitz"
+  },
+  {
+   "from": 5017,
+   "to": 5077,
+   "db": 6,
+   "rampFrames": 12,
+   "note": "Einstieg in der Pause"
+  },
+  {
+   "from": 10693,
+   "to": 11008,
+   "db": 3,
+   "rampFrames": 45,
+   "note": "die Botschaft"
+  },
+  {
+   "from": 11008,
+   "to": 11355,
+   "db": 8,
+   "rampFrames": 45,
+   "note": "Abspann: nur noch Musik"
+  }
+ ]
+}

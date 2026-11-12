@@ -1,0 +1,741 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../kit/theme.css">
+  <link rel="stylesheet" href="../kit/launch.css">
+  <style>
+    body { font-weight: 400; }
+    #ground { position: absolute; inset: 0; background: radial-gradient(1500px 1000px at 50% -12%, #181818, var(--ground) 72%); }
+    .abs { position: absolute; }
+    .ico { display: inline-block; width: 20px; height: 20px; flex: none; }
+    .ico svg { display: block; width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+    .mark svg { display: block; width: 100%; height: 100%; }
+
+    /* ---------------------------------------------------------------- the app's start page */
+    .pageworld { background: var(--page); font-size: 15px; color: var(--ink); }
+    #pageField { background: none; }
+    .hdr { left: 0; top: 0; width: 1920px; height: 69px; background: var(--surface); }
+    .wordmark { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; }
+    .wordmark .mark { width: 24px; height: 24px; color: var(--ink); }
+    .h2 { font-size: 20px; font-weight: 600; }
+    .muted { color: var(--muted); }
+    .btn { display: flex; align-items: center; justify-content: center; gap: 8px; height: 40px; border-radius: 9px; border: 1px solid transparent; font-size: 15px; white-space: nowrap; }
+    .btn.quiet { background: var(--raised); }
+    .btn.primary { background: var(--ink); color: var(--action-text); border-color: var(--ink); font-weight: 500; }
+    .btn.active { background: var(--selected); border-color: var(--border); }
+    .select { display: flex; align-items: center; height: 41px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); font-size: 16px; white-space: nowrap; overflow: hidden; }
+    .select .ico { position: absolute; right: 8px; top: 10px; width: 18px; height: 18px; color: var(--muted); }
+    .label { font-size: 14px; font-weight: 400; color: var(--muted); }
+    .field { left: 433px; top: 270px; width: 1040px; height: 99px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); font-size: 17px; line-height: 1.45; }
+    .field .ph { color: var(--muted); }
+    .caret { display: inline-block; width: 1.5px; height: 22px; margin: 0 -2.5px 0 1px; vertical-align: -5px; background: var(--ink); }
+    .film { width: 242px; }
+    .film .pic { width: 242px; height: 136px; border-radius: 6px; border: 1px solid var(--line); overflow: hidden; }
+    .film .pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .film .name { margin-top: 11px; font-size: 15px; font-weight: 500; line-height: 1.3; }
+    .film .state { margin-top: 4px; font-size: 13px; color: var(--muted); }
+
+    /* ---------------------------------------------------------------- the coding agent's terminal */
+    #term { left: 280px; top: 232px; width: 1360px; height: 616px; border-radius: 14px; background: #121212; border: 1px solid var(--line); box-shadow: 0 40px 120px rgb(0 0 0 / 55%); overflow: hidden; transform-origin: 50% 60%; }
+    #term .title { position: absolute; left: 28px; top: 20px; font-size: 18px; color: var(--muted); }
+    #term .body { position: absolute; left: 44px; top: 78px; right: 44px; font-family: 'JetBrains Mono', monospace; font-size: 22px; line-height: 38px; white-space: pre; color: var(--muted); }
+    #term .row { height: 38px; }
+    #term .row b { font-weight: 400; color: var(--ink); }
+    #term .row.scene b { font-weight: 700; }
+    #term .row .sign { color: #8a8a8a; }
+
+    /* ---------------------------------------------------------------- Studio */
+    .studioworld { background: var(--page); font-size: 15px; color: var(--ink); }
+    .sx-preview { left: 0; top: 69px; width: 1594px; height: 658px; background: var(--page); }
+    .stage { left: 255px; top: 93px; width: 1084px; height: 610px; background: #101010; overflow: hidden; }
+    .stage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+    .transport { left: 0; top: 727px; width: 1594px; height: 65px; background: var(--surface); border-top: 1px solid var(--line); }
+    .inspector { left: 1600px; top: 69px; width: 320px; height: 731px; background: var(--surface); border-left: 1px solid var(--line); }
+    .steps .step { display: flex; align-items: center; gap: 12px; height: 27px; font-size: 14px; color: var(--muted); }
+    .steps .dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--muted); flex: none; }
+    .steps .step.done .dot { background: var(--muted); }
+    .steps .step.active { color: var(--ink); font-weight: 500; }
+    .steps .step.active .dot { border-color: var(--ink); box-shadow: 0 0 0 3px rgb(238 238 238 / 18%); }
+    .tl { left: 0; top: 800px; width: 1920px; height: 280px; background: var(--surface); border-top: 1px solid var(--line); }
+    .tick { font-size: 13px; color: var(--muted); }
+    .tick::after { content: ''; position: absolute; left: 0; top: 23px; width: 1px; height: 6px; background: var(--border); }
+    .tl .btn.off { color: var(--border); }
+    .trackrow { left: 0; width: 1913px; height: 53px; border-bottom: 1px solid var(--line); }
+    .trackrow .lab { position: absolute; left: 0; top: 0; width: 182px; height: 53px; background: var(--surface); display: flex; align-items: center; gap: 10px; padding-left: 16px; font-size: 14px; }
+    .trackrow .lab .ico { width: 18px; height: 18px; color: var(--muted); }
+    .trackrow .lab .end { position: absolute; right: 18px; top: 16px; }
+    .trackrow .lane { position: absolute; left: 182px; top: 0; right: 0; height: 52px; background: var(--page); }
+    .clip { position: absolute; height: 44px; border-radius: 6px; border: 1px solid var(--border); background: var(--raised); display: flex; align-items: center; gap: 8px; padding: 0 11px; font-size: 14px; font-weight: 500; overflow: hidden; white-space: nowrap; }
+    .clip .ico { width: 16px; height: 16px; color: var(--muted); }
+    .sfx { position: absolute; top: 4px; height: 44px; border-radius: 4px; border: 1px solid var(--border); background: var(--raised); }
+    .playhead { left: 0; top: 857px; width: 2px; height: 223px; background: var(--ink); }
+    .playhead::before { content: ''; position: absolute; left: -5px; top: 0; width: 12px; height: 13px; background: var(--ink); clip-path: polygon(0 0, 100% 0, 100% 60%, 50% 100%, 0 60%); }
+
+    /* render view, laid out at film size inside the preview panel */
+    #render { left: 0; top: 69px; width: 1594px; height: 731px; }
+    #render .veil { position: absolute; inset: 0; background: var(--page); opacity: 0; }
+    #render .pic { position: absolute; left: 0; top: 0; width: 1000px; height: 562.5px; overflow: hidden; background: #101010; opacity: 0; }
+    #render .pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+    #render .head { position: absolute; left: 297px; top: 591px; width: 1000px; display: flex; gap: 22px; align-items: baseline; font-size: 21px; color: var(--muted); white-space: nowrap; }
+    #render .head strong { font-size: 26px; font-weight: 600; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+    #render .bar { position: absolute; left: 297px; top: 637px; width: 1000px; height: 8px; border-radius: 4px; background: var(--selected); overflow: hidden; }
+    #render .bar i { display: block; height: 100%; background: var(--ink); transform-origin: 0 0; }
+    #render .strip { position: absolute; left: 297px; top: 661px; width: 1000px; height: 63px; overflow: hidden; }
+    #render .strip .reel { position: absolute; left: 0; top: 0; height: 63px; display: flex; gap: 6px; }
+    #render .strip .reel div { width: 112px; height: 63px; border-radius: 4px; background-image: url('../assets/case/strip.jpg'); background-size: 3360px 63px; opacity: 0; }
+
+    /* ---------------------------------------------------------------- handover shapes and the end card */
+    .shape { border-radius: 8px; overflow: hidden; }
+    .shape .fill { position: absolute; inset: 0; }
+    .shape .inner { position: absolute; inset: 0; display: flex; align-items: center; }
+    #bar { background: var(--ink); }
+    #bar .inner { align-items: flex-start; padding: 10px 12px; font-size: 17px; color: var(--muted); }
+    #bar .blabel { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--action-text); font-weight: 500; white-space: nowrap; opacity: 0; }
+    .fly { background: var(--raised); border: 1px solid var(--border); border-radius: 6px; }
+    .fly .text { position: absolute; left: 0; top: 0; height: 100%; display: flex; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 700; color: var(--ink); white-space: pre; }
+    .fly .title { position: absolute; left: 11px; top: 0; height: 100%; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: var(--ink); white-space: nowrap; transform-origin: 0 50%; }
+    .fly .title .ico { width: 16px; height: 16px; color: var(--muted); }
+    .sbar { background: var(--ink); border-radius: 0; overflow: hidden; }
+    .sbar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .sbar .reel { position: absolute; left: 0; top: 0; height: 63px; display: flex; gap: 6px; transform-origin: 0 0; }
+    .sbar .reel div { flex: none; width: 112px; height: 63px; border-radius: 4px; background-image: url('../assets/case/strip.jpg'); background-size: 3360px 63px; }
+    .sbar .white { position: absolute; inset: 0; background: var(--ink); }
+    #toast { display: flex; align-items: center; gap: 12px; padding: 18px 24px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); color: var(--ink); font-size: 22px; box-shadow: 0 24px 72px rgb(0 0 0 / 45%); white-space: nowrap; opacity: 0; }
+    #toast .ico { width: 26px; height: 26px; }
+    #cursor { width: 40px; height: 40px; opacity: 0; filter: drop-shadow(0 4px 8px rgb(0 0 0 / 45%)); }
+    #word { font-size: 112px; font-weight: 650; letter-spacing: -0.02em; line-height: 1; white-space: nowrap; color: var(--ink); opacity: 0; }
+    #fact { font-size: 38px; font-weight: 500; color: var(--muted); white-space: nowrap; opacity: 0; }
+  </style>
+</head>
+<body>
+  <div id="ground"></div>
+
+  <!-- the start page of the app: everything but the field, and the field on its own layer -->
+  <div class="screen" id="pageScreen">
+    <div class="world pageworld" id="pageBack">
+      <div class="abs hdr">
+        <div class="abs wordmark" style="left:30px;top:22px"><span class="mark" data-mark></span><span>Superint Video</span></div>
+        <span class="abs ico muted" style="left:1690px;top:24px" data-icon="globe"></span>
+        <div class="abs select" style="left:1722px;top:14px;width:120px;height:40px;font-size:15px">Deutsch<span class="ico" data-icon="chevron"></span></div>
+        <span class="abs ico muted" style="left:1868px;top:24px" data-icon="sun"></span>
+      </div>
+      <div class="abs h2" style="left:433px;top:129px">Einrichtung</div>
+      <div class="abs muted" style="left:562px;top:134px">Bereit für Bild, Stimme, Musik und Soundeffekte · Claude Code</div>
+      <div class="abs btn quiet" style="left:1385px;top:125px;width:88px">Anzeigen</div>
+      <div class="abs h2" style="left:433px;top:216px">Neuer Film</div>
+      <div class="abs muted" style="left:545px;top:221px">Beschreib den Film, kopiere den Prompt und füge ihn in Claude Code ein.</div>
+      <div class="abs label" style="left:433px;top:380px">Stil</div>
+      <div class="abs label" style="left:764px;top:380px">Länge</div>
+      <div class="abs label" style="left:1004px;top:380px">Format</div>
+      <div class="abs label" style="left:1247px;top:380px">Sprache</div>
+      <div class="abs select" style="left:433px;top:406px;width:316px">Flat-Vektor-Erklärfilm<span class="ico" data-icon="chevron"></span></div>
+      <div class="abs select" style="left:764px;top:406px;width:225px">2 min<span class="ico" data-icon="chevron"></span></div>
+      <div class="abs select" style="left:1004px;top:406px;width:228px">16:9 (vom Stil)<span class="ico" data-icon="chevron"></span></div>
+      <div class="abs select" style="left:1247px;top:406px;width:226px">Deutsch (vom Stil)<span class="ico" data-icon="chevron"></span></div>
+      <div class="abs muted" id="promptLine" style="left:433px;top:469px;width:845px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+      <div class="abs btn primary" id="copyBtn" style="left:1300px;top:459px;width:173px"><span class="ico" data-icon="copy"></span>Prompt kopieren</div>
+      <div class="abs h2" style="left:433px;top:551px">Filme</div>
+      <div class="abs film" style="left:433px;top:607px"><div class="pic"><img src="../assets/films/mcp.jpg"></div><div class="name">Was ist MCP?</div><div class="state">Abgabe · 05.11.2026</div></div>
+      <div class="abs film" style="left:697px;top:607px"><div class="pic"><img src="../assets/films/ki-steuer.jpg"></div><div class="name">Warum eine KI-Steuer für Deutschland keine gute Idee ist</div><div class="state">02.11.2026</div></div>
+      <div class="abs film" style="left:961px;top:607px"><div class="pic"><img src="../assets/films/superpower.jpg"></div><div class="name">Build a Superpower</div><div class="state">Film fertig</div></div>
+      <div class="abs film" style="left:1225px;top:607px"><div class="pic"><img src="../assets/films/pick-it-up.jpg"></div><div class="name">Pick It Up</div><div class="state">Film fertig</div></div>
+    </div>
+    <div class="world" id="pageField">
+      <div class="abs field" id="field"><span id="typedText"></span><span class="caret" id="caret"></span><span class="ph" id="ph">Worum soll es im Film gehen? Ein, zwei Sätze genügen.</span></div>
+    </div>
+  </div>
+
+  <!-- Studio with the case film -->
+  <div class="screen" id="studioScreen" style="opacity:0">
+    <div class="world studioworld" id="studio">
+      <div class="abs hdr" style="border-bottom:1px solid var(--line)">
+        <div class="abs wordmark" style="left:30px;top:22px"><span class="mark" data-mark></span><span>Superint Video</span></div>
+        <div class="abs" style="left:191px;top:24px;font-weight:500">Modellfamilien: Die richtige Größe wählen</div>
+        <div class="abs btn" style="left:1368px;top:14px;width:108px"><span class="ico" data-icon="folder"></span>Medien</div>
+        <div class="abs btn active" style="left:1485px;top:14px;width:125px"><span class="ico" data-icon="progress"></span>Fortschritt</div>
+        <div class="abs btn" style="left:1618px;top:14px;width:86px"><span class="ico" data-icon="sliders"></span>Film</div>
+        <div class="abs btn" style="left:1711px;top:14px;width:44px"><span class="ico" data-icon="more"></span></div>
+        <div class="abs btn primary" style="left:1763px;top:14px;width:137px"><span class="ico" data-icon="upload"></span>Exportieren</div>
+      </div>
+      <div class="abs sx-preview"></div>
+      <div class="abs stage" id="stage">
+        <img src="../assets/case/clean/desk-soft.jpg"><img src="../assets/case/luna.jpg"><img src="../assets/case/sol.jpg"><img src="../assets/case/clean/045.jpg"><img src="../assets/case/clean/055.jpg"><img src="../assets/case/astra.jpg"><img src="../assets/case/clean/070.jpg">
+      </div>
+      <div class="abs transport">
+        <span class="abs ico" style="left:28px;top:22px" data-icon="prev"></span>
+        <div class="abs btn primary" style="left:64px;top:10px;width:44px;height:44px"><span class="ico" data-icon="play"></span></div>
+        <span class="abs ico" style="left:124px;top:22px" data-icon="next"></span>
+        <div class="abs" style="left:172px;top:21px;font-weight:500"><span id="timecode">00:00:00</span> <span class="muted" style="font-weight:400;font-size:13px">/ 02:29:03</span></div>
+        <div class="abs muted" style="left:800px;top:22px;font-size:13px">Bild</div>
+        <div class="abs select" style="left:838px;top:12px;width:100px;height:40px;font-size:15px" id="frameBox">0</div>
+        <div class="abs muted" style="left:1284px;top:22px;font-size:13px">Zoom</div>
+        <div class="abs select" style="left:1330px;top:12px;width:186px;height:40px;font-size:15px">Ganzes Bild<span class="ico" data-icon="chevron"></span></div>
+      </div>
+      <div class="abs inspector">
+        <div class="abs h2" style="left:17px;top:20px">Fortschritt</div>
+        <span class="abs ico" style="left:282px;top:22px" data-icon="close"></span>
+        <div class="abs" style="left:17px;top:66px;font-weight:500">Jetzt</div>
+        <div class="abs muted" id="nowStep" style="right:31px;top:66px;font-size:14px">Bau</div>
+        <div class="abs" id="nowNote" style="left:17px;top:97px;width:272px;font-size:14px;line-height:1.45"></div>
+        <div class="abs steps" id="steps" style="left:17px;top:172px;width:272px"></div>
+        <div class="abs" style="left:17px;top:470px;font-weight:500">Briefing</div>
+        <div class="abs" style="left:17px;top:502px;width:272px;font-size:14px;font-weight:500">Modellfamilien: Die richtige Größe wählen</div>
+        <div class="abs muted" style="left:17px;top:556px;width:272px;font-size:14px;line-height:1.45">Länge ≈ 125 s · Format 16:9 · Sprache Deutsch · Szenen 4</div>
+      </div>
+      <div class="abs tl">
+        <span class="abs ico muted" style="left:28px;top:18px" data-icon="undo"></span>
+        <span class="abs ico muted" style="left:72px;top:18px" data-icon="redo"></span>
+        <div class="abs btn off" style="left:117px;top:8px;width:96px"><span class="ico" data-icon="split"></span>Teilen</div>
+        <div class="abs btn off" style="left:220px;top:8px;width:140px"><span class="ico" data-icon="copy"></span>Duplizieren</div>
+        <div class="abs btn off" style="left:366px;top:8px;width:104px"><span class="ico" data-icon="trash"></span>Löschen</div>
+        <div class="abs btn active" style="left:1365px;top:8px;width:132px"><span class="ico" data-icon="magnet"></span>Einrasten</div>
+        <span class="abs ico muted" style="left:1532px;top:18px" data-icon="minus"></span>
+        <div class="abs" style="left:1570px;top:27px;width:140px;height:3px;border-radius:2px;background:var(--selected)"></div>
+        <div class="abs" style="left:1584px;top:21px;width:15px;height:15px;border-radius:50%;background:var(--ink)"></div>
+        <span class="abs ico muted" style="left:1722px;top:18px" data-icon="plus"></span>
+        <div class="abs muted" style="left:1788px;top:19px">Ganzer Film</div>
+        <div class="abs muted" style="left:20px;top:68px;font-size:13px">Spuren</div>
+        <span class="abs ico muted" style="left:152px;top:66px;width:18px;height:18px" data-icon="plus"></span>
+        <div class="abs" id="ruler" style="left:0;top:57px;width:1913px;height:40px"></div>
+        <div class="abs trackrow" style="top:97px"><div class="lab"><span class="ico" data-icon="scenes"></span>Scenes<span class="ico end" data-icon="eye"></span></div><div class="lane" id="laneScenes"></div></div>
+        <div class="abs trackrow" style="top:150px"><div class="lab"><span class="ico" data-icon="note"></span>Voice<span class="ico end" data-icon="speaker"></span></div><div class="lane" id="laneVoice"></div></div>
+        <div class="abs trackrow" style="top:203px"><div class="lab"><span class="ico" data-icon="note"></span>Music<span class="ico end" data-icon="speaker"></span></div><div class="lane" id="laneMusic"></div></div>
+        <div class="abs trackrow" style="top:256px"><div class="lab"><span class="ico" data-icon="note"></span>Sound effects<span class="ico end" data-icon="speaker"></span></div><div class="lane" id="laneSfx"></div></div>
+      </div>
+      <div class="abs playhead" id="playhead"></div>
+      <div class="abs" id="render">
+        <div class="veil" id="renderVeil"></div>
+        <div class="pic" id="renderPic"></div>
+        <div class="head" id="renderHead"></div>
+        <div class="bar" id="renderTrack"><i id="renderBar"></i></div>
+        <div class="strip" id="renderStrip"><div class="reel" id="reel"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- the coding agent's terminal, opened from the button -->
+  <div class="abs" id="term" style="opacity:0">
+    <div class="title">Terminal</div>
+    <div class="body" id="termBody"></div>
+  </div>
+
+  <!-- the element carried across the changes -->
+  <div class="free shape" id="bar" style="opacity:0"><div class="inner" id="barInner">Worum soll es im Film gehen? Ein, zwei Sätze genügen.</div><div class="blabel" id="barLabel"><span data-icon="copy"></span><span>Prompt kopieren</span></div></div>
+  <div id="flies"></div>
+  <div id="sbars"></div>
+  <div class="free" id="markFinal" style="opacity:0"><svg viewBox="3 4 19 17" preserveAspectRatio="none" width="100%" height="100%" style="display:block"><path fill="#eee" d="M3 4h19v5H8v3h14v9H3v-5h14v-3H3Z"/></svg></div>
+  <div class="free" id="word">Superint Video</div>
+  <div class="free" id="fact">Version 0.3 für Windows</div>
+
+  <div class="free" id="toast"><span class="ico" data-icon="check"></span>Kopiert. Füge ihn in Claude Code ein.</div>
+  <div class="free" id="cursor"></div>
+
+  <div class="scrim" id="scrim"></div>
+  <div class="lines">
+    <p class="line" id="l1"><span class="c">Superint Video</span> <span class="c">macht Filme</span><br><span class="c">mit deinem Coding-Agenten.</span></p>
+    <p class="line mask" id="l2"><span>Du schreibst, worum es geht.</span></p>
+    <p class="line" id="l3">Dein Coding-Agent baut Szene für Szene.</p>
+    <p class="line" id="l4">Im Studio siehst du jeden Schritt.</p>
+    <p class="line" id="l5"><span class="mask c"><span>Dein Rechner rendert</span></span><br><span class="mask c"><span>den fertigen Film.</span></span></p>
+  </div>
+
+  <script type="module">
+    import { defineScene } from '/runtime/scene.js';
+    import {
+      fontsReady, eases, grid, span, cameraAt, applyCamera, toScreen, morphBox, place, soft, typed,
+      lineIn, lineOut, cursorSvg, clamp01, lerp,
+    } from '../kit/launch.js';
+
+    // ------------------------------------------------------------ time: the cue's bar grid
+    const B = grid({ bar: 1.9993 }).beat; // B(n): seconds of beat n; bar k starts at beat 4k
+    const W = 1920, H = 1080;
+
+    // ------------------------------------------------------------ the case
+    const TOPIC = 'Wie wählt man unter KI-Modellen die richtige Größe?';
+    const PROMPT = 'Mach ein Video mit Superint Video über: ';
+    const FILM_FRAMES = 4473;
+    const PX = (1731 - 30) / FILM_FRAMES; // timeline pixels per frame at "Ganzer Film"
+    const LANE_X = 190;
+    const SCENES = [['hook', 0, 558], ['space', 558, 1819], ['claude', 2377, 675], ['rule', 3052, 1421]];
+    const SFX = [[51,4],[82,4],[111,4],[138,4],[174,4],[205,4],[235,4],[264,4],[398,3],[505,40],[820,8],[919,8],[994,8],[1089,8],[1311,4],[1528,14],[1662,90],[1716,90],[1880,90],[1884,90],[1959,8],[2016,8],[2033,8],[2036,8],[2319,69],[2360,42],[2407,5],[2542,3],[2648,8],[2674,3],[2727,8],[2762,5],[2850,8],[2887,5],[2906,14],[2974,8],[3045,14],[3071,4],[3094,4],[3199,4],[3344,4],[3420,4],[3501,8],[3534,4],[3560,8],[3837,3],[3849,90],[3936,3],[3948,90],[3981,3],[4020,3],[4031,90],[4088,40],[4328,69]];
+    const STEPS = ['Brief', 'Research', 'Konzept', 'Skript', 'Beats', 'Stimme', 'Style Frames', 'Bau', 'Review', 'Render'];
+    // real readings from the case film's render log: [frames done, frames per second]
+    const RENDER_LOG = [[30,14.82],[270,58.99],[510,79.46],[750,87.64],[990,92.00],[1230,91.28],[1470,87.21],[1710,87.98],[1950,90.27],[2190,92.20],[2430,94.04],[2670,97.12],[2910,99.73],[3150,101.23],[3390,102.73],[3630,104.09],[3870,105.68],[4110,106.99],[4350,108.17]];
+    const TERM_ROWS = [
+      ['prompt', '› ', PROMPT + TOPIC],
+      ['prompt', '  ', 'Stil Flat-Vektor-Erklärfilm, etwa 2 Minuten.'],
+      ['gap', '', ''],
+      ['cmd', '$ ', 'superint-video new --preset flat-explainer --language de'],
+      ['file', '+ ', 'research.md'],
+      ['file', '+ ', 'script.md'],
+      ['cmd', '$ ', 'superint-video voice takes'],
+      ['cmd', '$ ', 'superint-video music'],
+      ['scene', '+ ', 'scenes/hook.html'],
+      ['scene', '+ ', 'scenes/space.html'],
+      ['scene', '+ ', 'scenes/claude.html'],
+      ['scene', '+ ', 'scenes/rule.html'],
+      ['cmd', '$ ', 'superint-video check'],
+    ];
+
+    // ------------------------------------------------------------ icons
+    const ICONS = {
+      copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
+      chevron: '<path d="m6 9 6 6 6-6"/>',
+      globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+      sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+      folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/>',
+      progress: '<path d="M4 6h10M4 12h8M4 18h6M15 16l2 2 4-4"/>',
+      sliders: '<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
+      more: '<circle cx="5" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="19" cy="12" r="1.2" fill="currentColor"/>',
+      upload: '<path d="M12 15V4M7 9l5-5 5 5M5 15v4h14v-4"/>',
+      play: '<path d="M8 5v14l11-7Z" fill="currentColor"/>',
+      prev: '<path d="m15 6-6 6 6 6"/>',
+      next: '<path d="m9 6 6 6-6 6"/>',
+      undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
+      redo: '<path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/>',
+      split: '<path d="M12 4v16M8 7 5 12l3 5M16 7l3 5-3 5"/>',
+      trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+      magnet: '<path d="M6 4v8a6 6 0 0 0 12 0V4h-4v8a2 2 0 0 1-4 0V4Z"/>',
+      eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
+      speaker: '<path d="M4 9h4l5-4v14l-5-4H4Z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>',
+      note: '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',
+      scenes: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18"/>',
+      code: '<path d="m8 8-4 4 4 4M16 8l4 4-4 4"/>',
+      check: '<path d="m5 12 5 5 9-10"/>',
+      close: '<path d="M6 6l12 12M18 6 6 18"/>',
+      plus: '<path d="M12 5v14M5 12h14"/>',
+      minus: '<path d="M5 12h14"/>',
+    };
+    const icon = name => `<svg viewBox="0 0 24 24">${ICONS[name]}</svg>`;
+    const MARK = '<svg viewBox="0 0 25 25"><path fill="currentColor" d="M3 4h19v5H8v3h14v9H3v-5h14v-3H3Z"/></svg>';
+    document.querySelectorAll('[data-icon]').forEach(el => { el.classList.add('ico'); el.innerHTML = icon(el.dataset.icon); });
+    document.querySelectorAll('[data-mark]').forEach(el => { el.innerHTML = MARK; });
+    document.getElementById('cursor').innerHTML = cursorSvg;
+
+    // ------------------------------------------------------------ build what repeats
+    const $ = id => document.getElementById(id);
+    const stepEls = STEPS.map(name => {
+      const row = document.createElement('div');
+      row.className = 'step';
+      row.innerHTML = `<span class="dot"></span><span>${name}</span>`;
+      $('steps').appendChild(row);
+      return row;
+    });
+    const clipBox = ([, start, length]) => ({ x: LANE_X + start * PX, y: 901, w: length * PX, h: 44 });
+    const sceneClips = SCENES.map(scene => {
+      const el = document.createElement('div');
+      el.className = 'clip';
+      const box = clipBox(scene);
+      el.style.cssText = `left:${box.x - 182}px;top:4px;width:${box.w}px`;
+      el.innerHTML = `<span class="ico">${icon('code')}</span>${scene[0]}`;
+      $('laneScenes').appendChild(el);
+      return el;
+    });
+    $('laneVoice').innerHTML = `<div class="clip" style="left:${LANE_X - 182 + 48 * PX}px;top:4px;width:${4268 * PX}px"><span class="ico">${icon('note')}</span>voice</div>`;
+    $('laneMusic').innerHTML = `<div class="clip" style="left:${LANE_X - 182}px;top:4px;width:${FILM_FRAMES * PX}px"><span class="ico">${icon('note')}</span>music</div>`;
+    $('laneSfx').innerHTML = SFX.map(([start, length]) => `<div class="sfx" style="left:${LANE_X - 182 + start * PX}px;width:${Math.max(5, length * PX)}px"></div>`).join('');
+    const filmClock = seconds => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+    $('ruler').innerHTML = Array.from({ length: 15 }, (_, i) => {
+      const seconds = i * 10;
+      const label = seconds < 60 ? `${seconds}s` : filmClock(seconds);
+      return `<div class="abs tick" style="left:${LANE_X + seconds * 30 * PX}px;top:11px;padding-left:${i ? 9 : 0}px">${label}</div>`;
+    }).join('');
+    $('termBody').innerHTML = TERM_ROWS.map(([kind, sign, text]) =>
+      `<div class="row ${kind}">${kind === 'gap' ? ' ' : `<span class="sign">${sign}</span>${kind === 'prompt' ? text : `<b>${text}</b>`}`}</div>`).join('');
+    const termRows = [...$('termBody').children];
+    const renderFrames = Array.from({ length: 30 }, (_, i) => {
+      const img = document.createElement('img');
+      // frames of the case film every 5 s; where a frame shows model names the laptop screen is softened,
+      // and the two moon frames with a maker's chip use the same shot without it
+      const soft = { 0: 'clean/000-soft.jpg', 4: 'moon.jpg', 5: 'moon.jpg', 28: 'clean/140-soft.jpg', 29: 'clean/145-soft.jpg' };
+      img.src = `../assets/case/${soft[i] ?? `clean/${String(i * 5).padStart(3, '0')}.jpg`}`;
+      $('renderPic').appendChild(img);
+      return img;
+    });
+    const reel = Array.from({ length: 30 }, (_, i) => {
+      const cell = document.createElement('div');
+      cell.style.backgroundPosition = `${-i * 112}px 0`;
+      $('reel').appendChild(cell);
+      return cell;
+    });
+    const flies = [8, 9, 10, 11].map((row, i) => {
+      const el = document.createElement('div');
+      el.className = 'free shape fly';
+      el.style.opacity = 0;
+      el.innerHTML = `<div class="fill"></div><div class="text">${TERM_ROWS[row][2]}</div><div class="title"><span class="ico">${icon('code')}</span>${SCENES[i][0]}</div>`;
+      $('flies').appendChild(el);
+      return el;
+    });
+    // the S of the mark as five bars, in units of its 25 grid relative to (3, 4)
+    const S_BARS = { top: [0, 0, 19, 5], left: [0, 5, 5, 3], mid: [0, 8, 19, 1], right: [14, 9, 5, 3], bottom: [0, 12, 19, 5] };
+    const sbars = Object.fromEntries(Object.keys(S_BARS).map(key => {
+      const el = document.createElement('div');
+      el.className = 'free sbar';
+      el.style.opacity = 0;
+      if (key === 'top') el.innerHTML = '<img src="../assets/case/clean/145-soft.jpg"><div class="white"></div>';
+      if (key === 'bottom') {
+        el.innerHTML = `<div class="reel">${Array.from({ length: 30 }, (_, i) => `<div style="background-position:${-i * 112}px 0"></div>`).join('')}</div><div class="white"></div>`;
+        el.style.background = '#0e0e0e';
+      }
+      $('sbars').appendChild(el);
+      return [key, el];
+    }));
+
+    // ------------------------------------------------------------ cameras
+    const pageCam = [
+      [B(6.8), { x: 953, y: 384, z: 1.62 }],
+      [B(11.0), { x: 953, y: 384, z: 1.48 }],
+      [B(16.0), { x: 985, y: 398, z: 1.52 }],
+    ];
+    const studioCam = [
+      [B(26.5), { x: 960, y: 540, z: 0.95 }],
+      [B(28.0), { x: 960, y: 540, z: 1.0 }],
+      [B(31.8), { x: 960, y: 540, z: 1.0 }],
+      // preview, transport and the whole progress panel: from the header's lower edge to the timeline's upper
+      // edge, so no control is cut; the left edge crosses the preview at about 34 % of its width, where none of
+      // the preview's pictures has a label or the rim of a body
+      [B(33.4), { x: 1271, y: 434, z: 1.48 }],
+      [B(39.6), { x: 1280, y: 434, z: 1.5 }],
+      // the render view from the window's top edge down to the ruler
+      [B(41.8), { x: 800, y: 424, z: 1.28 }],
+      [B(44.0), { x: 800, y: 448.2, z: 1.205 }],
+    ];
+    const FACT_INSET = 4; // the S of the name starts this far inside its box; the V of "Version" starts at its own
+    const FIELD = { x: 433, y: 270, w: 1040, h: 99 };
+    const BUTTON = { x: 1300, y: 459, w: 173, h: 40 };
+    const TERM = { x: 280, y: 232, w: 1360, h: 616 };
+    const PIC = { x: 297, y: 82, w: 1000, h: 562.5 };
+    const PROGRESS = { x: 297, y: 706, w: 1000, h: 8 };
+    const STRIP = { x: 297, y: 730, w: 1000, h: 63 };
+
+    // the scene rows leave the terminal from the bottom row up, so no row flies across one that is still there
+    const flyAt = i => 25.65 + (3 - i) * 0.25;
+    const ready = Promise.all([
+      fontsReady,
+      document.fonts.load('400 22px "JetBrains Mono"'),
+      document.fonts.load('700 22px "JetBrains Mono"'),
+      document.fonts.load('400 15px Geist'), document.fonts.load('500 15px Geist'), document.fonts.load('600 15px Geist'),
+      ...[...document.images].map(img => img.decode().catch(() => {})),
+    ]);
+    // the terminal's own push while it streams, and its step back as the scenes leave it (origin 960, 602)
+    const termScale = t => (1 + 0.03 * span(t, B(20.4), B(25.6), eases.out)) * (1 - 0.06 * span(t, B(25.9), B(26.9), eases.in));
+    let measured = null;
+    const measure = () => {
+      // terminal row text boxes in screen pixels (the terminal is laid out without transforms)
+      const termBody = $('termBody');
+      const rows = termRows.map(row => {
+        const b = row.querySelector('b');
+        return b ? { x: TERM.x + 45 + b.offsetLeft, w: b.offsetWidth } : null;
+      });
+      return { rows, bodyTop: TERM.y + 1 + termBody.offsetTop, word: $('word').offsetWidth, fact: $('fact').offsetWidth };
+    };
+
+    defineScene({
+      ready,
+      render({ time: t }) {
+        measured ??= measure();
+        const actors = [];
+
+        // ---------------------------------------------------------------- line 1 on the ground
+        const l1 = [...$('l1').querySelectorAll('.c')];
+        [0.6, 2, 3].forEach((beat, i) => lineIn.blur(l1[i], span(t, B(beat), B(beat + 1.3), eases.out)));
+        $('l1').style.opacity = 1;
+        const l1Out = span(t, B(6.8), B(7.5));
+        if (l1Out > 0) l1.forEach((c, i) => { c.style.opacity = 1 - l1Out; c.style.filter = `blur(${l1Out * 16}px)`; c.style.transform = `translateY(${(i < 2 ? 1 : -1) * l1Out * 26}px) scaleY(${1 - l1Out * 0.6})`; });
+        $('l1').style.transform = `scale(${1 + 0.006 * Math.min(t, B(6.8))})`;
+
+        // ---------------------------------------------------------------- the start page
+        const pc = cameraAt(pageCam, t);
+        applyCamera($('pageBack'), pc, W, H);
+        applyCamera($('pageField'), pc, W, H);
+        const pageIn = span(t, B(7.4), B(8.6), eases.out);
+        const pageSharp = span(t, B(10.8), B(11.6));
+        const termOpen = span(t, B(16.25), B(17.8));
+        const pageGone = span(t, B(25.9), B(26.6), eases.in);
+        $('pageScreen').style.opacity = pageIn * (1 - pageGone);
+        soft($('pageBack'), Math.max(1 - pageSharp, termOpen), { dim: 0.45 + 0.2 * termOpen });
+        soft($('pageField'), termOpen);
+        const fieldScreen = toScreen(FIELD, pc, W, H);
+        // typing
+        const shown = typed(TOPIC, t, B(11.4), TOPIC.length / (B(14.4) - B(11.4)));
+        $('ph').style.display = shown ? 'none' : '';
+        $('typedText').textContent = shown;
+        const typing = t >= B(11.4) && t < B(14.6);
+        $('caret').style.opacity = t < B(8.4) || t > B(16) ? 0 : typing || Math.floor(t * 2.4) % 2 === 0 ? 1 : 0;
+        $('promptLine').textContent = PROMPT + (shown || '…');
+        // the press on "Prompt kopieren"
+        const press = span(t, B(16.0), B(16.25), eases.snap) * (1 - span(t, B(16.25), B(16.5)));
+        $('copyBtn').style.transform = `scale(${1 - 0.03 * press})`;
+        $('copyBtn').style.opacity = t >= B(16.25) ? 0 : 1;
+        $('field').style.opacity = t < B(8.4) ? 0 : 1;
+        if (t >= B(8.4) && t < B(16)) actors.push({ id: 'field', ...fieldScreen });
+
+        // ---------------------------------------------------------------- handover 1: line 1 grows into the field
+        const bar = $('bar');
+        const barShow = span(t, B(7.0), B(7.5), eases.out);
+        const grow = span(t, B(7.4), B(8.4));
+        if (t >= B(7.0) && t < B(8.4)) {
+          const thin = { x: 960 - lerp(150, 650, barShow), y: 537, w: lerp(300, 1300, barShow), h: 6 };
+          const box = morphBox(thin, fieldScreen, grow);
+          place(bar, box);
+          bar.style.opacity = barShow;
+          const c = Math.round(lerp(238, 23, span(grow, 0, 0.5, eases.linear)));
+          bar.style.background = `rgb(${c} ${c} ${c})`;
+          bar.style.border = `1px solid rgb(119 119 119 / ${span(grow, 0.3, 0.7, eases.linear)})`;
+          bar.style.borderRadius = `${lerp(3, 8 * pc.z, grow)}px`;
+          const inner = $('barInner');
+          inner.style.opacity = span(grow, 0.6, 1, eases.linear);
+          inner.style.fontSize = `${17 * pc.z}px`;
+          inner.style.padding = `${10 * pc.z}px ${12 * pc.z}px`;
+          actors.push({ id: 'bar', ...box });
+        } else bar.style.opacity = 0;
+
+        // ---------------------------------------------------------------- line 2, under the empty field
+        const l2 = $('l2');
+        l2.style.transform = 'translateY(115px)';
+        if (t < B(10.8)) {
+          l2.style.filter = 'none';
+          l2.style.opacity = t >= B(8.4) ? 1 : 0;
+          lineIn.mask(l2, span(t, B(8.4), B(9.4), eases.out));
+        } else {
+          l2.firstElementChild.style.transform = 'none';
+          lineOut.blur(l2, span(t, B(10.8), B(11.4), eases.in));
+          l2.style.transform = `translateY(${115 - 24 * span(t, B(10.8), B(11.4), eases.in)}px)`;
+        }
+
+        // ---------------------------------------------------------------- the cursor and the copy toast
+        const cur = $('cursor');
+        const buttonScreen = toScreen(BUTTON, pc, W, H);
+        const target = { x: buttonScreen.x + buttonScreen.w * 0.56, y: buttonScreen.y + buttonScreen.h * 0.8 };
+        const go = span(t, B(13.4), B(15.6));
+        const cx = lerp(1640, target.x, go), cy = lerp(1010, target.y, go) - 60 * Math.sin(Math.PI * go);
+        cur.style.opacity = span(t, B(13.4), B(13.9), eases.out) * (1 - span(t, B(16.6), B(17.2)));
+        cur.style.transform = `translate(${cx - 6}px, ${cy - 4}px) scale(${1 - 0.12 * press})`;
+        const toast = $('toast');
+        const toastIn = span(t, B(16.1), B(16.6), eases.out) * (1 - span(t, B(18.4), B(18.9), eases.in));
+        toast.style.opacity = toastIn;
+        toast.style.transform = `translate(${960 - toast.offsetWidth / 2}px, ${1080 - 44 - toast.offsetHeight + (1 - toastIn) * 14}px)`;
+
+        // ---------------------------------------------------------------- handover 2: the button opens as the terminal
+        const term = $('term');
+        if (t >= B(16.25) && t < B(17.8)) {
+          // starts as the pressed button (97 %), label and all; the label goes as the shape opens
+          const squeezed = { x: buttonScreen.x + buttonScreen.w * 0.015, y: buttonScreen.y + buttonScreen.h * 0.015, w: buttonScreen.w * 0.97, h: buttonScreen.h * 0.97 };
+          const label = $('barLabel');
+          label.style.opacity = 1 - span(termOpen, 0, 0.16, eases.linear);
+          label.style.fontSize = `${15 * pc.z * 0.97}px`;
+          label.style.gap = `${8 * pc.z}px`;
+          label.firstElementChild.style.width = label.firstElementChild.style.height = `${20 * pc.z * 0.97}px`;
+          const box = morphBox(squeezed, TERM, termOpen, { arc: 40 });
+          place(bar, box);
+          bar.style.opacity = 1;
+          const c = Math.round(lerp(238, 18, span(termOpen, 0.45, 0.9, eases.inOut)));
+          bar.style.background = `rgb(${c} ${c} ${c})`;
+          bar.style.border = `1px solid rgb(48 48 48 / ${termOpen})`;
+          bar.style.borderRadius = `${lerp(9 * pc.z, 14, termOpen)}px`;
+          bar.style.boxShadow = `0 40px 120px rgb(0 0 0 / ${0.55 * termOpen})`;
+          $('barInner').style.opacity = 0;
+          actors.push({ id: 'bar', ...box });
+        } else { bar.style.boxShadow = 'none'; $('barLabel').style.opacity = 0; }
+        const termShown = t >= B(17.8) ? 1 : 0;
+        const termFade = span(t, B(25.9), B(26.6), eases.in);
+        term.style.opacity = termShown * (1 - termFade);
+        term.style.transform = `scale(${termScale(t)})`;
+        soft(term, Math.max(span(t, B(17.8), B(18.4)) * (1 - span(t, B(20.4), B(21.0))), termFade));
+        termRows.forEach((row, i) => {
+          const at = i < 3 ? B(17.8) : B(20.6 + (i - 3) * 0.5);
+          const p = span(t, at, at + B(0.35) - B(0), eases.out);
+          const flying = i >= 8 && i <= 11 && t >= B(flyAt(i - 8));
+          row.style.opacity = p;
+          row.style.transform = `translateX(${(1 - p) * 10}px)`;
+          if (i >= 8 && i <= 11) {
+            row.lastElementChild.style.opacity = flying ? 0 : 1;
+            row.firstElementChild.style.opacity = 1 - span(t, B(flyAt(i - 8)), B(flyAt(i - 8) + 0.3), eases.out);
+          }
+        });
+        if (t >= B(17.8) && t < B(26.0)) actors.push({ id: 'terminal', ...TERM });
+
+        // ---------------------------------------------------------------- line 3 over the soft terminal
+        const l3 = $('l3');
+        if (t < B(20.4)) {
+          l3.style.opacity = t >= B(17.8) ? 1 : 0;
+          lineIn.wipe(l3, span(t, B(17.8), B(18.9), eases.inOut));
+        } else {
+          lineIn.wipe(l3, 1);
+          lineOut.blur(l3, span(t, B(20.4), B(21.0), eases.in));
+        }
+
+        // ---------------------------------------------------------------- Studio
+        const sc = cameraAt(studioCam, t);
+        applyCamera($('studio'), sc, W, H);
+        const studioIn = span(t, B(26.5), B(27.5), eases.out);
+        const studioGone = span(t, B(54.2), B(55.4));
+        $('studioScreen').style.opacity = studioIn * (1 - studioGone);
+        const studioSoft = Math.max(lerp(0.35, 1, span(t, B(28.2), B(28.8))) * (1 - span(t, B(30.8), B(31.6))), studioGone);
+        // the render view goes soft for line 5 on its own
+        soft($('studio'), t < B(42) ? studioSoft : Math.max(span(t, B(43.6), B(44.2)) * (1 - span(t, B(46.8), B(47.4))), studioGone));
+        sceneClips.forEach((clip, i) => { clip.style.opacity = t >= B(flyAt(i) + 1.6) ? 1 : 0; });
+        // steps: five done when Studio opens, then one a beat
+        const doneCount = 7 + [B(34), B(36)].filter(at => t >= at).length + (t >= B(53.0) ? 1 : 0);
+        stepEls.forEach((el, i) => { el.className = `step ${i < doneCount ? 'done' : i === doneCount ? 'active' : ''}`; });
+        const notes = ['Die vier Szenen stehen auf der Timeline, Stimme und Musik darunter.', 'Kontaktbogen angesehen, Befunde behoben.', 'Alles geprüft. Der Render startet.', 'Rendert den Film.', 'Film ist gerendert und geprüft.'];
+        const phase = t < B(34) ? 0 : t < B(36) ? 1 : t < B(42) ? 2 : t < B(53.0) ? 3 : 4;
+        $('nowStep').textContent = ['Bau', 'Review', 'Render', 'Render', 'Render'][phase];
+        $('nowNote').textContent = notes[phase];
+        // the preview steps through the case as the playhead moves
+        const previewTimes = [0, 30, 37, 45, 55, 62, 70];
+        const shot = [34, 35, 36, 37, 38, 39].filter(beat => t >= B(beat)).length;
+        [...$('stage').children].forEach((img, i) => { img.style.opacity = i === shot ? 1 : 0; });
+        $('stage').style.opacity = t < B(42) ? 1 : 0;
+        const headFrame = Math.round(previewTimes[shot] * 30);
+        $('playhead').style.transform = `translateX(${LANE_X + headFrame * PX - 1}px)`;
+        const two = n => String(n).padStart(2, '0');
+        const clock = frame => `${two(Math.floor(frame / 1800))}:${two(Math.floor(frame / 30) % 60)}:${two(frame % 30)}`;
+        $('timecode').textContent = clock(headFrame);
+        $('frameBox').textContent = String(headFrame);
+        if (t >= B(31.6) && t < B(42)) actors.push({ id: 'preview', ...toScreen({ x: 255, y: 93, w: 1084, h: 610 }, sc, W, H) });
+
+        // ---------------------------------------------------------------- handover 3: scene rows fly onto the timeline
+        flies.forEach((el, i) => {
+          const from = B(flyAt(i)), to = from + B(1.6);
+          if (t < from || t >= to) { el.style.opacity = 0; return; }
+          const p = span(t, from, to);
+          const row = measured.rows[8 + i];
+          const s = termScale(t);
+          const flat = { x: row.x - 10, y: measured.bodyTop + (8 + i) * 38 - 1, w: row.w + 20, h: 40 };
+          const source = { x: 960 + (flat.x - 960) * s, y: 602 + (flat.y - 602) * s, w: flat.w * s, h: flat.h * s };
+          const box = morphBox(source, toScreen(clipBox(SCENES[i]), sc, W, H), p);
+          place(el, box);
+          el.style.opacity = 1;
+          el.style.background = `rgb(34 34 34 / ${span(p, 0, 0.08, eases.linear)})`;
+          el.style.borderColor = `rgb(119 119 119 / ${span(p, 0, 0.08, eases.linear)})`;
+          const text = el.querySelector('.text');
+          text.style.opacity = 1 - span(p, 0.12, 0.55, eases.linear);
+          text.style.left = '10px';
+          const title = el.querySelector('.title');
+          title.style.opacity = span(p, 0.4, 0.8, eases.linear);
+          title.style.transform = `scale(${box.h / 44})`;
+          // lands in the focus Studio has at that moment, so the clip it becomes does not jump soft
+          soft(el, 0.35 * span(p, 0.55, 1, eases.linear));
+          actors.push({ id: `clip-${SCENES[i][0]}`, ...box });
+        });
+
+        // ---------------------------------------------------------------- line 4 over the soft Studio
+        const l4 = $('l4');
+        if (t < B(30.8)) {
+          l4.style.opacity = t >= B(28.4) ? 1 : 0;
+          lineIn.scale(l4, span(t, B(28.4), B(29.6), eases.out));
+        } else lineOut.blur(l4, span(t, B(30.8), B(31.4), eases.in));
+
+        // ---------------------------------------------------------------- the render
+        // handover 4: on the downbeat the preview jumps to frame 0, as it does on every step before, and
+        // its box shrinks into the render picture while the transport gives way to the read-out
+        const STAGE = { x: 255, y: 93, w: 1084, h: 610 };
+        const picBox = morphBox(STAGE, PIC, span(t, B(42), B(43.1)));
+        place($('renderPic'), { ...picBox, y: picBox.y - 69 });
+        $('renderPic').style.opacity = t >= B(42) && t < B(54) ? 1 : 0;
+        $('renderVeil').style.opacity = span(t, B(42), B(42.5), eases.out);
+        [$('renderHead'), $('renderTrack'), $('renderStrip')].forEach((el, i) => {
+          const p = span(t, B(42.75 + i * 0.12), B(43.5 + i * 0.12), eases.out);
+          el.style.opacity = i > 0 && t >= B(54) ? 0 : p;
+          el.style.transform = `translateY(${(1 - p) * 10}px)`;
+        });
+        const progress = span(t, B(46.6), B(53.0), eases.linear);
+        const done = Math.min(FILM_FRAMES, Math.floor((progress * FILM_FRAMES) / 30) * 30);
+        const finished = t >= B(53.0);
+        const reading = [...RENDER_LOG].reverse().find(([frames]) => frames <= done) ?? RENDER_LOG[0];
+        const nf = new Intl.NumberFormat('de-DE');
+        const ff = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        $('renderHead').innerHTML = finished
+          ? `<strong><span class="ico">${icon('check')}</span>Film fertig</strong><span>2:29 min</span><span>gerendert in 45 s</span>`
+          : `<strong>Rendert ${Math.floor((done / FILM_FRAMES) * 100)} %</strong><span>Bild ${nf.format(done)} von ${nf.format(FILM_FRAMES)}</span><span>Filmzeit ${filmClock(done / 30)} von 2:29</span><span>${ff.format(reading[1])} Bilder/s</span>`;
+        $('renderBar').style.transform = `scaleX(${finished ? 1 : done / FILM_FRAMES})`;
+        const filmSeconds = done / 30;
+        // the frame being rendered; while the case shows its model tables (5-15 s and 80-135 s) the picture keeps
+        // the last frame before them, so no product or model names are readable in the launch film
+        const shownSeconds = filmSeconds >= 5 && filmSeconds < 20 ? 0 : filmSeconds >= 80 && filmSeconds < 140 ? 75 : filmSeconds;
+        const pictureIndex = Math.min(29, Math.floor(shownSeconds / 5));
+        renderFrames.forEach((img, i) => { img.style.opacity = i === pictureIndex ? 1 : 0; });
+        const stripCount = finished ? 30 : Math.floor(filmSeconds / 5) + (done > 0 ? 1 : 0);
+        reel.forEach((cell, i) => { cell.style.opacity = i < stripCount ? 1 : 0; });
+        $('reel').style.transform = `translateX(${-Math.max(0, stripCount * 118 - 1000)}px)`;
+        if (t >= B(42) && t < B(54)) actors.push({ id: 'render-picture', ...toScreen(picBox, sc, W, H) });
+
+        // ---------------------------------------------------------------- line 5 over the soft render
+        const l5 = $('l5');
+        const l5chunks = [...l5.querySelectorAll('.c')];
+        l5.style.opacity = t >= B(44.2) ? 1 : 0;
+        if (t < B(46.8)) {
+          l5.style.filter = 'none';
+          l5chunks.forEach((chunk, i) => lineIn.mask(chunk, span(t, B(44.2 + i * 0.5), B(45.2 + i * 0.5), eases.out)));
+        } else lineOut.blur(l5, span(t, B(46.8), B(47.4), eases.in));
+
+        // the dark pool behind lines read over a picture
+        const scrim = Math.max(
+          span(t, B(8.4), B(9), eases.out) * (1 - span(t, B(10.8), B(11.4))),
+          span(t, B(17.8), B(18.4), eases.out) * (1 - span(t, B(20.4), B(21))),
+          span(t, B(28.4), B(29), eases.out) * (1 - span(t, B(30.8), B(31.4))),
+          span(t, B(44.2), B(44.8), eases.out) * (1 - span(t, B(46.8), B(47.4))),
+        );
+        $('scrim').style.opacity = scrim;
+        $('scrim').style.transform = t < B(12) ? 'translateY(115px)' : 'none';
+
+        // ---------------------------------------------------------------- handover 5: the render becomes the mark
+        const u0 = 24, s0 = { x: 960 - 9.5 * u0, y: 540 - 8.5 * u0 };
+        // the lockup: mark, then the name beside it, the unit centred
+        const u1 = 232 / 17, gap = 62;
+        const unit = 19 * u1 + gap + measured.word;
+        const s1 = { x: 960 - unit / 2, y: 498 - 8.5 * u1 };
+        const lock = span(t, B(56.8), B(58.4));
+        const u = u0 * (u1 / u0) ** lock;
+        const origin = { x: lerp(s0.x, s1.x, lock), y: lerp(s0.y, s1.y, lock) };
+        const creep = 1 + 0.012 * Math.max(0, t - B(56));
+        const atCreep = box => ({ x: 960 + (box.x - 960) * creep, y: 540 + (box.y - 540) * creep, w: box.w * creep, h: box.h * creep });
+        const sBox = key => { const [x, y, w, h] = S_BARS[key]; return atCreep({ x: origin.x + x * u, y: origin.y + y * u, w: w * u, h: h * u }); };
+        const sources = { top: toScreen(PIC, sc, W, H), mid: toScreen(PROGRESS, sc, W, H), bottom: toScreen(STRIP, sc, W, H) };
+        const legs = { top: [54.0, 55.6], mid: [54.2, 55.8], bottom: [54.4, 56.0] };
+        const markBox = atCreep({ x: origin.x, y: origin.y, w: 19 * u, h: 17 * u });
+        place($('markFinal'), markBox);
+        $('markFinal').style.opacity = t >= B(56) ? 1 : 0;
+        Object.entries(sbars).forEach(([key, el]) => {
+          if (t < B(54) || t >= B(56)) { el.style.opacity = 0; return; }
+          el.style.opacity = 1;
+          if (legs[key]) {
+            const p = span(t, B(legs[key][0]), B(legs[key][1]));
+            const box = p < 1 ? morphBox(sources[key], sBox(key), p) : sBox(key);
+            place(el, box);
+            el.style.borderRadius = `${lerp(key === 'top' ? 0 : 4, 0, p)}px`;
+            const white = el.querySelector('.white');
+            if (white) white.style.opacity = span(p, 0.15, 0.7, eases.linear);
+            const strip = el.querySelector('.reel');
+            if (strip) strip.style.transform = `scale(${box.h / 63}) translateX(-2540px)`;
+          } else {
+            // the two stems grow out of the middle bar
+            const p = span(t, B(55.5), B(56.0), eases.out);
+            const full = sBox(key);
+            const box = key === 'left' ? { ...full, y: full.y + full.h * (1 - p), h: full.h * p + 1 } : { ...full, y: full.y - 1, h: full.h * p + 1 };
+            place(el, box);
+            el.style.opacity = p > 0 ? 1 : 0;
+          }
+        });
+        if (t >= B(56)) actors.push({ id: 'mark', ...markBox });
+        // the name slides out from behind the mark, then the version
+        const word = $('word');
+        const wordIn = span(t, B(57.4), B(58.6), eases.out);
+        const wordBox = atCreep({ x: s1.x + 19 * u1 + gap, y: 498 - 56, w: measured.word, h: 112 });
+        word.style.opacity = wordIn;
+        word.style.transform = `translate(${wordBox.x - (1 - wordIn) * 60}px, ${wordBox.y}px) scale(${creep})`;
+        word.style.transformOrigin = '0 50%';
+        const fact = $('fact');
+        const factBox = atCreep({ x: s1.x + 19 * u1 + gap + FACT_INSET, y: 498 + 8.5 * u1 + 46, w: measured.fact, h: 46 });
+        lineIn.blur(fact, span(t, B(58.8), B(59.8), eases.out));
+        fact.style.transform = `translate(${factBox.x}px, ${factBox.y + (1 - span(t, B(58.8), B(59.8), eases.out)) * 14}px) scale(${creep})`;
+        fact.style.transformOrigin = '0 50%';
+
+        return { actors };
+      },
+    });
+  </script>
+</body>
+</html>

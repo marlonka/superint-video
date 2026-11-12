@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#141714;color:#f2f3e9;font-family:Arial,Helvetica,sans-serif}
+.top{position:absolute;left:92px;right:92px;top:65px;display:flex;justify-content:space-between;font:20px Consolas,monospace;letter-spacing:2px;color:#a5ada2;border-bottom:1px solid #41483d;padding-bottom:26px}
+.title{position:absolute;left:84px;top:228px;margin:0;font-size:174px;line-height:.94;font-weight:600;letter-spacing:-11px;white-space:pre-line}
+.meta{position:absolute;left:94px;top:682px;font:24px/1.8 Consolas,monospace;color:#a5ada2}.meta b{color:#c8ff5f;font-weight:400}
+.orbit{position:absolute;width:750px;height:750px;left:1100px;top:176px;opacity:.35;transform-origin:center}
+.code{position:absolute;left:1100px;top:355px;width:700px;padding:36px;background:#1d2419;border:1px solid #546340;font:25px/1.65 Consolas,monospace;color:#adb99d;box-shadow:0 40px 90px #0005}.code .accent{color:#c8ff5f}.code .muted{color:#6d7c5d}.code .indent{padding-left:40px}
+.bottom{position:absolute;left:94px;right:92px;bottom:58px;display:flex;justify-content:space-between;font:20px Consolas,monospace;color:#a5ada2}.rail{position:absolute;left:94px;right:92px;bottom:112px;height:3px;background:#353c31}.rail i{display:block;height:100%;background:#c8ff5f;transform-origin:left}
+</style></head><body>
+<div class="top"><span>SUPERINT VIDEO</span><span>01 / AUTHOR</span></div>
+<img class="orbit" src="../assets/grid.svg" alt="">
+<h1 class="title"></h1><div class="meta"><b>HTML / CSS / SVG</b><br>1920 × 1080 &nbsp; · &nbsp; 30 FPS</div>
+<div class="code"><div class="muted">scenes/author.html</div><br><div><span class="accent">defineScene</span>({</div><div class="indent">render({ frame, props }) {</div><div class="indent">&nbsp; title.textContent = props.title;</div><div class="indent">&nbsp; draw(frame);</div><div class="indent">}</div><div>});</div></div>
+<div class="rail"><i></i></div><div class="bottom"><span>SCENE 01</span><span class="counter"></span></div>
+<script type="module">
+import {defineScene,spring,interpolate,ease} from '/runtime/scene.js';
+const title=document.querySelector('.title'),code=document.querySelector('.code'),orbit=document.querySelector('.orbit'),rail=document.querySelector('.rail i');
+defineScene({props:{title:{type:'text',default:'Superint\nVideo',label:'Title'},accent:{type:'color',default:'#c8ff5f',label:'Accent'}},render({frame,time,props}){
+title.textContent=props.title;
+const a=spring(time,{stiffness:82,damping:19}),b=spring(time-.2,{stiffness:80,damping:20});
+title.style.transform=`translateY(${(1-a)*120}px)`;title.style.opacity=interpolate(frame,[0,16],[0,1]);
+code.style.transform=`translateX(${(1-b)*140}px)`;code.style.opacity=interpolate(frame,[6,25],[0,1]);
+orbit.style.transform=`rotate(${interpolate(frame,[0,149],[-18,12])}deg)`;
+rail.style.transform=`scaleX(${interpolate(frame,[0,149],[0,1])})`;rail.style.background=props.accent;
+document.querySelector('.counter').textContent=String(frame).padStart(3,'0')+' / 149';
+}});
+</script></body></html>

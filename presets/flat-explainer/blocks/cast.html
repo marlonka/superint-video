@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../kit/theme.css">
+  <style>
+    .sky.sheet { background: #f4eddd; }
+  </style>
+</head>
+<body>
+  <div class="sky sheet"></div>
+  <div class="stage"><svg class="art" id="art"></svg></div>
+  <script type="module">
+    // Cast sheet for the figure rig in scenes/lib/people.js: one page per second (line-up, poses, heads, walk and back views).
+    // Copy it into scenes/, swap C and LINEUP for the film's cast and review it before building scenes (production step 5).
+    import { defineScene } from '/runtime/scene.js';
+    import { fontsReady, once, fitSvg, el } from '../kit/kit.js';
+    import { g, rr, text, INK } from './lib/draw.js';
+    import { person, backBust } from './lib/people.js';
+
+    const art = document.getElementById('art');
+    const C = {
+      baker: { seed: 'baker', skin: '#f2c4a0', hair: '#a4452b', hairStyle: 'bun', hat: 'baker', hatColor: '#ffffff', top: '#e8a04a', apron: '#fff6dc', bottom: '#3a3f5c' },
+      founder: { seed: 'founder', skin: '#8a5a3c', hair: '#1b1f3b', hairStyle: 'curly', top: '#ffc83d', hood: true, bottom: '#2856d8' },
+      worker: { seed: 'worker', skin: '#d9a27c', hair: '#5a3a22', hairStyle: 'short', moustache: true, top: '#2856d8', bottom: '#2856d8', hat: 'helmet', hatColor: '#ff8a3d' },
+      official: { seed: 'official', skin: '#f4d0b4', hair: '#9a9aa8', hairStyle: 'side', glasses: true, top: '#7ff0c0', bottom: '#3a3f5c', collar: '#ffffff' },
+      minister: { seed: 'ministerB', skin: '#f0c8a8', hair: '#8a8f9c', hairStyle: 'side', top: '#1e2f6b', bottom: '#1e2f6b', collar: '#ffffff', tie: '#ff5d5d' },
+      doctor: { seed: 'doc', skin: '#c88a62', hair: '#5a3a22', hairStyle: 'side', glasses: true, top: '#ffffff', collar: '#45b8ff', bottom: '#2856d8' },
+      boss: { seed: 'boss', skin: '#f4d0b4', hair: '#9a9aa8', hairStyle: 'bald', moustache: true, glasses: true, top: '#ffffff', tie: '#2856d8', vest: '#2856d8', bottom: '#3a3f5c' },
+      nurse: { seed: 'nurse2', skin: '#e0b090', hair: '#e8c060', hairStyle: 'ponytail', top: '#45b8ff', bottom: '#45b8ff' },
+      foreman: { seed: 'fore', skin: '#f2c4a0', hair: '#5a3a22', hairStyle: 'short', moustache: true, top: '#2856d8', bottom: '#3a3f5c', vest: '#ffd43b', hat: 'helmet', hatColor: '#ff8a3d' },
+      tech: { seed: 'tech', skin: '#f2c4a0', hair: '#ff7eb6', hairStyle: 'bob', top: '#8a6cff', bottom: '#1b1f3b', hood: true },
+      manager: { seed: 'mgr', skin: '#f2c4a0', hair: '#9a9aa8', hairStyle: 'side', top: '#3a3f5c', bottom: '#1b1f3b', tie: '#ff5d5d', collar: '#ffffff' },
+      cafe: { seed: 'cafe', skin: '#c88a62', hair: '#1b1f3b', hairStyle: 'bun', top: '#ffffff', bottom: '#1b1f3b', apron: '#ff8a3d' },
+      wien: { seed: 'wien', skin: '#f4d0b4', hair: '#5a3a22', hairStyle: 'short', moustache: true, top: '#ffffff', vest: '#1b1f3b', bottom: '#1b1f3b' },
+      paris: { seed: 'paris', skin: '#e0b090', hair: '#a4452b', hairStyle: 'ponytail', top: '#19c3b1', bottom: '#1b1f3b', scarf: '#ff5d5d' },
+      owner: { seed: 'ownerR', skin: '#c88a62', hair: '#1b1f3b', hairStyle: 'short', top: '#ffc83d', bottom: '#3a3f5c' },
+      retiree: { seed: 'retiree', skin: '#f4d0b4', hair: '#ffffff', hairStyle: 'bald', top: '#ff7eb6', bottom: '#3a3f5c', glasses: true },
+      mum: { seed: 'mum', skin: '#f2c4a0', hair: '#a4452b', hairStyle: 'long', top: '#19c3b1', bottom: '#3a3f5c' },
+      child: { seed: 'child', skin: '#8a5a3c', hair: '#1b1f3b', hairStyle: 'curly', top: '#ffc83d', bottom: '#2856d8', child: true },
+      kid: { seed: 'kid2', skin: '#f2c4a0', hair: '#e8c060', hairStyle: 'ponytail', top: '#ff5d5d', bottom: '#8a6cff', child: true },
+      port: { seed: 'port', skin: '#5c3a28', hair: '#1b1f3b', hairStyle: 'short', top: '#ff8a3d', bottom: '#3a3f5c', vest: '#ffd43b', hat: 'helmet', hatColor: '#ffffff' },
+    };
+    const LINEUP = [
+      ['Bäckerin', 'baker', { mood: 'happy', pose: 'hips' }], ['Gründerin', 'founder', { mood: 'smile', pose: 'wave' }],
+      ['Arbeiter', 'worker', { mood: 'smile' }], ['Beamter', 'official', { mood: 'flat', brows: 'skeptic', pose: 'hold' }],
+      ['Minister', 'minister', { mood: 'smile', pose: 'present' }], ['Arzt', 'doctor', { mood: 'smile' }],
+      ['Chef', 'boss', { mood: 'worried', brows: 'worried' }], ['Pflegerin', 'nurse', { mood: 'happy' }],
+      ['Vorarbeiter', 'foreman', { mood: 'grin', pose: 'point' }], ['Technikerin', 'tech', { mood: 'o', brows: 'raised' }],
+      ['Managerin', 'manager', { mood: 'smile', pose: 'shrug' }], ['Wirtin', 'cafe', { mood: 'smile' }],
+      ['Wiener Wirt', 'wien', { mood: 'smile' }], ['Händlerin', 'paris', { mood: 'happy' }],
+      ['Inhaberin', 'owner', { mood: 'smile' }], ['Rentner', 'retiree', { mood: 'smile' }],
+      ['Mutter', 'mum', { mood: 'smile' }], ['Kind', 'child', { mood: 'happy', h: 0.62 }],
+      ['Kind', 'kid', { mood: 'grin', h: 0.66 }], ['Hafenarbeiter', 'port', { mood: 'smile' }],
+    ];
+    const POSE_LIST = ['rest', 'wave', 'point', 'pointUp', 'hips', 'shrug', 'think', 'cheer', 'carry', 'present', 'hold', 'type', 'facepalm'];
+    const HEADS = [
+      ['founder', { turn: -1, mood: 'smile' }, 'Drehung −1'], ['founder', { turn: -0.5, mood: 'smile' }, '−0,5'],
+      ['founder', { turn: 0, mood: 'smile' }, '0'], ['founder', { turn: 0.5, mood: 'smile' }, '+0,5'], ['founder', { turn: 1, mood: 'smile' }, '+1'],
+      ['baker', { turn: 0.3, mood: 'happy' }, 'happy'], ['minister', { turn: -0.3, mood: 'flat', brows: 'skeptic' }, 'flat / skeptic'],
+      ['official', { turn: 0, mood: 'worried', brows: 'worried' }, 'worried'], ['worker', { turn: 0.2, mood: 'o', brows: 'raised' }, 'o / raised'],
+      ['tech', { turn: -0.2, mood: 'grin', brows: 'neutral' }, 'grin'],
+    ];
+    const FAR = 1e4;
+
+    const layout = once(({ width: W, height: H }) => {
+      const L = fitSvg(art, W, H);
+      const defs = el('defs', {}, art);
+      L.pages = [];
+      const page = name => {
+        const p = g(art);
+        text(p, name, { x: 60, y: 48, size: 26, weight: 900, fill: INK, anchor: 'start' });
+        L.pages.push(p);
+        return p;
+      };
+      const label = (parent, str, x, y) => text(parent, str, { x, y, size: 22, weight: 800, fill: '#7a7088' });
+
+      const p0 = page('Figurenblatt · Besetzung');
+      L.lineup = LINEUP.map(([name, key, st], i) => {
+        const x = 150 + (i % 10) * 180, y = i < 10 ? 490 : 1010;
+        label(p0, name, x, y + 36);
+        return { p: person(p0, C[key]), x, y, st };
+      });
+
+      const p1 = page('Posen');
+      L.poses = POSE_LIST.map((name, i) => {
+        const row = i < 7 ? 0 : 1, x = row ? 290 + (i - 7) * 265 : 160 + i * 265, y = row ? 1000 : 490;
+        label(p1, name, x, y + 36);
+        return { p: person(p1, C[i % 2 ? 'tech' : 'founder']), x, y, name };
+      });
+
+      const p2 = page('Köpfe: Drehung und Ausdruck');
+      L.heads = HEADS.map(([key, st, name], i) => {
+        const col = i % 5, row = Math.floor(i / 5);
+        const cx = 192 + col * 384, top = 80 + row * 500;
+        const id = `cell${i}`;
+        el('path', { d: rr(cx - 180, top, 360, 484, 26) }, el('clipPath', { id }, defs));
+        el('path', { d: rr(cx - 180, top, 360, 484, 26), fill: '#ebe1cb' }, p2);
+        const cell = g(p2, { 'clip-path': `url(#${id})` });
+        label(p2, name, cx, top + 462);
+        return { p: person(cell, C[key]), x: cx, y: top + 30 + 106 * 10.5, st };
+      });
+
+      const p3 = page('Gehen, Rückansicht, sitzend');
+      L.walk = Array.from({ length: 8 }, (_, i) => ({ p: person(p3, C.founder), x: 150 + i * 232, y: 450, ph: (i / 8) * Math.PI * 2 }));
+      L.walk.forEach((w, i) => label(p3, `Phase ${i}/8`, w.x, w.y + 36));
+      L.backs = [['minister', 'Minister'], ['founder', 'Gründerin'], ['baker', 'Bäckerin'], ['nurse', 'Pflegerin']].map(([key, name], i) => {
+        const x = 150 + i * 190;
+        label(p3, name, x, 1036);
+        return { p: person(p3, { ...C[key], view: 'back' }), x, y: 1000 };
+      });
+      L.seated = [['official', '#2856d8'], ['tech', '#3b63e0']].map(([key, chair], i) => {
+        const x = 1000 + i * 210;
+        label(p3, 'sitzend', x, 1036);
+        return { p: person(p3, { ...C[key], seated: true, chair }), x, y: 1000 };
+      });
+      [['#f2c4a0', '#5a3a22', '#45b8ff', 'short'], ['#8a5a3c', '#1b1f3b', '#ff7eb6', 'curly'], ['#e0b090', '#e8c060', '#19c3b1', 'ponytail'], ['#f4d0b4', '#9a9aa8', '#8a6cff', 'bun']].forEach(([skin, hair, top, style], i) => {
+        const b = backBust(p3, 120, { skin, hair, top, style, seed: `bb${i}` });
+        b.setAttribute('transform', `translate(${1440 + i * 130} 1000)`);
+      });
+      label(p3, 'Publikum von hinten', 1635, 1036);
+
+      return L;
+    });
+
+    defineScene({
+      ready: fontsReady,
+      props: {},
+      render(context) {
+        const { time } = context;
+        const L = layout(context);
+        const pg = Math.min(L.pages.length - 1, Math.floor(time + 0.001));
+        L.pages.forEach((p, i) => p.setAttribute('display', i === pg ? 'inline' : 'none'));
+        const t = 0.6 + time * 0.2;
+        L.lineup.forEach(({ p, x, y, st }, i) => p.update({ x, y, h: 340 * (st.h ?? 1), t: t + i * 0.31, look: [0, 0], ...st, h: 340 * (st.h ?? 1) }));
+        L.poses.forEach(({ p, x, y, name }, i) => p.update({ x, y, h: 340, t: t + i * 0.27, pose: name, mood: name === 'facepalm' ? 'worried' : name === 'cheer' ? 'happy' : 'smile', brows: name === 'think' ? 'skeptic' : 'neutral', look: name === 'pointUp' ? [0.3, -0.8] : [0, 0] }));
+        L.heads.forEach(({ p, x, y, st }, i) => p.update({ x, y, h: 1050, t: t + i * 0.37, ...st }));
+        L.walk.forEach(({ p, x, y, ph }, i) => p.update({ x, y, h: 300, t: t + i * 0.2, walk: ph, mood: 'smile' }));
+        L.backs.forEach(({ p, x, y }, i) => p.update({ x, y, h: 300, t: t + i * 0.4 }));
+        L.seated.forEach(({ p, x, y }, i) => p.update({ x, y, h: 300, t: t + i * 0.4, pose: 'type', mood: 'smile', look: [0.4, 0.3] }));
+        return { actors: [] };
+      },
+    });
+  </script>
+</body>
+</html>

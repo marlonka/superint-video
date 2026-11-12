@@ -1,0 +1,323 @@
+# Superint Video: Handbuch
+
+Alles, was in die [README](../README.md) nicht passt: Installation im Detail, Studio, Agenten-Einrichtung, Presets, Prüfen und Rendern, Projektformat, Bauen aus dem Quellcode, Grenzen und Fehlerbehebung.
+
+## Schnellstart: fertiges Windows-Paket
+
+1. Lade unter [Releases](https://github.com/marlonka/superint-video/releases/latest) die Datei `superint-video-0.3.0-windows-x64.zip` herunter. Solange das Repository privat ist, musst du dafür bei GitHub angemeldet sein.
+2. Entpacke das ZIP in einen beschreibbaren Ordner.
+3. Stelle die Laufzeit-Abhängigkeiten bereit:
+
+| Abhängigkeit                         | Verwendung                                                                         |
+| ------------------------------------ | ---------------------------------------------------------------------------------- |
+| Chrome, Chromium oder Microsoft Edge | HTML-Vorschau und Frame-Rendering                                                  |
+| FFmpeg **und** ffprobe im `PATH`     | Medienanalyse, Audio und MP4-Encoding; FFmpeg benötigt `libx265`, `libx264`, AAC und `zscale` |
+
+**Rust und Node.js werden zum Ausführen des fertigen Pakets nicht benötigt.** Studio, Szenen-Runtime und Starterprojekt sind in der EXE enthalten. Browser und FFmpeg werden separat installiert; die Anwendung lädt sie nicht selbst herunter.
+
+Öffne PowerShell im entpackten Ordner:
+
+```powershell
+.\superint-video.exe doctor --json
+.\superint-video.exe new .\mein-video --topic "Warum ist der Himmel blau?" --seconds 30
+```
+
+`new` startet Studio im Hintergrund und öffnet es im Browser. `superint-video studio .\mein-video` holt es später zurück, auch für ein bestehendes Projekt; `--stop` beendet es, und ohne Zuschauer und ohne Render beendet es sich nach zwei Stunden selbst. Wer das nicht will, gibt `new` und `render` `--no-studio` mit (in CI und mit `SUPERINT_NO_STUDIO` ist es von selbst aus). Der Port wird automatisch gewählt. Für einen festen Port kannst du `studio .\mein-video --port 4317` verwenden, sofern er frei ist.
+
+`doctor` prüft die Programm-Erkennung. Danach prüfst du mit `check` echte Frames im Browser; erst damit wird auch das Rendering ausgeführt.
+
+### Programmpfade explizit setzen
+
+Falls die automatische Erkennung nicht passt, setze in derselben PowerShell-Sitzung deine tatsächlichen Installationspfade:
+
+```powershell
+$env:SUPERINT_CHROME = 'C:\Program Files\Google\Chrome\Application\chrome.exe'
+$env:SUPERINT_FFMPEG = 'C:\Tools\ffmpeg\bin\ffmpeg.exe'
+$env:SUPERINT_FFPROBE = 'C:\Tools\ffmpeg\bin\ffprobe.exe'
+.\superint-video.exe doctor --json
+```
+
+### Download prüfen
+
+Das Release enthält `SHA256SUMS.txt` mit den Prüfsummen des ZIPs und der EXE. Vergleiche den ZIP-Hash mit der entsprechenden Zeile:
+
+```powershell
+Get-FileHash .\superint-video-0.3.0-windows-x64.zip -Algorithm SHA256
+```
+
+## Die App: Einrichtung, Startseite, Vorgaben
+
+Ein Doppelklick auf `Superint Video.exe` (oder der Befehl `superint-video app`) öffnet die App in einem eigenen Fenster. Sie läuft im Hintergrund weiter und beendet sich nach zwei Stunden ohne Zuschauer selbst; `superint-video app --stop` beendet sie sofort. Beide Programme gehören in denselben Ordner.
+
+**Sprache.** App und Studio sprechen Deutsch und Englisch. Beim ersten Start gilt die Sprache des Systems; der Globus oben rechts (im Studio: „⋯“) stellt um, und die Wahl bleibt gespeichert (`superint-video settings set uiLanguage de`). Die Namen unten sind die deutschen; auf Englisch heißen die Teile Setup, New film, Films und Defaults. Texte, die der Coding-Agent schreibt (Befunde, Schritte, Notizen), und Fehlermeldungen des Werkzeugs erscheinen so, wie sie geschrieben wurden.
+
+**Einrichtung zuerst.** Solange etwas fehlt, ohne das kein Film entsteht, zeigt die App nur die Einrichtung. Sie hat vier Gruppen. Jede Zeile sagt, wofür etwas da ist, und hat rechts den einen Knopf, der sie erledigt; hervorgehoben ist immer nur der nächste:
+
+- **Coding-Agent.** Claude Code oder ChatGPT Codex macht den Film, einer genügt. Ist einer installiert, kopiert „Skills hinzufügen“ die Superint-Skills in dessen Ordner; fehlt er, führt „Claude Code holen“ oder „ChatGPT Codex holen“ zur Installation.
+- **Werkzeuge.** Chrome (oder Edge) zeichnet jedes Bild, FFmpeg fügt Bilder und Ton zur MP4-Datei zusammen.
+- **Stimme und Musik.** Ein API-Schlüssel von Google AI Studio oder OpenRouter, „API-Schlüssel holen“ führt zum Anbieter. Unter jedem Anbieter stehen die Modelle, die ein Film damit nutzt, solange Stil oder Projekt nichts anderes sagen: bei Google AI Studio `gemini-3.8-flash-tts` (Stimme), `gemini-3.5-transcribe` (Wort-Zeitpunkte) und `lyria-3.5` (Musik), bei OpenRouter dieselben Modelle unter dessen Namen (`google/gemini-3.8-flash-tts`, `google/gemini-3.5-transcribe`, `google/lyria-3-pro-preview`).
+- **Freiwillig.** Earshot für Soundeffekte, mit dem Befehl zum Kopieren.
+
+Fehlt Chrome oder FFmpeg, öffnet „Installieren“ ein sichtbares Terminal-Fenster mit einem festen winget-Befehl (`winget install --id Gyan.FFmpeg --exact --source winget` oder `Google.Chrome`). Die App stimmt dabei nichts für dich zu: Fragt winget nach Bedingungen, antwortest du im Fenster. Danach „Erneut prüfen“. Ohne winget führt „Download-Seite“ zum Hersteller.
+
+„Ohne Einrichtung fortfahren“ zeigt die Startseite trotzdem; dann erinnert oben ein Balken über die ganze Breite an das, was fehlt, auch im Studio jedes Films.
+
+Die Startseite hat vier Teile:
+
+- **Einrichtung** ist derselbe Teil, zusammengefaltet auf eine Zeile, sobald alles da ist.
+- **Neuer Film** baut den Prompt für den Coding-Agenten: Thema eintippen, bei Bedarf Stil, Länge, Format und Sprache wählen, „Prompt kopieren“, in Claude Code oder ChatGPT Codex einfügen. Sobald der Agent den Film anlegt, wechselt die Startseite von selbst dorthin.
+- **Filme** listet die Filme auf diesem Rechner mit ihrem Stand: der aktuelle Schritt, ein laufender Render, fertig. Dazu gehört jeder Film, den der Agent anlegt oder dessen Studio einmal offen war, und alles, was im Filme-Ordner liegt. „Von der Liste nehmen“ nimmt einen Film nur von der Liste; der Ordner bleibt.
+- **Vorgaben** legt fest, womit ein neuer Film beginnt, wenn der Prompt es nicht sagt: Stil, Länge, Format, Sprache und der Filme-Ordner. Ein Prompt hat immer Vorrang. Jede Stil-Karte hat „Als Standard“ und ein Menü „⋯“: „Referenzbilder hinzufügen“ (öffnet den Ordner für eigene Referenzbilder), „Kopie anlegen“ (eine eigene Fassung zum Verändern) und „Als Datei exportieren“. „Stil importieren“ über den Karten nimmt eine solche Datei an.
+
+**Wo die Filme liegen.** Jeder Film ist ein Ordner mit allem, was zu ihm gehört: Briefing, Szenen, Ton und unter `renders\` das fertige Video. Ohne dein Zutun liegen diese Ordner in `Superint Video` in deinem Videos-Ordner (`C:\Users\<du>\Videos\Superint Video`; hast du den Videos-Ordner in Windows verschoben, dort). Unter „Vorgaben“ trägst du einen anderen Filme-Ordner ein, „Anzeigen“ öffnet ihn, „Üblichen Ordner nehmen“ stellt zurück. Der Coding-Agent legt neue Filme von selbst dort an, benannt nach dem Thema; ein Ordner, den du im Prompt nennst, hat Vorrang. Filme gehören nicht in den Programmordner und nicht in ein Code-Repository: Sie sind groß und kein Quellcode. Ältere Filme erscheinen in der Liste, sobald ihr Ordner im Filme-Ordner liegt.
+
+**Stile weitergeben.** „Als Datei exportieren“ schreibt den ganzen Stil als `<name>.superint-style.zip` in deinen Downloads-Ordner und zeigt die Datei dort; Referenzbilder sind dabei. „Stil importieren“ fügt eine solche Datei zu deinen Stilen hinzu. Gibt es den Namen schon, bekommt der neue Stil eine Nummer („Mein Stil (2)“), ersetzt wird nichts. Ein Stil enthält Code, der läuft, während ein Film entsteht: Importiere nur Stile von Leuten, denen du vertraust. Von der Kommandozeile: `preset export <name>` und `preset import <datei>`.
+
+**API-Schlüssel.** Für Stimme und Musik brauchst du einen API-Schlüssel aus deinem eigenen Konto: Google AI Studio ist der Standardweg, OpenRouter die Alternative, einer genügt. Du trägst ihn in der Einrichtung ein; die App fragt den Anbieter gleich nach dem Speichern, ob er funktioniert, und „Prüfen“ fragt später noch einmal. Die App speichert ihn nur auf diesem Rechner, unter Windows für dein Benutzerkonto verschlüsselt (`%APPDATA%\superint-video\keys.dat`), und zeigt ihn nie wieder an, auch dem Coding-Agenten nicht. Eine `.env`-Datei oder Umgebungsvariable gilt weiterhin und hat Vorrang. Mit nur einem OpenRouter-Schlüssel laufen die Google-Modelle von selbst über OpenRouter. Ohne Schlüssel entstehen stumme Filme.
+
+Im Studio eines Films führt das Logo oben links zur Startseite und „Zurück zu …“ wieder zurück.
+
+Von der Kommandozeile zeigt `superint-video settings` die Vorgaben, und `superint-video settings set seconds 90` ändert eine (leerer Wert: zurück zum Wert des Stils). `new` übernimmt sie: Mit einem Standard-Stil genügt `superint-video new --topic "…"`, und der Film entsteht im Filme-Ordner (`filmsFolder` in der Ausgabe von `settings`). Die Dateien liegen unter `%APPDATA%\superint-video` (anderswo `~/.config/superint-video`, oder dort, wohin `SUPERINT_HOME` zeigt).
+
+## Im Studio arbeiten
+
+| Aufgabe            | Bedienung                                                                             |
+| ------------------ | ------------------------------------------------------------------------------------- |
+| Medien hinzufügen  | **Medien** öffnen, Dateien importieren und mit **Einfügen** am Abspielkopf einsetzen |
+| Text ändern        | Szenen-Clip auswählen; deklarierte Eigenschaften erscheinen rechts                    |
+| Timing ändern      | Clip ziehen, ausgewählte Kanten kürzen oder Start/Dauer in Frames eingeben            |
+| Vorschau prüfen    | Wiedergabe, einzelne Frames und direkte Frame-Eingabe; **Zoom** stellt die Größe der Vorschau, „Ganzes Bild“ passt sie ein |
+| Clip bearbeiten    | **Teilen**, **Duplizieren**, **Löschen** und Undo/Redo in der Timeline; **Ganzer Film** zeigt die ganze Länge |
+| Projekt einstellen | **Film**: Abmessungen, Dauer und Hintergrund                                          |
+| Zuschauen          | **Fortschritt**: Briefing, Stil, Skills, Referenzen, aktueller Schritt, Dokumente und letzte Änderungen |
+| Weitere Aktionen   | **⋯**: Kontext kopieren, Projekt prüfen, Prüfergebnisse, Tastenkürzel, helles oder dunkles Design, Sprache |
+| Video exportieren  | **Exportieren**, Ausgabepfad und Qualität wählen; Fortschritt und Abbrechen sind verfügbar |
+
+Medien- und Eigenschaftenbereiche lassen sich schließen; auf schmalen Fenstern öffnen sie als überlagerte Bereiche. Farbige Szeneninhalte bleiben unverändert.
+
+Studio speichert Timeline-Änderungen lokal in `video.json`. Ein abgeschlossener Bearbeitungsschritt entspricht einem Undo-Schritt. HTML und Assets bearbeitest du in deinem Editor oder mit dem Agenten. Änderungen von außen aktualisieren das Projekt und leeren die Undo-Historie. Bei einem Konflikt bietet Studio einen Recovery-Download an; lade ihn vor dem Neuladen herunter.
+
+**Tastenkürzel:** `S` teilen, `D` duplizieren, `Entf` löschen, `Strg+Z` rückgängig, `Strg+Umschalt+Z` wiederholen. `Alt+←/→` verschiebt einen Clip um einen Frame; zusätzlich `Umschalt` kürzt oder verlängert sein Ende. Space steuert die Wiedergabe außerhalb fokussierter Bedienelemente. Die vollständige Liste steht unter **More → Keyboard shortcuts**.
+
+## Mit deinem Coding-Agenten Videos erstellen
+
+Superint Video ist das Werkzeug, dein Coding-Agent der Regisseur. Ein eingebauter Chat oder ein eigenes Sprachmodell ist nicht enthalten.
+
+### Agenten einrichten
+
+Das Werkzeug selbst hat keinen Geschmack. Was ein Film wird, kommt aus drei austauschbaren Teilen:
+
+| Teil | Bestimmt | Liegt in |
+| --- | --- | --- |
+| **Ablauf-Skill** | Welche Art Film, wie er geplant, geschrieben, komponiert und geprüft wird | `skills/superint-explainer` (Erklärvideo), `skills/superint-launch` (Launch-, Update-, Produktfilm, aufgebaut auf [cinetic](https://github.com/Leonxlnx/cinetic) von Leon), oder ein eigener |
+| **Stil-Preset** | Look: Farbe, Licht, Schrift, Formen, Figuren, Bewegung | `blank` (kein Hauslook), `flat-explainer`, `miniature-3d`, `launch`, oder ein eigenes |
+| **Referenzen** | Woran der Agent seine Bilder misst | Standbilder, Screenshots, Clips in `references/` von Preset oder Projekt |
+
+Dazu kommen der [Werkzeug-Skill](../skills/superint-video/SKILL.md) (Projekt, Szenen-API, CLI, Review, Rendern) und [`superint-audio`](../skills/superint-audio/SKILL.md) (Stimme, Musik, SFX, Mix; je Anbieter eine eigene Datei, Google AI Studio oder OpenRouter). Die App kopiert sie in der Einrichtung mit einem Klick („Skills hinzufügen“). Sind die Skills im Ordner des Agenten nicht mehr die der App, etwa nach einem Update, steht dort „Skills aktualisieren“: Die App ersetzt sie durch ihre eigenen und hebt die bisherigen unter `%APPDATA%\superint-video\replaced-skills\<agent>` auf, je Skill die letzte Fassung. Einen verknüpften Skill-Ordner (Symlink oder Junction) fasst sie nie an. Von Hand kopierst du alle Ordner aus `skills/` (im Paket oder Repository) an die Stelle, an der dein Agent Skills sucht:
+
+| Agent | Ordner |
+| --- | --- |
+| Claude Code, für alle Projekte | `%USERPROFILE%\.claude\skills\<skill>` |
+| Claude Code, nur ein Projekt | `<projekt>\.claude\skills\<skill>` |
+| ChatGPT Codex | `%USERPROFILE%\.codex\skills\<skill>` |
+
+Alternativ schreibst du in den Auftrag: „Lies zuerst `<pfad>\skills\superint-video\SKILL.md`.“ Der Skill verwendet `superint-video` als Befehlsnamen. Lege den Paketordner in den `PATH` oder nenne dem Agenten den Pfad zu `superint-video.exe` (im Repository `.\dist\superint-video.exe`).
+
+Du sagst nur, was du willst, in welchem Stil und ungefähr wie lang (Richtwert, kein Schnittmaß); der Agent fragt nur nach, was er nicht selbst gut entscheiden kann, etwa Screenshots des gewünschten Looks oder das Material zu deinem Produkt. Die Regeln in Skills und Presets sind eine Untergrenze, keine Obergrenze: Ein stärkeres Modell darf es besser machen und begründet das im Bericht.
+
+**Zuschauen:** Studio öffnet sich mit dem neuen Projekt; ist die Startseite der App offen, wechselt sie von selbst dorthin. Unter „Fortschritt“ steht auch der Feinschliff (der Polish-Durchgang): wie viele Bilder angesehen sind, was zu beheben ist, und über „Befunde ansehen“ jedes Bild mit Befund und Korrektur. Der Bereich „Fortschritt“ rechts zeigt Briefing, Stil, Skills, Referenzen, den aktuellen Schritt, die letzten Änderungen, was gerade läuft („Läuft gerade“) und was der Agent zuletzt angesehen hat („Zuletzt angesehen“); die Vorschau lädt neu, sobald eine Szene dazukommt. Während eines Renders zeigt die Vorschau das gerade berechnete Bild mit Prozent, Bildern pro Sekunde, Restzeit und einem Filmstreifen, auch wenn der Agent ihn über die Kommandozeile gestartet hat. Am Ende läuft dort der fertige Film. Am Ende steht im Bericht ein Making-of zum Einfügen unter das Video.
+
+### Ein Video beauftragen
+
+Ein Satz genügt:
+
+```text
+Nutze den Skill superint-video: Explainer im Flat-Vector-Stil, 60 Sekunden, Thema „Warum Schlaf das Gehirn putzt“, Ordner ./schlaf.
+```
+
+```text
+Nutze den Skill superint-video: 25-Sekunden-Launch-Film für mein Produkt <Name>, Material unter <URL>, im Branding aus ./brand, Ordner ./launch.
+```
+
+Für ein Erklärvideo arbeitet der Agent dann in festen Schritten (`superint-explainer`), die jeweils eine Datei im Projekt hinterlassen:
+
+1. Recherche mit Themen-Memo und Claim-Register (`research.md`): jede tragende Behauptung mit Quelle, Geltungsbereich und Status
+2. Drei Konzepte mit eigener Bildwelt, begründete Auswahl (`concepts.md`) und eine bezifferte Gestaltungsvorgabe (`direction.md`)
+3. Drei Skriptentwürfe, der beste überarbeitet in Lehrer-, Hör- und Wahrheitsdurchgang (`script.md`)
+4. Beat-Board mit Auslösewort je Bildereignis (`beats.md`)
+5. Style-Frames für Hook, Aha und Titel
+6. Restliche Szenen aus den Preset-Bausteinen
+7. Review per Kontaktbogen mit Checkliste
+8. Polish-Durchgang mit frischen Augen, bis ein Durchgang sauber ist
+9. Render und Übergabe: Du siehst den Film, bevor irgendetwas anderes passiert
+10. Nach deiner Abnahme: Thumbnail und Bericht mit Titelvorschlägen und Quellen (`report.md`)
+
+Jeder Schritt läuft in Kritikrunden. Willst du zwischendurch entscheiden, setze Stopps (`concept`, `script`, `frames`, `contact`). Hast du schon einen Sprechertext, gib ihn mit; er wird unverändert übernommen.
+
+Der vollständige Auftrag mit allen Eingaben steht in [prompts/explainer.md](../prompts/explainer.md); dazu Varianten für Shorts, eigene Skripte und Änderungen in [prompts/](../prompts/README.md).
+
+**Ton:** Stimme, Wort-Timestamps und Musik erzeugen die Befehle `voice`, `transcribe` und `music`. Standard ist Google AI Studio mit `GEMINI_API_KEY` (`gemini-3.8-flash-tts`, `gemini-3.5-transcribe`, `lyria-3.5`), die Alternative OpenRouter mit `OPENROUTER_API_KEY`. Die Soundeffekte kommen aus [Earshot](https://github.com/Leonxlnx/earshot) (lokal, MIT): `sfx kit` rendert sie, `sfx place` setzt sie auf die Frames. `mix` mischt und mastert auf −14 LUFS, `listen` lässt einen Take oder den fertigen Film über Earshot gegenhören. Ohne Ton entsteht ein stummes Video.
+
+## Presets, Referenzen und Briefing
+
+Ein Preset legt nur den Look fest: Formate, Farben, Schrift, Formen, Bewegung, Bausteine und Referenzbilder. Wie der Film geplant und geschnitten wird, kommt aus dem Ablauf-Skill, darum passt jedes Preset zu jedem Ablauf. Mitgeliefert:
+
+- `blank`: kein Hauslook. Geist, dunkler Grund, ein Akzent, neutrale Helfer. Der Look kommt aus Briefing, Brand-Kit und Referenzen; der übliche Start für Launch-Filme.
+- `flat-explainer`: flache Vektorgrafik mit Cel-Shading, Figuren-Rig, Requisiten und Orte, helle Farbwelten, runde Schrift (Nunito); Bausteine für Titel, Kernaussage, Zahl, Größenvergleich, Ablauf, Zoom, „einer unter vielen“, Verlauf und Outro, jeweils für 16:9, 9:16 und 1:1. Standard-Ablauf: `superint-explainer`.
+- `miniature-3d`: eine fotografische Miniaturwelt, vollständig aus Code gerechnet, mit eigenem WebGL2-Renderer: echte Tiefenunschärfe, Bewegungsunschärfe, weiche Schatten, Spiegelungen, Filmkorn. Räume eines aufgeschnittenen Hauses bei Nacht, Dinge handeln von selbst, keine Menschen, eine durchgehende Kamerafahrt auf den Wortzeiten der Stimme. Nur 16:9, rund eine Sekunde Rechenzeit je Bild. Das Projekt startet mit einem fertigen Raum und einer fotorealen Tasse. Renderer, Rezepte und der ganze Beispielfilm stehen im Skill `superint-miniature`.
+- `launch`: die echte Oberfläche des Produkts, in Code nachgebaut, auf dunklem Grund; Geist und JetBrains Mono, die Farben der Marke oder eine Graustufe mit Weiß als Aktionsfarbe; große Zeilen über einem weich gezeichneten Bild, ein Schlussbild aus der letzten Form des Films. Für Launch-, Update- und Feature-Filme, die zur Musik geschnitten sind. Standard-Ablauf: `superint-launch`; der Launch-Film von Superint Video liegt als Beispiel im Skill.
+
+```powershell
+.\superint-video.exe preset list
+.\superint-video.exe new .\schlaf --preset flat-explainer --workflow superint-explainer --topic "Warum Schlaf das Gehirn putzt" --seconds 60 --reference .\look\01.jpg,.\look\02.jpg
+.\superint-video.exe new .\launch --preset blank --workflow superint-launch --topic "Acme 2.0" --seconds 25
+```
+
+`new` braucht `--preset`, der Look ist also immer eine bewusste Wahl. Es kopiert das Preset vollständig ins Projekt, legt die Referenzen nach `references/` und schreibt `brief.md` mit Thema, Botschaft, Ablauf, Look, Referenzen, Länge, Format, Sprache, Stopps und Wortbudget für den Sprechertext. Weitere Optionen: `--message "<der eine Satz>"`, `--language`, `--audience`, `--must "<text>"`, `--avoid "<text>"`, `--stop <namen>` (die Stopps nennt der Ablauf-Skill, beim Erklärvideo `concept,script,frames,contact`), `--script <datei>`.
+
+**Referenzen für immer:** `preset reference flat-explainer .\look\*.jpg` legt Bilder ans Preset; jedes neue Projekt bekommt eine Kopie und der Agent misst Style-Frames und Kontaktbögen daran. Bei eingebauten Presets landen sie in `%APPDATA%\superint-video\presets\_references\<name>`. Screenshots fremder Filme gehören nicht in Git.
+
+**Eigene Presets:** `preset new mein-stil --from blank --reference a.png,b.png` legt `%APPDATA%\superint-video\presets\mein-stil` an (oder im Ordner aus `SUPERINT_PRESETS`). Dort passt du `STYLE.md`, `kit/` und `blocks/` an. `preset export mein-stil` macht daraus eine Datei zum Weitergeben, `preset import <datei>` nimmt eine an. Aufbau und Felder: [Preset-Referenz](../skills/superint-video/references/styles.md).
+
+Stile nachzuempfinden ist erlaubt; Presets und Skills weisen den Agenten an, keine Namen, Logos oder Figuren anderer Kanäle zu übernehmen.
+
+## Prüfen, Snapshots erstellen und rendern
+
+Im entpackten Paket:
+
+```powershell
+.\superint-video.exe inspect .\mein-video --json
+.\superint-video.exe check .\mein-video --json
+.\superint-video.exe snapshot .\mein-video --frames 0,45,89 --output renders/snapshots
+.\superint-video.exe review .\mein-video
+.\superint-video.exe polish .\mein-video
+.\superint-video.exe polish .\mein-video --accept
+.\superint-video.exe render .\mein-video --output renders/video.mp4
+```
+
+Die Frame-Nummern müssen innerhalb der Projektdauer liegen. Snapshots enthalten PNGs, ein Kontaktblatt und `frames.json` mit Frame-Nummern und Revision. `check` meldet geprüfte Frames und Diagnosen; beurteilt wird das Ergebnis zusätzlich anhand der Bilder und des Videos.
+
+`review` ist die Arbeitsrunde nach dem ersten kompletten Bau, noch vor dem Rendern. Jede Runde bekommt einen eigenen Ordner `renders/review/<n>/` mit:
+
+- einem Kontaktblatt, auf dem alle 3 Sekunden ein Standbild liegt
+- dem Arbeitsblatt `review.md`, mit einer Zeile pro Bild: was gerade gesprochen wird, was gemessen wurde, und leere Spalten für Mangel und Änderung
+
+Über den ganzen Film misst das Tool drei Dinge:
+
+- Stellen, an denen das Bild länger als 3 Sekunden fast stillsteht
+- Figuren, die der Bildrand zu einem schmalen Streifen anschneidet
+- Markierungen, die ihr Ziel nicht umschließen
+
+Die letzten beiden misst es nur, wenn die Szenen ihre Akteure melden (siehe Szenen-API). Das Urteil fällst du oder dein Agent, das Tool misst nur.
+
+```powershell
+.\superint-video.exe review .\mein-video --offset 1.5
+.\superint-video.exe review .\mein-video --strip 600-615 --frames 300 --crop 640,200,640,360
+.\superint-video.exe review .\mein-video --frames 300 --camera -640,60,4
+```
+
+- `--offset 1.5` legt das Raster zwischen die Bilder der letzten Runde.
+- `--strip` zeigt jeden einzelnen Frame eines Abgangs.
+- `--crop x,y,breite,höhe` speichert einen Ausschnitt in voller Auflösung.
+- `--camera x,y,zoom` macht Nahaufnahmen in Szenen mit Prüfkamera.
+
+`polish` ist der letzte Blick vor dem Render, gedacht für Augen, die den Film nicht gebaut haben: einen Sub-Agenten, ein stärkeres Modell oder dich. Jeder Durchgang bekommt einen Ordner `renders/polish/<n>/` mit:
+
+- einem Standbild alle 5 Sekunden (`--every`) in voller Größe
+- Nahaufnahmen der vier Bildviertel in voller Auflösung, überall dort, wo ein Standbild eine neue Ansicht zeigt
+- beiden Seiten jedes Schnitts nebeneinander: Was vorher da ist und nachher fehlt, springt
+- Streifen über die schnellsten Bewegungen jeder Szene, je acht Bilder im Abstand von drei Frames
+- dem Arbeitsblatt `polish.md` mit den Fragen, die ein Zuschauer in der ersten Sekunde beantwortet (richtig gebaut? ein Blickwinkel, ein Licht? sieht es aus wie sein Name? fertig? sauber?), und einer Zeile pro Bild für Mangel und Korrektur
+
+Nach den Korrekturen zeigt der nächste Durchgang nur die Bilder, deren Pixel sich geändert haben, und die Zeilen, die offen geblieben sind. Steht in jeder Zeile `ok` oder `kept: <Grund>`, hält `polish --accept` den Durchgang fest.
+
+`render` verlangt bei Filmen mit `brief.md` einen festgehaltenen Durchgang für das Bild, wie es jetzt ist. Notizen, Ton und Bericht ändern daran nichts, jede Änderung am Bild schon. Für Testrender gibt es `--quality draft`, zum bewussten Überspringen `--unpolished`. Projekte ohne Briefing, etwa aus `init`, rendern wie bisher.
+
+Relative Ausgabepfade beziehen sich auf den Projektordner: Das Beispiel erzeugt `mein-video/renders/video.mp4`. Bestehende MP4s werden nur mit `--overwrite` ersetzt. Studio exportiert innerhalb des Projekts; die CLI erlaubt auch absolute Ausgabeziele.
+
+Der Export erzeugt MP4, mit AAC bei aktivierten Audiospuren. Standard ist HEVC mit x265: etwa halb so große Dateien bei gleichem Bild. `--codec x264` liefert H.264, das auch dort abspielt, wo HEVC eine Erweiterung braucht. Vor Abschluss werden Abmessungen, Bildrate, Frame-Anzahl, Dauer und erwartetes Audio geprüft. `--quality draft` ändert Encoder-Geschwindigkeit und Qualität; Abmessungen und FPS bleiben gleich. Mehrere Browser nehmen die Bilder parallel auf, standardmäßig halb so viele wie CPU-Threads, höchstens 8. `--workers N` legt die Zahl fest. Die Bilder sind gleich, egal wie viele Browser arbeiten. Ausnahme: Beim ersten Zeichnen in einem frischen Browser weichen vereinzelt Pixel um eine Helligkeitsstufe ab, das macht die GPU auch mit einem einzigen Browser.
+
+## Projektstruktur und Szenen-API
+
+```text
+mein-video/
+├── brief.md            # Auftrag (von new)
+├── research.md         # Fakten mit Quellen (Agent)
+├── concepts.md         # Konzepte und Auswahl (Agent)
+├── script.md           # Sprechertext mit Szenenmarken
+├── video.json          # Abmessungen, FPS, Spuren, Clips und Eigenschaften
+├── STYLE.md            # Art Direction des Presets
+├── kit/                # Theme, Fonts und Hilfsfunktionen des Presets
+├── blocks/             # Szenen-Bausteine zum Kopieren
+├── scenes/             # HTML-Szenen
+├── assets/             # Lokale Bilder, Fonts, Videos und Audio
+└── renders/            # MP4s und Review-Snapshots
+```
+
+Mit `init` statt `new` entsteht ein minimales Projekt ohne Preset und Briefing.
+
+`video.json` ist die maßgebliche Timeline. HTML definiert Aussehen und Animation; Clips definieren Platzierung, Dauer und Source-Offset. Zeitwerte werden als ganze Frames gespeichert. Bei 30 fps entsprechen 150 Frames fünf Sekunden.
+
+Animierte Szenen registrieren sich über `defineScene({ render })`. Die Runtime stellt `interpolate`, `ease`, `spring` und reproduzierbaren Zufall bereit. Jeder Frame muss direkt, rückwärts und nach einem Sprung gleich aussehen: keine akkumulierte Animation, keine Uhrzeit als Animationsquelle und kein unkontrolliertes `Math.random()`.
+
+Fonts, Bilder und Abhängigkeiten werden lokal eingebunden. Zeitgesteuertes Video und Audio gehören in Manifest-Clips; Szenen-HTML mit eigenen `<video>`-/`<audio>`-Elementen wird abgelehnt. Details: [Szenen-API](../skills/superint-video/references/scene-api.md), [Projektformat](FORMAT.md), [JSON Schema](video.schema.json).
+
+## Aus dem Quellcode bauen
+
+Zusätzlich zu den Laufzeit-Abhängigkeiten benötigst du Rust mit Windows-MSVC-Buildtools, PowerShell und Node.js mit npm. Lokal geprüft: **Rust 1.99.0, Node.js 26.11.0**. Abhängigkeiten sind in `Cargo.lock` und `studio/package-lock.json` festgehalten.
+
+```powershell
+git clone https://github.com/marlonka/superint-video.git
+Set-Location superint-video
+.\scripts\build.ps1
+.\dist\superint-video.exe doctor --json
+```
+
+Solange das Repository privat ist, muss dein Git-Zugriff auf GitHub eingerichtet sein. Alternativ klonst du nach Anmeldung mit `gh repo clone marlonka/superint-video`.
+
+Der Build installiert Studio-Abhängigkeiten, generiert Manifest-Typen, prüft Schema und Svelte, führt Tests aus, baut Studio und bettet es in die Rust-EXE ein. Anschließend prüft er die echte HTTP-API und erzeugt unter `dist/` das Windows-ZIP mit Dokumentation, Skill und Prüfsummen. Optionen: `-SkipInstall` bei bereits installierten npm-Abhängigkeiten, `-DebugBuild` für eine Debug-EXE; `-SkipChecks` überspringt die normalen Prüfungen.
+
+### Demo öffnen
+
+Die Repository-Demo enthält drei HTML-Szenen, lokales SVG, ein synthetisches Video und synthetisches Audio:
+
+```powershell
+.\dist\superint-video.exe studio .\examples\demo
+.\dist\superint-video.exe render .\examples\demo --output renders/demo.mp4
+```
+
+Fehlende Demo-Medien erzeugst du mit `.\scripts\generate-demo-assets.ps1`; `-Force` ersetzt die generierten Dateien. Die separate `examples/fixture` zeigt Frame-Markierungen, Lücken, Source-Offsets und Überlagerungen.
+
+## Tests und aktueller Stand
+
+`scripts/build.ps1` baut und prüft alles lokal. Die Windows-CI läuft nur auf Abruf (Actions → Run workflow, oder `gh workflow run windows.yml --ref <branch>`) und bei Release-Tags, weil Windows-Runner doppelt so viele Actions-Minuten kosten. Chromium-/FFmpeg-Integrationstests werden lokal separat ausgeführt:
+
+```powershell
+cargo test --test render_contract --test media_contract --test failure_contract -- --ignored --test-threads=1
+```
+
+Die lokale Prüfung umfasst über 100 Rust-Tests, die Szenen-Tests, 13 echte Chromium-/FFmpeg-Integrationstests und die HTTP-API in zehn Prüfgruppen. Die Gestaltungsregeln für Studio und App stehen in [design.md](design.md) und [REDESIGN.md](REDESIGN.md).
+
+### Grenzen
+
+- Windows x64 ist die geprüfte Plattform. macOS/Linux sind nicht als funktionierende Builds bestätigt.
+- Kurze SDR-Projekte verwenden; HDR wird abgelehnt. MP4-Export benötigt gerade Abmessungen.
+- Kein Proxy-/Transcoding-Workflow, Ripple-Editing, Speed-Ramping oder Plugin-System für Übergänge.
+- Audio unterstützt Platzierung, Source-Offset, Lautstärke, Mute und Fades. Signale werden summiert; es gibt keinen automatischen Limiter. Video-Audio wird ausdrücklich aktiviert.
+- Teilen innerhalb eines Fades wird abgelehnt. Den betreffenden Fade vor dem Schnitt kürzen oder entfernen.
+- Medienindexierung, Vorbereitung und vollständige Audio-Decodierung benötigen Speicher. Lange Aufnahmen vor dem Import kürzen; ungewöhnliche Medien zuerst prüfen.
+- Studio rendert jeweils einen Auftrag. Abbrechen während der Vorbereitung kann bis zum aktuellen Tool-/Readiness-Timeout dauern.
+- Die lokalen Server sind für Loopback ausgelegt. Nicht als öffentlich erreichbaren Dienst betreiben.
+
+Reproduzierbarkeit bezieht sich auf dieselben Projekt-Frames in einer dokumentierten Umgebung. Browser, Betriebssystem, Fonts und Media-Tools können das Ergebnis zwischen Rechnern verändern.
+
+## Fehler beheben
+
+| Problem                                    | Nächster Schritt                                                                              |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| Browser oder FFmpeg fehlt                  | `doctor --json` ausführen; Installation, `PATH` oder `SUPERINT_*`-Pfade korrigieren           |
+| Fehlender Font, Asset oder Szenenfehler    | `check --json` und Studio-Diagnosen lesen; Referenzen auf lokale Projektdateien berichtigen   |
+| Ausgabe existiert bereits                  | Neuen Namen wählen oder bewusst `--overwrite` bzw. **Replace existing output file** verwenden |
+| Änderungen kollidieren                     | Recovery herunterladen, danach Projekt neu laden; parallele Schreibvorgänge vermeiden         |
+| Fester Port belegt                         | Studio ohne `--port` starten oder einen freien Port wählen                                    |
+| Rust kompiliert vor dem Studio-Build nicht | `.\scripts\build.ps1` verwenden; generierte Studio-Dateien werden in Rust eingebettet         |

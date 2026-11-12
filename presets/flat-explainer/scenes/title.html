@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../kit/theme.css">
+  <style>
+    .ui { align-items: flex-start; text-align: left; }
+    .headline { max-width: 56vw; }
+    @media (max-aspect-ratio: 1/1) {
+      .ui { justify-content: flex-start; align-items: center; text-align: center; padding-top: 14vh; }
+      .headline { max-width: 86vw; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sky"></div>
+  <div class="stage" id="stage"><svg class="art" id="art"></svg></div>
+  <div class="ui"><p class="kicker" id="kicker"></p><h1 class="headline" id="title"></h1></div>
+  <div class="vignette"></div>
+  <script type="module">
+    import { defineScene } from '/runtime/scene.js';
+    import { fontsReady, once, fitSvg, starField, twinkle, orb, color, enter, drift, splitWords, revealWords, rise, fitText, bob } from '../kit/kit.js';
+
+    const stage = document.getElementById('stage'), art = document.getElementById('art');
+    const kicker = document.getElementById('kicker'), title = document.getElementById('title');
+
+    const layout = once(({ width, height }) => {
+      const L = fitSvg(art, width, height);
+      L.stars = starField(art, { w: width, h: height, seed: 'title-stars' });
+      L.center = L.portrait ? [width * 0.5, height * 0.68] : [width * 0.73, height * 0.56];
+      L.planet = orb(art, { r: (L.portrait ? 26 : 23) * L.u, fill: color('coral'), ring: true, ringColor: color('sun'), glow: true, bands: 3 });
+      L.moon = orb(art, { r: 3.6 * L.u, fill: color('sky') });
+      L.dust = orb(art, { r: 1.6 * L.u, fill: color('mint'), highlight: false });
+      return L;
+    });
+
+    defineScene({
+      ready: fontsReady,
+      props: {
+        kicker: { type: 'text', default: 'Explainer', label: 'Kicker' },
+        title: { type: 'text', default: 'Warum *Sterne* funkeln', label: 'Title (*word* = accent)' },
+      },
+      render(context) {
+        const { time, props } = context;
+        const { w, h, u, portrait, stars, center, planet, moon, dust } = layout(context);
+        kicker.textContent = props.kicker;
+        const words = splitWords(title, props.title);
+        if (title.dataset.fitted !== props.title) {
+          fitText(title, { max: portrait ? 8.5 : 9.5, width: (portrait ? 0.86 : 0.56) * w, lines: 3 });
+          title.dataset.fitted = props.title;
+        }
+        rise(kicker, enter(time, 0.15));
+        revealWords(words, time, 0.3, 0.08);
+
+        // The planet glides up into frame, then floats; the moon passes in front and behind.
+        const arrive = enter(time, 0, { stiffness: 36, damping: 11 });
+        const [bx, by] = bob('planet', time, 0.6 * u);
+        const px = center[0] + bx, py = center[1] + by + (1 - arrive) * h * 0.45;
+        planet.setAttribute('transform', `translate(${px} ${py})`);
+        const angle = time * 0.75 + 2.2;
+        const orbit = (portrait ? 38 : 34) * u;
+        moon.setAttribute('transform', `translate(${px + Math.cos(angle) * orbit} ${py + Math.sin(angle) * orbit * 0.32})`);
+        if (Math.sin(angle) > 0) art.appendChild(moon); else art.insertBefore(moon, planet);
+        const [dx, dy] = bob('dust', time, 1.4 * u, 5);
+        dust.setAttribute('transform', `translate(${px - orbit * 0.95 + dx} ${py - orbit * 0.75 + dy})`);
+
+        drift(stage, time);
+        twinkle(stars, time);
+      },
+    });
+  </script>
+</body>
+</html>

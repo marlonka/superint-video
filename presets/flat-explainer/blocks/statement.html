@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../kit/theme.css">
+  <style>
+    .marks { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  </style>
+</head>
+<body>
+  <div class="sky"></div>
+  <div class="stage" id="stage"><svg class="art" id="art"></svg></div>
+  <div class="ui"><p class="kicker" id="kicker"></p><p class="statement" id="text"></p></div>
+  <svg class="marks" id="marks"></svg>
+  <div class="vignette"></div>
+  <script type="module">
+    import { defineScene } from '/runtime/scene.js';
+    import { fontsReady, once, fitSvg, el, blob, color, shade, enter, between, drift, bob, splitWords, revealWords, rise, fitText, drawable, draw, starField, twinkle } from '../kit/kit.js';
+
+    const stage = document.getElementById('stage'), art = document.getElementById('art'), marks = document.getElementById('marks');
+    const kicker = document.getElementById('kicker'), text = document.getElementById('text');
+
+    // Large soft shapes drifting behind the text give depth without competing with it.
+    const layout = once(({ width, height }) => {
+      const L = fitSvg(art, width, height);
+      fitSvg(marks, width, height);
+      L.stars = starField(art, { w: width, h: height, seed: 'statement', count: 60 });
+      L.shapes = [
+        { seed: 'a', x: 0.1, y: 0.18, r: 22, fill: color('navy') },
+        { seed: 'b', x: 0.92, y: 0.85, r: 26, fill: color('dusk') },
+        { seed: 'c', x: 0.86, y: 0.12, r: 9, fill: color('teal') },
+        { seed: 'd', x: 0.14, y: 0.88, r: 6, fill: color('coral') },
+      ].map(s => ({ ...s, path: el('path', { fill: s.fill, opacity: 0.9 }, art) }));
+      return L;
+    });
+
+    defineScene({
+      ready: fontsReady,
+      props: {
+        kicker: { type: 'text', default: '', label: 'Kicker (optional)' },
+        text: { type: 'text', default: 'Licht von der Sonne wird an *Luftmolekülen* gestreut', label: 'Statement (*word* = accent)' },
+        accent: { type: 'color', default: '#ffc83d', label: 'Accent' },
+      },
+      render(context) {
+        const { time, props } = context;
+        const L = layout(context);
+        kicker.textContent = props.kicker;
+        kicker.style.display = props.kicker ? '' : 'none';
+        document.documentElement.style.setProperty('--sun', props.accent);
+        const words = splitWords(text, props.text);
+        if (text.dataset.fitted !== props.text) {
+          fitText(text, { max: 6.6, width: L.w * 0.84, lines: 4 });
+          text.dataset.fitted = props.text;
+          // Underline every emphasized run once its layout is known.
+          marks.replaceChildren();
+          L.lines = [...text.querySelectorAll('em.word')].map(word => {
+            const r = word.getBoundingClientRect();
+            const y = r.bottom - r.height * 0.06, sag = r.height * 0.08;
+            return drawable(el('path', {
+              d: `M${r.left},${y} Q${(r.left + r.right) / 2},${y + sag} ${r.right},${y - sag * 0.4}`,
+              fill: 'none', stroke: props.accent, 'stroke-width': L.u * 0.7, 'stroke-linecap': 'round', opacity: 0.85,
+            }, marks));
+          });
+        }
+        rise(kicker, enter(time, 0.05));
+        revealWords(words, time, 0.15, 0.06);
+        const underlineAt = 0.35 + words.length * 0.06;
+        L.lines.forEach((line, i) => draw(line, between(time, underlineAt + i * 0.08, underlineAt + 0.5 + i * 0.08)));
+
+        for (const s of L.shapes) {
+          const [dx, dy] = bob(s.seed, time, 1.5 * L.u, 7);
+          s.path.setAttribute('d', blob(s.seed, s.r * L.u, { t: time, wobble: 0.14 }));
+          s.path.setAttribute('transform', `translate(${s.x * L.w + dx} ${s.y * L.h + dy}) rotate(${time * 4})`);
+        }
+        drift(stage, time, { zoom: 0.008 });
+        twinkle(L.stars, time);
+      },
+    });
+  </script>
+</body>
+</html>

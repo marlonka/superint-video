@@ -1,0 +1,953 @@
+//! `polish`: the last look before a render, made for eyes that did not build the film. A still
+//! every few seconds, the same stills cut into close-ups at native resolution, both sides of
+//! every cut and strips over the fastest moves go on a worksheet with one row each. A later
+//! pass lists only what changed or was left open. `--accept` records a clean pass for the
+//! picture as it stands, and `render` asks for that record. Judging stays with whoever looks.
+use crate::{
+    model::{ClipType, Manifest},
+    project::{self, ProjectSnapshot, without_verbatim},
+    renderer::{self, Capture},
+    review,
+};
+use anyhow::{Context, Result, ensure};
+use image::{DynamicImage, RgbImage};
+use serde_json::{Value, json};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fmt::Write as _,
+    path::{Path, PathBuf},
+    time::Instant,
+};
+
+/// Seconds between stills unless `--every` says otherwise.
+pub const EVERY_SECONDS: f64 = 5.0;
+/// Seconds between the samples that find the fastest moves.
+const SAMPLE_SECONDS: f64 = 0.5;
+/// Mean luma difference (64 × 36, see `review`) from which a still shows a view no earlier still
+/// showed, so it gets close-ups. Measured on a 150 s explainer with a travelling camera: stills
+/// 5 s apart inside one held shot differ by 2–9, a new framing or a new world by 13–90.
+const NEW_VIEW: f64 = 12.0;
+/// The same measure under which a close-up shows what an earlier close-up of that quarter showed.
+const SAME_VIEW: f64 = 4.0;
+/// A channel must move this far for a pixel to count as changed since the pass before …
+const PIXEL_STEP: u8 = 10;
+/// … and this many pixels must change. The browser repeats a frame exactly; the slack is for
+/// the odd rounding at an edge.
+const CHANGED_PIXELS: usize = 24;
+/// Change between two samples from which a move is worth a strip. A slow camera push measures
+/// 1.5–2.6 (see `review`), an entrance or a fast move well above 3.
+const MOVE_LEVEL: f64 = 3.0;
+/// Frames between the pictures of a strip, and how many it holds: 0.7 s at 30 fps.
+const STRIP_STEP: u64 = 3;
+const STRIP_FRAMES: u64 = 8;
+/// Seconds of film per strip, and the most strips one scene gets.
+const SECONDS_PER_STRIP: f64 = 10.0;
+const STRIPS_PER_SCENE: usize = 4;
+/// Most cuts and strips one pass shows, so a film of many short clips stays readable.
+const MOST_CUTS: usize = 60;
+const MOST_STRIPS: usize = 24;
+/// The accepted pass, kept with the notes so it survives cleaning `renders/`.
+const RECORD: &str = "process/polish.json";
+
+fn passes(root: &Path) -> PathBuf {
+    root.join("renders").join("polish")
+}
+
+/// Number of the latest pass in `renders/polish/`.
+fn latest(root: &Path) -> Option<u32> {
+    std::fs::read_dir(passes(root))
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter_map(|entry| entry.file_name().to_str()?.parse::<u32>().ok())
+        .max()
+}
+
+/// The folder of the latest pass.
+pub fn latest_pass(root: &Path) -> Option<PathBuf> {
+    latest(root).map(|n| passes(root).join(n.to_string()))
+}
+
+/// `renders/polish/<n>` for the next pass, its number, and the folder of the pass before it.
+pub fn next_output(root: &Path) -> (PathBuf, u32, Option<PathBuf>) {
+    let pass = latest(root).unwrap_or(0) + 1;
+    (passes(root).join(pass.to_string()), pass, latest_pass(root))
+}
+
+/// Whether a clean pass is on record for the picture as it stands: `accepted`, `stale` (the
+/// picture changed since) or `missing`.
+pub fn state(root: &Path) -> Result<Value> {
+    let record = std::fs::read(root.join(RECORD))
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok());
+    let Some(record) = record else {
+        return Ok(json!({"state": "missing"}));
+    };
+    let picture = project::picture_revision(root)?;
+    let state = if record["picture"] == picture {
+        "accepted"
+    } else {
+        "stale"
+    };
+    Ok(json!({"state": state, "pass": record["pass"]}))
+}
+
+/// How long Studio's view trusts the last answer about the picture: hashing the whole project
+/// every few seconds would be wasteful.
+const STATE_FOR: std::time::Duration = std::time::Duration::from_secs(15);
+
+fn remembered_state(root: &Path) -> Value {
+    use std::{collections::HashMap, sync::Mutex, time::Instant};
+    static SEEN: Mutex<Option<HashMap<PathBuf, (Instant, Value)>>> = Mutex::new(None);
+    let mut seen = SEEN.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let seen = seen.get_or_insert_with(HashMap::new);
+    if let Some((at, value)) = seen.get(root)
+        && at.elapsed() < STATE_FOR
+    {
+        return value.clone();
+    }
+    let value = state(root).unwrap_or_else(|_| json!({"state": "missing"}));
+    seen.insert(root.to_path_buf(), (Instant::now(), value.clone()));
+    value
+}
+
+/// What Studio shows about the polish: the latest pass, every image it lists with what the
+/// worksheet says about it so far, and whether a clean pass is on record for the picture.
+/// None while no pass was ever started.
+pub fn overview(root: &Path) -> Option<Value> {
+    let pass = latest(root)?;
+    let folder = passes(root).join(pass.to_string());
+    let record = remembered_state(root);
+    let place = format!("renders/polish/{pass}");
+    let Some(data) = std::fs::read(folder.join("polish.json"))
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok())
+    else {
+        // The frames are still being taken.
+        return Some(json!({"pass": pass, "folder": place, "capturing": true, "record": record}));
+    };
+    let sheet = std::fs::read_to_string(folder.join("polish.md")).unwrap_or_default();
+    let mut said: BTreeMap<String, (String, String)> = BTreeMap::new();
+    for line in sheet.lines() {
+        let cells = cells(line);
+        if cells.len() >= 6 && cells[0].trim_matches('`').ends_with(".png") {
+            said.insert(
+                cells[0].trim_matches('`').to_string(),
+                (cells[4].clone(), cells[5].clone()),
+            );
+        }
+    }
+    let mut rows = Vec::new();
+    let (mut fine, mut kept, mut defects, mut open) = (0, 0, 0, 0);
+    for (kind, list) in [("still", "stills"), ("cut", "cuts"), ("move", "moves")] {
+        for row in data[list].as_array().into_iter().flatten() {
+            let file = row["file"].as_str().unwrap_or_default();
+            let (defect, fix) = said.get(file).cloned().unwrap_or_default();
+            let low = defect.to_lowercase();
+            let verdict = if defect.is_empty() {
+                open += 1;
+                "open"
+            } else if low.starts_with("ok") {
+                fine += 1;
+                "ok"
+            } else if low.starts_with("kept") {
+                kept += 1;
+                "kept"
+            } else {
+                defects += 1;
+                "defect"
+            };
+            rows.push(json!({
+                "file": file, "kind": kind, "time": row["time"], "closeUps": row["closeUps"],
+                "verdict": verdict, "said": defect, "fix": fix,
+            }));
+        }
+    }
+    Some(json!({
+        "pass": pass,
+        "folder": place,
+        "capturing": false,
+        "record": record,
+        "rows": rows,
+        "counts": {
+            "listed": rows.len(), "ok": fine, "kept": kept, "defects": defects, "open": open,
+            "settled": data["settled"].as_array().map_or(0, Vec::len),
+        },
+    }))
+}
+
+/// One image of a pass and what the pass before said about it.
+struct Row {
+    file: String,
+    frame: u64,
+    close_ups: Vec<char>,
+    /// The words of the pass before when it left this image open and the image did not change.
+    carried: Option<String>,
+}
+
+pub async fn polish(
+    snapshot: ProjectSnapshot,
+    picture: &str,
+    every: f64,
+    output: &Path,
+    pass: u32,
+    previous: Option<&Path>,
+) -> Result<Value> {
+    let started = Instant::now();
+    let manifest = snapshot.manifest.clone();
+    let fps = manifest.fps.num as f64 / manifest.fps.den as f64;
+    let duration = manifest.duration_frames;
+    ensure!(every * fps >= 1.0, "--every must be at least one frame");
+    let (width, height) = (manifest.width, manifest.height);
+    let stills: BTreeSet<u64> = review::grid(every, 0.0, fps, duration)
+        .into_iter()
+        .collect();
+    let mut warnings = Vec::new();
+    let mut cuts = cuts(&manifest);
+    if cuts.len() > MOST_CUTS {
+        let message = format!("{} cuts; the first {MOST_CUTS} are shown", cuts.len());
+        warnings.push(json!({"code": "many-cuts", "message": message}));
+        cuts.truncate(MOST_CUTS);
+    }
+    let sides: BTreeSet<u64> = cuts.iter().flat_map(|&f| [f - 1, f]).collect();
+    let step = ((SAMPLE_SECONDS * fps).round() as usize).max(1);
+    let samples: BTreeSet<u64> = (0..duration).step_by(step).chain([duration - 1]).collect();
+    // What the pass before settled: an image it called ok or kept stays settled until it changes.
+    let before = previous.map(Before::read).unwrap_or_default();
+    std::fs::create_dir_all(output)?;
+    let words = review::words(&snapshot.root, &manifest);
+    let capture = Capture::open(snapshot.root.clone(), snapshot.manifest.clone()).await?;
+    // Whether an image differs from the one the pass before looked at, and what that pass said
+    // about it when it is the same.
+    let changed_since = |file: &str, now: &RgbImage| {
+        before
+            .image(file)
+            .is_none_or(|then| then.dimensions() != now.dimensions() || differs(&then, now, None))
+    };
+    let carried = |file: &str, changed: bool| if changed { None } else { before.said(file) };
+    let result = async {
+        let order: BTreeSet<u64> = stills
+            .iter()
+            .chain(&sides)
+            .chain(&samples)
+            .copied()
+            .collect();
+        let mut signatures = Vec::new();
+        let mut thumbs = Vec::new();
+        let mut halves: BTreeMap<u64, RgbImage> = BTreeMap::new();
+        let mut seen: BTreeMap<char, Vec<Vec<u8>>> = BTreeMap::new();
+        let mut views: Vec<Vec<u8>> = Vec::new();
+        let mut rows = Vec::new();
+        let (mut settled, mut close_ups) = (Vec::new(), 0);
+        for &frame in &order {
+            let still = stills.contains(&frame);
+            let side = sides.contains(&frame);
+            let (bytes, _) = capture.frame_state(frame, !(still || side)).await?;
+            let image = image::load_from_memory(&bytes)?;
+            if samples.contains(&frame) {
+                signatures.push((frame, review::signature(&image)));
+            }
+            if side {
+                halves.insert(
+                    frame,
+                    image.thumbnail_exact(width / 2, height / 2).to_rgb8(),
+                );
+            }
+            if !still {
+                continue;
+            }
+            let file = format!("frame-{frame:06}.png");
+            std::fs::write(output.join(&file), &bytes)?;
+            thumbs.push((label(frame, fps), image.thumbnail(384, 216).to_rgb8()));
+            let now = image.to_rgb8();
+            let then = before
+                .image(&file)
+                .filter(|then| then.dimensions() == now.dimensions());
+            let changed = then.as_ref().is_none_or(|then| differs(then, &now, None));
+            if !changed && before.settled.contains(&file) {
+                settled.push(file);
+                continue;
+            }
+            let mut letters = Vec::new();
+            // First look: close-ups only where the still shows a new view. After a fix: the
+            // quarters that changed.
+            let whole = review::signature(&image);
+            let new_view = views
+                .iter()
+                .all(|other| review::difference(other, &whole) >= NEW_VIEW);
+            if changed && then.is_some() || new_view {
+                if new_view {
+                    views.push(whole);
+                }
+                for (letter, [x, y, w, h]) in tiles(width, height) {
+                    if changed
+                        && then
+                            .as_ref()
+                            .is_some_and(|then| !differs(then, &now, Some([x, y, w, h])))
+                    {
+                        continue;
+                    }
+                    let tile = image::imageops::crop_imm(&now, x, y, w, h).to_image();
+                    let signature = review::signature(&DynamicImage::ImageRgb8(tile.clone()));
+                    let known = seen.entry(letter).or_default();
+                    if known
+                        .iter()
+                        .any(|other| review::difference(other, &signature) < SAME_VIEW)
+                    {
+                        continue;
+                    }
+                    known.push(signature);
+                    tile.save(output.join(format!("close-{frame:06}-{letter}.png")))?;
+                    letters.push(letter);
+                }
+            }
+            close_ups += letters.len();
+            rows.push(Row {
+                carried: carried(&file, changed),
+                file,
+                frame,
+                close_ups: letters,
+            });
+        }
+        let contact = output.join("contact-sheet.png");
+        renderer::contact_sheet(&thumbs).save(&contact)?;
+
+        // Both sides of every cut, side by side: what is there before and gone after pops.
+        let mut cut_rows = Vec::new();
+        for &cut in &cuts {
+            let file = format!("cut-{cut:06}.png");
+            let dark = image::Rgb([16, 17, 19]);
+            let mut pair = RgbImage::from_pixel(width / 2 * 2 + 8, height / 2, dark);
+            image::imageops::overlay(&mut pair, &halves[&(cut - 1)], 0, 0);
+            image::imageops::overlay(&mut pair, &halves[&cut], i64::from(width / 2 + 8), 0);
+            let changed = changed_since(&file, &pair);
+            pair.save(output.join(&file))?;
+            if !changed && before.settled.contains(&file) {
+                settled.push(file);
+                continue;
+            }
+            cut_rows.push(Row {
+                carried: carried(&file, changed),
+                file,
+                frame: cut,
+                close_ups: Vec::new(),
+            });
+        }
+
+        // The fastest moves of every scene, a few frames apart: ugly frames hide mid-motion.
+        let mut peaks = moves(&signatures, &cuts, duration, fps);
+        if peaks.len() > MOST_STRIPS {
+            let many = peaks.len();
+            let message = format!("{many} fast moves; the {MOST_STRIPS} fastest are shown");
+            warnings.push(json!({"code": "many-moves", "message": message}));
+            peaks.truncate(MOST_STRIPS);
+        }
+        peaks.sort_by_key(|peak| peak.frame);
+        let mut move_rows = Vec::new();
+        for peak in &peaks {
+            let first = peak
+                .frame
+                .saturating_sub(STRIP_STEP * (STRIP_FRAMES - 2))
+                .max(peak.from);
+            let frames = (0..STRIP_FRAMES)
+                .map(|k| first + k * STRIP_STEP)
+                .filter(|&f| f < peak.to);
+            let mut strip = Vec::new();
+            for frame in frames {
+                let (bytes, _) = capture.frame_state(frame, true).await?;
+                let thumb = image::load_from_memory(&bytes)?.thumbnail(384, 216);
+                strip.push((label(frame, fps), thumb.to_rgb8()));
+            }
+            let file = format!("motion-{:06}.png", peak.frame);
+            let sheet = renderer::contact_sheet(&strip);
+            let changed = changed_since(&file, &sheet);
+            sheet.save(output.join(&file))?;
+            if !changed && before.settled.contains(&file) {
+                settled.push(file);
+                continue;
+            }
+            move_rows.push(Row {
+                carried: carried(&file, changed),
+                file,
+                frame: peak.frame,
+                close_ups: Vec::new(),
+            });
+        }
+
+        let listed = rows.len() + cut_rows.len() + move_rows.len();
+        let row = |r: &Row| {
+            let close_ups: Vec<String> = r
+                .close_ups
+                .iter()
+                .map(|l| format!("close-{:06}-{l}.png", r.frame))
+                .collect();
+            json!({
+                "file": r.file, "frame": r.frame, "time": review::round(r.frame as f64 / fps, 2),
+                "closeUps": close_ups, "carried": r.carried,
+            })
+        };
+        let record = json!({
+            "pass": pass, "picture": picture, "revision": snapshot.revision, "every": every,
+            "fps": fps, "durationFrames": duration, "width": width, "height": height,
+            "stills": rows.iter().map(row).collect::<Vec<_>>(),
+            "cuts": cut_rows.iter().map(row).collect::<Vec<_>>(),
+            "moves": move_rows.iter().map(row).collect::<Vec<_>>(),
+            "settled": settled, "warnings": warnings,
+        });
+        std::fs::write(
+            output.join("polish.json"),
+            serde_json::to_vec_pretty(&record)?,
+        )?;
+        let sheet = Worksheet {
+            pass,
+            picture,
+            every,
+            fps,
+            duration,
+            stills: stills.len(),
+            cuts: cuts.len(),
+            strips: peaks.len(),
+            rows: &rows,
+            cut_rows: &cut_rows,
+            move_rows: &move_rows,
+            settled: settled.len(),
+            words: &words,
+        }
+        .render();
+        let worksheet = output.join("polish.md");
+        std::fs::write(&worksheet, sheet)?;
+        Ok(json!({
+            "pass": pass,
+            "output": without_verbatim(output),
+            "worksheet": without_verbatim(&worksheet),
+            "contactSheet": without_verbatim(&contact),
+            "toLookAt": {
+                "stills": rows.len(), "closeUps": close_ups, "cuts": cut_rows.len(),
+                "moves": move_rows.len(),
+            },
+            "settled": settled.len(),
+            "clean": listed == 0,
+            "picture": picture,
+            "warnings": warnings,
+            "seconds": review::round(started.elapsed().as_secs_f64(), 1),
+        }))
+    }
+    .await;
+    capture.close().await;
+    result
+}
+
+/// Records the latest pass as clean: nothing changed since its frames were taken, and every row
+/// of its worksheet says `ok` or `kept`.
+pub fn accept(root: &Path, picture: &str) -> Result<Value> {
+    let pass = latest(root).context("No polish pass yet: run `superint-video polish <dir>`")?;
+    let folder = passes(root).join(pass.to_string());
+    let data: Value = serde_json::from_slice(
+        &std::fs::read(folder.join("polish.json"))
+            .with_context(|| format!("Pass {pass} did not finish: run `polish` again"))?,
+    )?;
+    ensure!(
+        data["picture"] == picture,
+        "The picture changed after pass {pass}. Run `polish` again: it lists only what changed since."
+    );
+    let (verdicts, _) = verdicts(&folder);
+    let open: Vec<String> = verdicts
+        .iter()
+        .filter_map(|(file, verdict)| match verdict {
+            Verdict::Ok | Verdict::Kept => None,
+            Verdict::Blank => Some(format!("{file}: not looked at")),
+            Verdict::Defect(_) => Some(format!("{file}: has a defect")),
+        })
+        .collect();
+    ensure!(
+        open.is_empty(),
+        "Pass {pass} is not clean ({} of {} rows): {}. Fill in every row; fix each defect, run `check`, then `polish` again.",
+        open.len(),
+        verdicts.len(),
+        open.iter().take(6).cloned().collect::<Vec<_>>().join("; ")
+    );
+    let kept = verdicts
+        .values()
+        .filter(|v| matches!(v, Verdict::Kept))
+        .count();
+    let record = json!({"pass": pass, "picture": picture, "rows": verdicts.len(), "kept": kept});
+    let path = root.join(RECORD);
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::write(&path, serde_json::to_vec_pretty(&record)?)?;
+    Ok(json!({
+        "accepted": true, "pass": pass, "rows": verdicts.len(), "kept": kept,
+        "record": without_verbatim(&path),
+    }))
+}
+
+enum Verdict {
+    Ok,
+    Kept,
+    Blank,
+    Defect(String),
+}
+
+/// The Defect cell of every image row of a pass's worksheet, and the names it had settled before.
+fn verdicts(folder: &Path) -> (BTreeMap<String, Verdict>, BTreeSet<String>) {
+    let sheet = std::fs::read_to_string(folder.join("polish.md")).unwrap_or_default();
+    let mut out = BTreeMap::new();
+    for line in sheet.lines() {
+        let cells = cells(line);
+        if cells.len() < 6 || !cells[0].trim_matches('`').ends_with(".png") {
+            continue;
+        }
+        let said = cells[4].trim();
+        let low = said.to_lowercase();
+        let verdict = if said.is_empty() {
+            Verdict::Blank
+        } else if low.starts_with("ok") {
+            Verdict::Ok
+        } else if low.starts_with("kept") {
+            Verdict::Kept
+        } else {
+            Verdict::Defect(said.to_string())
+        };
+        out.insert(cells[0].trim_matches('`').to_string(), verdict);
+    }
+    let settled = std::fs::read(folder.join("polish.json"))
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok())
+        .and_then(|data| data["settled"].as_array().cloned())
+        .into_iter()
+        .flatten()
+        .filter_map(|name| name.as_str().map(str::to_string))
+        .collect();
+    (out, settled)
+}
+
+/// The cells of a markdown table row; `\|` stays inside its cell.
+fn cells(line: &str) -> Vec<String> {
+    let line = line.trim();
+    if !line.starts_with('|') {
+        return Vec::new();
+    }
+    let mut cells = vec![String::new()];
+    let mut chars = line[1..].chars().peekable();
+    while let Some(c) = chars.next() {
+        match c {
+            '\\' if chars.peek() == Some(&'|') => {
+                chars.next();
+                cells.last_mut().expect("never empty").push('|');
+            }
+            '|' => cells.push(String::new()),
+            _ => cells.last_mut().expect("never empty").push(c),
+        }
+    }
+    cells.pop();
+    cells.iter().map(|cell| cell.trim().to_string()).collect()
+}
+
+/// The pass before: its folder, the images it settled, and what it said about the others.
+#[derive(Default)]
+struct Before {
+    folder: Option<PathBuf>,
+    settled: BTreeSet<String>,
+    open: BTreeMap<String, String>,
+}
+impl Before {
+    fn read(folder: &Path) -> Self {
+        let (verdicts, mut settled) = verdicts(folder);
+        let mut open = BTreeMap::new();
+        for (file, verdict) in verdicts {
+            match verdict {
+                Verdict::Ok | Verdict::Kept => {
+                    settled.insert(file);
+                }
+                Verdict::Blank => {
+                    open.insert(file, "not looked at".to_string());
+                }
+                Verdict::Defect(said) => {
+                    open.insert(file, said);
+                }
+            }
+        }
+        Self {
+            folder: Some(folder.to_path_buf()),
+            settled,
+            open,
+        }
+    }
+    fn image(&self, file: &str) -> Option<RgbImage> {
+        Some(
+            image::open(self.folder.as_ref()?.join(file))
+                .ok()?
+                .to_rgb8(),
+        )
+    }
+    fn said(&self, file: &str) -> Option<String> {
+        self.open.get(file).cloned()
+    }
+}
+
+/// Frames at which a visible clip starts while the film is running: the cuts.
+fn cuts(manifest: &Manifest) -> Vec<u64> {
+    let audio: BTreeSet<&str> = manifest
+        .tracks
+        .iter()
+        .filter(|t| t.hidden)
+        .map(|t| t.id.as_str())
+        .collect();
+    manifest
+        .clips
+        .iter()
+        .filter(|c| {
+            c.clip_type != ClipType::Audio && !c.hidden && !audio.contains(c.track.as_str())
+        })
+        .flat_map(|c| [c.start_frame, c.end_frame()])
+        .filter(|&f| f > 0 && f < manifest.duration_frames)
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect()
+}
+
+/// Four overlapping quarters, a and b across the top, c and d across the bottom, each at native
+/// resolution and small enough to be looked at without being scaled down.
+fn tiles(width: u32, height: u32) -> Vec<(char, [u32; 4])> {
+    let (w, h) = (width * 11 / 20, height * 11 / 20);
+    let xs = [0, width - w];
+    let ys = [0, height - h];
+    "abcd"
+        .chars()
+        .enumerate()
+        .map(|(i, letter)| (letter, [xs[i % 2], ys[i / 2], w, h]))
+        .collect()
+}
+
+/// Whether more than a few pixels differ, in the whole image or inside x, y, w, h.
+fn differs(a: &RgbImage, b: &RgbImage, area: Option<[u32; 4]>) -> bool {
+    let [x0, y0, w, h] = area.unwrap_or([0, 0, a.width(), a.height()]);
+    let mut count = 0;
+    for y in y0..y0 + h {
+        for x in x0..x0 + w {
+            let (p, q) = (a.get_pixel(x, y).0, b.get_pixel(x, y).0);
+            if p.iter().zip(q).any(|(m, n)| m.abs_diff(n) > PIXEL_STEP) {
+                count += 1;
+                if count > CHANGED_PIXELS {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+struct Peak {
+    /// The sample at which the move shows most.
+    frame: u64,
+    change: f64,
+    /// The scene the move belongs to, as a half-open frame range.
+    from: u64,
+    to: u64,
+}
+
+/// The fastest moves inside every scene, strongest first: at most one per SECONDS_PER_STRIP of
+/// scene, at least two seconds apart, never across a cut.
+fn moves(samples: &[(u64, Vec<u8>)], cuts: &[u64], duration: u64, fps: f64) -> Vec<Peak> {
+    let bounds: Vec<u64> = [0]
+        .into_iter()
+        .chain(cuts.iter().copied())
+        .chain([duration])
+        .collect();
+    let apart = (2.0 * fps).round() as u64;
+    let mut out = Vec::new();
+    for scene in bounds.windows(2) {
+        let (from, to) = (scene[0], scene[1]);
+        let mut inside: Vec<(u64, f64)> = samples
+            .windows(2)
+            .filter(|w| w[0].0 >= from && w[1].0 < to)
+            .map(|w| (w[1].0, review::difference(&w[0].1, &w[1].1)))
+            .filter(|&(_, change)| change >= MOVE_LEVEL)
+            .collect();
+        inside.sort_by(|a, b| b.1.total_cmp(&a.1));
+        let most = (((to - from) as f64 / fps / SECONDS_PER_STRIP).ceil() as usize)
+            .clamp(1, STRIPS_PER_SCENE);
+        let mut picked: Vec<u64> = Vec::new();
+        for (frame, change) in inside {
+            if picked.len() == most {
+                break;
+            }
+            if picked.iter().all(|&p| p.abs_diff(frame) >= apart) {
+                picked.push(frame);
+                out.push(Peak {
+                    frame,
+                    change,
+                    from,
+                    to,
+                });
+            }
+        }
+    }
+    out.sort_by(|a, b| b.change.total_cmp(&a.change));
+    out
+}
+
+fn label(frame: u64, fps: f64) -> String {
+    format!("F {frame}  {:.1}s", frame as f64 / fps)
+}
+
+/// `polish.md`: how to look, and one row per image for the defect and its fix.
+struct Worksheet<'a> {
+    pass: u32,
+    picture: &'a str,
+    every: f64,
+    fps: f64,
+    duration: u64,
+    stills: usize,
+    cuts: usize,
+    strips: usize,
+    rows: &'a [Row],
+    cut_rows: &'a [Row],
+    move_rows: &'a [Row],
+    settled: usize,
+    words: &'a [review::Word],
+}
+impl Worksheet<'_> {
+    fn render(&self) -> String {
+        let cell = |text: &str| text.replace('|', "\\|");
+        let mut md = format!("# Polish pass {}\n\n", self.pass);
+        let _ = writeln!(
+            md,
+            "A still every {} s ({}), {} and {}. Picture `{}`, {} frames at {} fps.\n",
+            self.every,
+            count(self.stills, "still"),
+            count(self.cuts, "cut"),
+            count(self.strips, "fast move"),
+            &self.picture[..self.picture.len().min(12)],
+            self.duration,
+            review::round(self.fps, 3)
+        );
+        let listed = self.rows.len() + self.cut_rows.len() + self.move_rows.len();
+        if self.settled > 0 {
+            let _ = writeln!(
+                md,
+                "{} unchanged since a pass that called them `ok` or `kept`, so not listed again.\n",
+                count(self.settled, "image")
+            );
+        }
+        if listed == 0 {
+            md.push_str("Nothing changed and nothing is open: this pass is clean. Record it with `superint-video polish <dir> --accept`.\n");
+            return md;
+        }
+        md.push_str(HOW_TO_LOOK);
+        let table = |md: &mut String, title: &str, about: &str, rows: &[Row]| {
+            if rows.is_empty() {
+                return;
+            }
+            let _ = write!(
+                md,
+                "\n## {title}\n\n{about}\n\n| Image | Time | Words | Close-ups | Defect | Fix |\n| --- | --- | --- | --- | --- | --- |\n"
+            );
+            for row in rows {
+                let _ = writeln!(
+                    md,
+                    "| {} | {:.1} s | {} | {} | {} | |",
+                    row.file,
+                    row.frame as f64 / self.fps,
+                    cell(&review::spoken(self.words, row.frame, self.fps)),
+                    row.close_ups
+                        .iter()
+                        .map(char::to_string)
+                        .collect::<Vec<_>>()
+                        .join(" "),
+                    row.carried
+                        .as_deref()
+                        .map(|said| cell(&format!(
+                            "unchanged since the pass before, which said: {said}"
+                        )))
+                        .unwrap_or_default(),
+                );
+            }
+        };
+        table(
+            &mut md,
+            "Stills",
+            "Each still at full size. A still that shows a new view also has close-ups `close-<frame>-<letter>.png` of its quarters (a b across the top, c d across the bottom); a quarter that shows what an earlier close-up showed is left out. For any other detail: `review <dir> --frames <f> --crop x,y,w,h`.",
+            self.rows,
+        );
+        table(
+            &mut md,
+            "Cuts",
+            "The last frame before each cut beside the first frame after it.",
+            self.cut_rows,
+        );
+        table(
+            &mut md,
+            "Moves",
+            "The fastest moves, three frames apart.",
+            self.move_rows,
+        );
+        md
+    }
+}
+
+fn count(n: usize, noun: &str) -> String {
+    format!("{n} {noun}{}", if n == 1 { "" } else { "s" })
+}
+
+/// The questions a viewer answers at a glance. They are about how things are made, not about a
+/// style; the workflow's rubric and the project's references say what good looks like.
+const HOW_TO_LOOK: &str = "## How to look
+
+Open every image listed below at full size; the contact sheet is only the map. Look as someone who has never seen the film: name each thing in the picture before you judge it, then ask of each one:
+
+1. **Built right?** Parts that belong together fit: a lid as wide as its base, pages inside their cover, flaps that meet, drawers inside a body, a shelf on its brackets, a handle joined to its cup.
+2. **One viewpoint, one light?** Everything on a surface is seen from the same side and lit from the same side, and touches the surface with a tight shadow. Nothing floats.
+3. **Does it look like its name?** Cover the label: would a stranger still say what it is?
+4. **Finished?** The smallest icon gets the care of the hero object. A plain disc, bar or blob that stands for a real thing is a placeholder.
+5. **Clean?** Nothing sticks out of what holds it, covers a label, is cut to a sliver by the frame edge, or is left over from an earlier beat. Lines end on what they join; text is spelled right and stays long enough to read.
+6. **The same everywhere?** A thing that appears twice (large and as an icon, in two scenes) is the same thing both times.
+7. **Cuts:** what is on screen before a cut and gone after it pops. Carry it across and fade it, or let it go before the cut. On a match cut, size and place agree.
+8. **Moves:** things ease in and out and come from a place that makes sense. Nothing appears or vanishes inside one frame, and layers keep their order mid-move.
+
+Then compare with the references and the workflow's rubric: would this frame stand beside them?
+
+Fill in every row before changing anything: the defect and its fix, as concrete as a note to a colleague. `ok` plus a few words when the image holds up; `kept: <reason>` for something left on purpose. Then fix everything, run `check`, and run `polish` again: it lists only what changed or stayed open. A pass with nothing but `ok` and `kept` is recorded with `polish --accept`.
+";
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn close_ups_cover_the_frame_at_native_size() {
+        let tiles = tiles(1920, 1080);
+        assert_eq!(tiles.len(), 4);
+        assert_eq!(tiles[0], ('a', [0, 0, 1056, 594]));
+        assert_eq!(tiles[3], ('d', [864, 486, 1056, 594]));
+        // neighbours overlap, so nothing sits on a seam only
+        assert!(tiles[1].1[0] < tiles[0].1[0] + tiles[0].1[2]);
+        assert!(tiles[2].1[1] < tiles[0].1[1] + tiles[0].1[3]);
+    }
+
+    #[test]
+    fn a_small_change_counts_and_a_stray_pixel_does_not() {
+        let a = RgbImage::from_pixel(200, 100, image::Rgb([40, 40, 40]));
+        let mut b = a.clone();
+        b.put_pixel(10, 10, image::Rgb([200, 40, 40]));
+        assert!(!differs(&a, &b, None));
+        for x in 100..106 {
+            for y in 50..56 {
+                b.put_pixel(x, y, image::Rgb([200, 200, 40]));
+            }
+        }
+        assert!(differs(&a, &b, None));
+        assert!(differs(&a, &b, Some([90, 40, 30, 30])));
+        assert!(!differs(&a, &b, Some([0, 0, 60, 60])));
+    }
+
+    #[test]
+    fn table_rows_split_into_cells_and_keep_escaped_pipes() {
+        let row = cells(r"| frame-000150.png | 5.0 s | a \| b | a c | ok: holds up | |");
+        assert_eq!(row.len(), 6);
+        assert_eq!(row[0], "frame-000150.png");
+        assert_eq!(row[2], "a | b");
+        assert_eq!(row[4], "ok: holds up");
+        assert_eq!(row[5], "");
+        assert!(cells("Some text").is_empty());
+    }
+
+    #[test]
+    fn the_fastest_moves_stay_inside_their_scene_and_apart() {
+        let flat = vec![0u8; 16];
+        let jump = |level: u8| vec![level; 16];
+        // samples every 15 frames; a move at 60, a stronger one at 75, a cut at 150, a move at 210
+        let samples: Vec<(u64, Vec<u8>)> = (0..20)
+            .map(|i| {
+                let frame = i * 15;
+                let picture = match frame {
+                    60 => jump(5),
+                    75 => jump(20),
+                    150 => jump(90),
+                    210 => jump(100),
+                    f if f > 210 => jump(100),
+                    f if f >= 150 => jump(90),
+                    f if f > 75 => jump(20),
+                    _ => flat.clone(),
+                };
+                (frame, picture)
+            })
+            .collect();
+        let peaks = moves(&samples, &[150], 300, 30.0);
+        let frames: Vec<u64> = peaks.iter().map(|p| p.frame).collect();
+        // 75 beats 60 and they are closer than two seconds; the cut itself is no move
+        assert_eq!(frames, vec![75, 210]);
+        assert_eq!((peaks[0].from, peaks[0].to), (0, 150));
+        assert_eq!((peaks[1].from, peaks[1].to), (150, 300));
+    }
+
+    #[test]
+    fn the_overview_counts_what_the_worksheet_says() {
+        let project = tempfile::TempDir::new().unwrap();
+        let folder = project.path().join("renders/polish/2");
+        std::fs::create_dir_all(&folder).unwrap();
+        assert_eq!(overview(project.path()).unwrap()["capturing"], true);
+        std::fs::write(
+            folder.join("polish.json"),
+            json!({
+                "stills": [
+                    {"file": "frame-000000.png", "time": 0.0, "closeUps": ["close-000000-a.png"]},
+                    {"file": "frame-000150.png", "time": 5.0, "closeUps": []},
+                ],
+                "cuts": [{"file": "cut-000090.png", "time": 3.0, "closeUps": []}],
+                "moves": [{"file": "motion-000030.png", "time": 1.0, "closeUps": []}],
+                "settled": ["frame-000300.png"],
+            })
+            .to_string(),
+        )
+        .unwrap();
+        std::fs::write(
+            folder.join("polish.md"),
+            "| Image | Time | Words | Close-ups | Defect | Fix |\n| --- | --- | --- | --- | --- | --- |\n\
+             | `frame-000000.png` | 0:00 | | a | ok, holds up | |\n\
+             | `frame-000150.png` | 0:05 | | | lamp floats above the desk | redraw its foot |\n\
+             | `cut-000090.png` | 0:03 | | | kept: the glow is meant to stay | |\n\
+             | `motion-000030.png` | 0:01 | | | | |\n",
+        )
+        .unwrap();
+        let view = overview(project.path()).unwrap();
+        assert_eq!(view["pass"], 2);
+        assert_eq!(view["folder"], "renders/polish/2");
+        assert_eq!(
+            view["counts"],
+            json!({"listed": 4, "ok": 1, "kept": 1, "defects": 1, "open": 1, "settled": 1})
+        );
+        let lamp = &view["rows"][1];
+        assert_eq!(lamp["verdict"], "defect");
+        assert_eq!(lamp["fix"], "redraw its foot");
+        assert_eq!(view["rows"][3]["kind"], "move");
+        assert_eq!(view["record"]["state"], "missing");
+    }
+
+    #[test]
+    fn a_worksheet_row_is_ok_kept_blank_or_a_defect() {
+        let folder = tempfile::tempdir().unwrap();
+        std::fs::write(
+            folder.path().join("polish.md"),
+            "| Image | Time | Words | Close-ups | Defect | Fix |\n| --- | --- | --- | --- | --- | --- |\n\
+             | frame-000000.png | 0.0 s | | a | ok: reads at once | |\n\
+             | frame-000150.png | 5.0 s | | | Kept: the peek is on purpose | |\n\
+             | cut-000300.png | 10.0 s | | | glow pops | carry it over |\n\
+             | motion-000400.png | 13.3 s | | | | |\n",
+        )
+        .unwrap();
+        let (verdicts, _) = verdicts(folder.path());
+        assert!(matches!(verdicts["frame-000000.png"], Verdict::Ok));
+        assert!(matches!(verdicts["frame-000150.png"], Verdict::Kept));
+        assert!(matches!(verdicts["cut-000300.png"], Verdict::Defect(_)));
+        assert!(matches!(verdicts["motion-000400.png"], Verdict::Blank));
+        let before = Before::read(folder.path());
+        assert!(before.settled.contains("frame-000150.png"));
+        assert_eq!(before.said("cut-000300.png").as_deref(), Some("glow pops"));
+        assert_eq!(
+            before.said("motion-000400.png").as_deref(),
+            Some("not looked at")
+        );
+    }
+}

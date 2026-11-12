@@ -1,0 +1,49 @@
+/* launch kit: layers and lines for product films. Colours come from theme.css. */
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('fonts/jetbrains-mono-latin-400-normal.woff2') format('woff2');
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('fonts/jetbrains-mono-latin-700-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-display: block;
+}
+
+/* A screen fills the frame; its world is the product at its own pixel size, moved by a camera. */
+.screen { position: absolute; inset: 0; overflow: hidden; }
+.world { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+
+/* Handover shapes and other free elements are placed with kit place(). */
+.free { position: absolute; left: 0; top: 0; will-change: transform; }
+
+/* Lines: centred in the middle band, one face. */
+.lines { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+.line {
+  grid-area: 1 / 1;
+  max-width: 1500px;
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--line-size, 104px);
+  font-weight: 640;
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  text-align: center;
+  text-wrap: balance;
+  opacity: 0;
+}
+.line .c { display: inline-block; }
+.mask { overflow: hidden; padding: 0 0 0.14em; }
+.mask > span { display: block; }
+
+/* A soft dark pool behind a line read over a picture. */
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 60% 46% at 50% 50%, rgb(0 0 0 / 50%), rgb(0 0 0 / 0%) 100%);
+  opacity: 0;
+  pointer-events: none;
+}

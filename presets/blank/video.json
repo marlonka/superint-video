@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "name": "Untitled",
+  "width": 1920,
+  "height": 1080,
+  "fps": { "num": 30, "den": 1 },
+  "durationFrames": 900,
+  "background": "#0e0f12",
+  "tracks": [
+    { "id": "scenes", "kind": "visual", "name": "Scenes" },
+    { "id": "voice", "kind": "audio", "name": "Voice" },
+    { "id": "music", "kind": "audio", "name": "Music" },
+    { "id": "sfx", "kind": "audio", "name": "Sound effects" }
+  ],
+  "clips": [
+    {
+      "id": "title",
+      "type": "scene",
+      "src": "scenes/title.html",
+      "track": "scenes",
+      "startFrame": 0,
+      "durationFrames": 90,
+      "props": { "title": "{{topic}}" }
+    }
+  ]
+}

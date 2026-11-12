@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "name": "Untitled",
+  "width": 1920,
+  "height": 1080,
+  "fps": { "num": 30, "den": 1 },
+  "durationFrames": 150,
+  "background": "#111413",
+  "tracks": [{ "id": "visuals", "kind": "visual", "name": "Scenes" }],
+  "clips": [{ "id": "intro", "type": "scene", "src": "scenes/intro.html", "track": "visuals", "startFrame": 0, "durationFrames": 150, "sourceOffsetFrames": 0, "props": { "title": "Superint Video", "subtitle": "HTML / CSS / SVG", "accent": "#c8ff5f" } }]
+}

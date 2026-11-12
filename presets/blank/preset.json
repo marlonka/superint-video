@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "name": "blank",
+  "title": "Blank",
+  "description": "No house look: a neutral starter (Geist, dark ground, one accent) for any kind of video. The look comes from direction.md, a brand kit or the references you add.",
+  "translations": {
+    "de": {
+      "title": "Neutral",
+      "description": "Kein Hausstil: ein neutraler Anfang (Geist, dunkler Grund, ein Akzent) für jede Art von Video. Der Look kommt aus direction.md, einem Brand-Kit oder den Referenzen, die du hinzufügst."
+    }
+  },
+  "formats": {
+    "16:9": { "width": 1920, "height": 1080 },
+    "9:16": { "width": 1080, "height": 1920 },
+    "1:1": { "width": 1080, "height": 1080 },
+    "4:5": { "width": 1080, "height": 1350 }
+  },
+  "defaultFormat": "16:9",
+  "defaults": {
+    "seconds": 30,
+    "language": "en"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "superint-video-studio",
+  "version": "0.3.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "prebuild": "node ../scripts/generate-types.mjs --check",
+    "build": "vite build",
+    "precheck": "node ../scripts/generate-types.mjs --check",
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "types:generate": "node ../scripts/generate-types.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "verify:api": "node verify-api.mjs"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "6.2.4",
+    "prettier": "3.9.9",
+    "prettier-plugin-svelte": "4.1.1",
+    "svelte": "5.57.2",
+    "svelte-check": "4.7.6",
+    "typescript": "5.9.3",
+    "vite": "7.3.7"
+  }
+}

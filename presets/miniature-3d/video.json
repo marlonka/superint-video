@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "name": "Untitled",
+  "width": 1920,
+  "height": 1080,
+  "fps": { "num": 30, "den": 1 },
+  "durationFrames": 18000,
+  "background": "#000000",
+  "tracks": [
+    { "id": "scenes", "kind": "visual", "name": "Scenes" },
+    { "id": "voice", "kind": "audio", "name": "Voice" },
+    { "id": "music", "kind": "audio", "name": "Music" },
+    { "id": "sfx", "kind": "audio", "name": "Sound effects" }
+  ],
+  "clips": [
+    {
+      "id": "film",
+      "type": "scene",
+      "src": "scenes/film.html",
+      "track": "scenes",
+      "startFrame": 0,
+      "durationFrames": 18000,
+      "props": { "samples": 32 }
+    }
+  ]
+}

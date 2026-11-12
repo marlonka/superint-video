@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "name": "miniature-3d",
+  "title": "Code-rendered miniature",
+  "description": "A photographic miniature world computed entirely in code by its own WebGL2 renderer: real depth of field, motion blur, soft shadows, reflections, film grain. Rooms of a cut-open building at night, objects that act by themselves, no people. Made for narrated explainers that travel through one connected place; expect about a second per frame on a desktop GPU. Read the superint-miniature skill.",
+  "translations": {
+    "de": {
+      "title": "Miniatur aus Code",
+      "description": "Eine fotografische Miniaturwelt, vollständig in Code berechnet, mit eigenem WebGL2-Renderer: echte Schärfentiefe, Bewegungsunschärfe, weiche Schatten, Spiegelungen, Filmkorn. Räume eines aufgeschnittenen Hauses bei Nacht, Dinge, die von selbst handeln, keine Menschen. Gemacht für gesprochene Erklärfilme, die durch einen zusammenhängenden Ort reisen; rechne mit etwa einer Sekunde pro Bild auf einer Desktop-Grafikkarte."
+    }
+  },
+  "formats": {
+    "16:9": {
+      "width": 1920,
+      "height": 1080
+    }
+  },
+  "defaultFormat": "16:9",
+  "defaults": {
+    "seconds": 180,
+    "language": "de",
+    "stops": [],
+    "concepts": 3,
+    "workflow": "superint-explainer"
+  },
+  "narration": {
+    "wordsPerMinute": {
+      "de": 140,
+      "en": 165,
+      "*": 150
+    },
+    "model": "gemini-3.8-flash-tts",
+    "voice": "Sadaltager"
+  },
+  "transcription": {
+    "model": "gemini-3.5-transcribe"
+  },
+  "music": {
+    "model": "lyria-3.5",
+    "prompt": "Intimate nocturnal chamber jazz, unhurried and quietly witty: felt piano played very softly with audible hammer felt, one short motif that comes back and changes, round plucked upright bass with long tones, brushes barely stroked, 76 BPM, gently swung. Stays low and sparse, long rests, leaves room for narration. Instrumental, no vocals, no synthesizers."
+  }
+}

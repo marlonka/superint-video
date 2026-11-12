@@ -1,0 +1,253 @@
+{
+ "kit": 1,
+ "name": "der-rest-ist-text",
+ "sr": 48000,
+ "note": "Alles in diesem Haus ist Mechanik: Tasten, Klappen, Relais, Papier, Holz. Darum Aufnahmen und natuerliche Beruehrungen statt Synthie. Eine Rolle je Ereignis, damit dasselbe immer gleich klingt. fit/* sind CC0-Aufnahmen und werden im Bericht genannt.",
+ "roles": {
+  "key": {
+   "sound": "fit/key/thock",
+   "takes": 5,
+   "align": "onset",
+   "level_db": -5.0,
+   "note": "Schreibmaschine, Anschlag"
+  },
+  "key.space": {
+   "sound": "fit/key.space/thock_space",
+   "takes": 3,
+   "align": "onset",
+   "level_db": -5.0,
+   "note": "Leertaste"
+  },
+  "key.soft": {
+   "sound": "fit/key/medium",
+   "takes": 4,
+   "align": "onset",
+   "level_db": -5.0,
+   "note": "Tippen im Kino, leiser Charakter"
+  },
+  "typerun": {
+   "sound": "pro_typing_run/standard",
+   "takes": 2,
+   "align": "onset",
+   "level_db": -5.0,
+   "note": "Lauf vieler Tasten: Bild wird Text, Titelseite"
+  },
+  "return": {
+   "sound": "swipe/glide",
+   "takes": 2,
+   "align": "peak",
+   "level_db": -6.0,
+   "note": "Wagenruecklauf"
+  },
+  "stop": {
+   "sound": "knock/plastic",
+   "takes": 2,
+   "align": "onset",
+   "level_db": -6.0,
+   "note": "Wagen schlaegt an, Kapsel kommt an"
+  },
+  "bell": {
+   "sound": "fit/bell/small_bell",
+   "takes": 1,
+   "align": "onset",
+   "level_db": -5.0,
+   "note": "Glocke der Schreibmaschine"
+  },
+  "paper": {
+   "sound": "swipe/paper",
+   "takes": 3,
+   "align": "peak",
+   "level_db": -6.0,
+   "note": "Blatt, Abzug, Stapel"
+  },
+  "pen": {
+   "sound": "swipe/cloth",
+   "takes": 3,
+   "align": "onset",
+   "level_db": -6.0,
+   "note": "roter Stift, Fettstift, Tafel wischen"
+  },
+  "scratch": {
+   "sound": "swish/stick",
+   "takes": 3,
+   "align": "onset",
+   "level_db": -8.0,
+   "note": "kurzer Strich, Haken"
+  },
+  "wind": {
+   "sound": "whoosh_big/gust",
+   "takes": 2,
+   "align": "peak",
+   "level_db": -7.0,
+   "note": "Nachtluft draussen"
+  },
+  "move": {
+   "sound": "whoosh_big/swell",
+   "takes": 2,
+   "align": "peak",
+   "level_db": -7.0,
+   "note": "Fahrt in den naechsten Raum"
+  },
+  "whip": {
+   "sound": "whoosh_fast/sleeve",
+   "takes": 3,
+   "align": "peak",
+   "level_db": -7.0,
+   "note": "schneller Schwenk"
+  },
+  "capsule": {
+   "sound": "whoosh_fast/whistle",
+   "takes": 2,
+   "align": "onset",
+   "level_db": -7.0,
+   "note": "Rohrpost"
+  },
+  "thud": {
+   "sound": "knock/desk",
+   "takes": 3,
+   "align": "onset",
+   "level_db": -6.0,
+   "note": "Stapel, Wagen rollt ein"
+  },
+  "stamp": {
+   "sound": "knock/wood",
+   "takes": 3,
+   "align": "onset",
+   "level_db": -6.0,
+   "note": "Stempel"
+  },
+  "flap": {
+   "sound": "toggle/micro",
+   "takes": 4,
+   "align": "onset",
+   "level_db": -6.0,
+   "note": "Klappzaehler"
+  },
+  "switch": {
+   "sound": "toggle/rocker",
+   "takes": 2,
+   "align": "onset",
+   "level_db": -6.0,
+   "note": "Bildschirm an, ON AIR"
+  },
+  "lamp": {
+   "sound": "toggle/latch",
+   "takes": 4,
+   "align": "onset",
+   "level_db": -5.0,
+   "note": "schweres Relais einer Lampe"
+  },
+  "lamp.off": {
+   "sound": "toggle/off",
+   "takes": 2,
+   "align": "onset",
+   "level_db": -6.0,
+   "note": "Lampe aus"
+  },
+  "shutter": {
+   "sound": "shutter/mirror",
+   "takes": 3,
+   "align": "onset",
+   "level_db": -5.0,
+   "note": "Spiegelreflex der Kamera auf Schienen"
+  },
+  "machine": {
+   "sound": "pro_riser/chop",
+   "takes": 1,
+   "align": "end",
+   "level_db": -6.0,
+   "note": "neuntausend Bilder am Stueck"
+  },
+  "roll": {
+   "sound": "pro_riser/roll",
+   "takes": 2,
+   "align": "end",
+   "level_db": -6.0,
+   "note": "Kugel auf der Bahn"
+  },
+  "riser": {
+   "sound": "riser/swell",
+   "takes": 1,
+   "align": "end",
+   "level_db": -6.0,
+   "note": "Lampe wird weiss"
+  },
+  "boom": {
+   "sound": "pro_impact/deep",
+   "takes": 1,
+   "align": "onset",
+   "level_db": -5.0,
+   "note": "der weisse Moment"
+  },
+  "scramble": {
+   "sound": "glitch/scramble",
+   "takes": 2,
+   "align": "onset",
+   "level_db": -7.0,
+   "note": "ein Wort geaendert"
+  },
+  "burst": {
+   "sound": "pro_glitch/standard",
+   "takes": 1,
+   "align": "onset",
+   "level_db": -7.0,
+   "note": "alles neu getraeumt"
+  },
+  "riffle": {
+   "sound": "pro_typing_run/soft",
+   "takes": 2,
+   "align": "onset",
+   "level_db": -6.0,
+   "note": "Daumenkino im Lauf"
+  },
+  "tick": {
+   "sound": "fit/tick/domino",
+   "takes": 3,
+   "align": "onset",
+   "level_db": -5.0,
+   "note": "einzelne Seite, Karte am Seil"
+  },
+  "glass": {
+   "sound": "tap/glass",
+   "takes": 2,
+   "align": "onset",
+   "level_db": -8.0,
+   "note": "Lupe setzt auf"
+  },
+  "neon": {
+   "sound": "pro_hover_tick/detent",
+   "takes": 3,
+   "align": "onset",
+   "level_db": -7.0,
+   "note": "Buchstabe der Dachschrift zuendet"
+  },
+  "soft": {
+   "sound": "tap/soft",
+   "takes": 3,
+   "align": "onset",
+   "level_db": -8.0,
+   "note": "kleine Beruehrung, Blatt landet"
+  },
+  "drop": {
+   "sound": "drip/tiny",
+   "takes": 4,
+   "align": "onset",
+   "level_db": -8.0,
+   "note": "einzelne Tropfen, machen aus Rauschen Regen"
+  },
+  "sub": {
+   "sound": "pro_sub_drop/low",
+   "takes": 1,
+   "align": "onset",
+   "level_db": -5.0,
+   "note": "Tiefbass unter dem weissen Moment"
+  },
+  "gong.top": {
+   "sound": "impact/metal",
+   "takes": 1,
+   "align": "onset",
+   "level_db": -6.0,
+   "note": "metallischer Anschlag des Gongs"
+  }
+ }
+}

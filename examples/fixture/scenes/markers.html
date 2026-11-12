@@ -1,0 +1,9 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Consolas,monospace;color:white}#label{position:absolute;top:20px;left:24px;font-size:20px}#frame{position:absolute;top:90px;left:24px;font-size:96px}#marker{position:absolute;width:8px;height:30px;top:270px;background:white}#bits{position:absolute;bottom:0;left:0;display:flex}#bits i{width:20px;height:20px}#time{position:absolute;top:220px;left:24px;font-size:22px}#clock{position:absolute;left:500px;top:310px;width:80px;height:20px}
+</style></head><body><div id="label"></div><div id="frame"></div><div id="time"></div><div id="marker"></div><div id="bits"></div><div id="clock"></div><script type="module">
+import{defineScene}from'/runtime/scene.js';
+const bits=document.querySelector('#bits');for(let i=0;i<16;i++)bits.append(document.createElement('i'));
+defineScene({props:{label:{type:'text',default:'FRAME'},color:{type:'color',default:'#e83e41'}},render({frame,time,props,width}){
+document.body.style.background=props.color;document.querySelector('#label').textContent='SYNTHETIC FIXTURE / '+props.label;document.querySelector('#frame').textContent=String(frame).padStart(4,'0');document.querySelector('#time').textContent=time.toFixed(6)+' s';document.querySelector('#marker').style.left=(frame*5%(width-8))+'px';[...bits.children].forEach((element,index)=>element.style.background=frame&(1<<index)?'#ffffff':'#000000');const milliseconds=Math.round(time*1000);document.querySelector('#clock').style.background=`rgb(${milliseconds>>>8&255},${milliseconds&255},0)`;
+}});
+</script></body></html>

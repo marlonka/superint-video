@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../kit/theme.css">
+  <style>
+    .ui { justify-content: flex-start; }
+    .caption { margin: 0; max-width: 80vw; font-size: 4.6vmin; font-weight: 900; text-wrap: balance; }
+    .axis { position: absolute; color: var(--muted); }
+    .end { position: absolute; font-size: 5vmin; font-weight: 1000; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <div class="sky"></div>
+  <div class="stage" id="stage">
+    <svg class="art" id="art"></svg>
+    <div class="axis small" id="startLabel"></div><div class="axis small" id="endLabel"></div>
+    <div class="end" id="end"></div>
+  </div>
+  <div class="ui"><p class="caption" id="caption"></p></div>
+  <div class="vignette"></div>
+  <script type="module">
+    import { defineScene } from '/runtime/scene.js';
+    import { fontsReady, once, fitSvg, el, color, enter, between, drift, rise, count, markup, drawable, draw, clamp01, ease, starField, twinkle } from '../kit/kit.js';
+
+    const stage = document.getElementById('stage'), art = document.getElementById('art');
+    const $ = id => document.getElementById(id);
+
+    const layout = once(({ width, height }) => {
+      const L = fitSvg(art, width, height);
+      L.stars = starField(art, { w: width, h: height, seed: 'chart', count: 40 });
+      L.box = L.portrait
+        ? { x0: width * 0.1, x1: width * 0.86, y0: height * 0.3, y1: height * 0.7 }
+        : { x0: width * 0.12, x1: width * 0.82, y0: height * 0.3, y1: height * 0.78 };
+      L.base = el('line', { x1: L.box.x0, x2: L.box.x1, y1: L.box.y1, y2: L.box.y1, stroke: color('dusk'), 'stroke-width': L.u * 0.4, 'stroke-linecap': 'round' }, art);
+      L.area = el('path', { opacity: 0.18 }, art);
+      L.line = el('path', { fill: 'none', 'stroke-width': L.u * 0.9, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, art);
+      L.dot = el('circle', { r: L.u * 1.4 }, art);
+      return L;
+    });
+
+    /** Values separated by spaces or semicolons; a decimal comma is accepted. */
+    const parse = text => text.split(/[;\s]+/).filter(Boolean).map(v => Number(v.replace(',', '.'))).filter(Number.isFinite);
+
+    defineScene({
+      ready: fontsReady,
+      props: {
+        caption: { type: 'text', default: 'CO₂ in der Atmosphäre steigt *immer schneller*', label: 'Caption (*word* = accent)' },
+        values: { type: 'text', default: '316 326 339 354 369 389 413 424', label: 'Values (space or ; separated)' },
+        startLabel: { type: 'text', default: '1960', label: 'Start label' },
+        endLabel: { type: 'text', default: '2024', label: 'End label' },
+        unit: { type: 'text', default: 'ppm', label: 'Unit' },
+        decimals: { type: 'number', default: 0, label: 'Decimals', min: 0, max: 3 },
+        zeroBased: { type: 'boolean', default: false, label: 'Start y-axis at zero' },
+        accent: { type: 'color', default: '#ff8a3d', label: 'Line color' },
+      },
+      render(context) {
+        const { time, props } = context;
+        const L = layout(context);
+        const values = parse(props.values);
+        if (values.length < 2) throw new Error('chart.html needs at least two values');
+        $('caption').innerHTML = markup(props.caption);
+        rise($('caption'), enter(time, 0.05));
+
+        const { x0, x1, y0, y1 } = L.box;
+        const lo = props.zeroBased ? Math.min(0, ...values) : Math.min(...values);
+        const hi = Math.max(...values);
+        const pad = props.zeroBased ? 0 : (hi - lo) * 0.12;
+        const points = values.map((v, i) => [x0 + ((x1 - x0) * i) / (values.length - 1), y1 - ((v - lo + pad) / (hi - lo + 2 * pad || 1)) * (y1 - y0)]);
+        const d = points.map(([x, y], i) => `${i ? 'L' : 'M'}${x},${y}`).join(' ');
+        L.line.setAttribute('d', d);
+        L.line.setAttribute('stroke', props.accent);
+        drawable(L.line);
+        const p = between(time, 0.4, 2.4, ease.inOutCubic);
+        draw(L.line, p);
+
+        // The area and the leading dot follow the drawn length exactly.
+        const length = L.line.getTotalLength();
+        const tip = L.line.getPointAtLength(length * p);
+        const covered = points.filter(([x]) => x <= tip.x);
+        L.area.setAttribute('d', `M${x0},${y1} ${covered.map(([x, y]) => `L${x},${y}`).join(' ')} L${tip.x},${tip.y} L${tip.x},${y1} Z`);
+        L.area.setAttribute('fill', props.accent);
+        L.dot.setAttribute('cx', tip.x);
+        L.dot.setAttribute('cy', tip.y);
+        L.dot.setAttribute('fill', props.accent);
+        L.dot.setAttribute('opacity', clamp01(p * 20));
+        L.base.setAttribute('opacity', between(time, 0.1, 0.5));
+
+        $('startLabel').textContent = props.startLabel;
+        $('endLabel').textContent = props.endLabel;
+        Object.assign($('startLabel').style, { left: `${x0}px`, top: `${y1 + 1.6 * L.u}px` });
+        Object.assign($('endLabel').style, { left: `${x1}px`, top: `${y1 + 1.6 * L.u}px`, transform: 'translateX(-100%)' });
+        $('startLabel').style.opacity = $('endLabel').style.opacity = between(time, 0.2, 0.6);
+
+        const end = $('end');
+        end.textContent = `${count(p, values[0], values.at(-1), { decimals: props.decimals })} ${props.unit}`.trim();
+        // Landscape: the value rides right of the tip; portrait: above it, right-aligned.
+        const settle = 0.9 + 0.1 * enter(time, 2.4);
+        Object.assign(end.style, L.portrait
+          ? { left: `${tip.x}px`, top: `${tip.y - 3 * L.u}px`, transform: `translate(-100%, -100%) scale(${settle})`, transformOrigin: '100% 100%' }
+          : { left: `${tip.x + 2.4 * L.u}px`, top: `${tip.y}px`, transform: `translateY(-50%) scale(${settle})`, transformOrigin: '0 50%' });
+        end.style.opacity = clamp01(p * 5);
+        drift(stage, time, { zoom: 0.006, y: 0 });
+        twinkle(L.stars, time);
+      },
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+# Interfaces
+
+What Studio, the app and the CLI exchange, and what the manifest adds to the project format in [FORMAT.md](FORMAT.md).
+
+Manifest adds optional `name` (default Untitled), `background` (#101113). Clip optional fields: `transform: {x,y,scale,rotation}` (0,0,1,0), `opacity` (1), `gain` (1), `fadeInFrames`, `fadeOutFrames` (0), `hidden`, `muted`, `includeAudio` (false), `props` (object). Audio plays for audio clips or video clips with includeAudio=true, unless muted/hidden. Track fields id, name (optional), kind (visual/audio), hidden/muted default false. Later visual tracks paint above earlier tracks; clip array order breaks ties.
+
+Studio server endpoints, JSON unless stated:
+
+- GET /api/project -> `{manifest, revision, name, projectPath, previewUrl, token, assets:[{path,name,kind,size,width?,height?,duration?}]}`. token is only delivered to the Studio origin; mutations require X-Superint-Token and matching Origin. GET protected from foreign Origin.
+- POST /api/edit `{revision, operation}` -> project payload. Operations: `{type:"updateClip",id,changes}`, `{type:"splitClip",id,frame}`, `{type:"duplicateClip",id}`, `{type:"deleteClip",id}`, `{type:"addClip",clip}`, `{type:"updateProject",changes}`, `{type:"addTrack",track}`.
+- POST /api/history `{revision,action:"undo"|"redo"}` -> project payload.
+- GET /api/events: SSE `data: {type:"changed",revision}` or `{type:"invalid",message}`. UI reloads after external change and clears undo state. Saved project payload adds canUndo/canRedo.
+- POST /api/import?name=<filename>: raw file body; token required; -> `{path,kind}`. Copy into assets, unique name on collision. UI inserts clip in a separate edit.
+- GET /api/media?path=<asset>: metadata incl waveform? and thumbnail? (lazy).
+- POST /api/render `{output,quality:"draft"|"final",codec:"x265"|"x264",overwrite:false}` -> `{id}`; codec defaults to x265.
+- GET /api/render/:id -> `{id,status,stage,completed,total,output,error?}`; status queued/running/completed/failed/cancelled.
+- POST /api/render/:id/cancel, POST /api/render/:id/open. token required.
+- GET /api/check -> diagnostics `{ok,diagnostics:[{severity,code,message,path?,clipId?}],sampledFrames}`.
+- GET /api/app[?visible=1][&fresh=1] -> `{version, home, project?, token, setup:{tools, keys, can, agents}, settings, filmsFolder, styles, films}`. Served by every Studio and by `superint-video app` (no project). The answer carries ids and facts, never sentences: the page holds the words in its two languages. Tool rows: `{id, title, ok, optional, sounds?, get, install, command?}` (`install`: winget can install it; `command`: a line the user may copy). Agent rows: `{id, title, found, ready, missing, outdated, skills, canInstall, get}` (`missing` and `outdated` name skills; `outdated` ones are there but are not the files this app ships; a linked skill folder counts as current). `filmsFolder` is where `new` puts a film without a folder: `settings.projectsDir`, else `SUPERINT_FILMS`, else `Superint Video` in the user's Videos folder. Key rows carry `present`, `source` (`app`, `file`, `environment`) and `models` (`{voice, timings, music}`: the model ids a film uses with this key unless its style or project names others), never a value. Style rows carry `translations` (`{de: {title?, description?}}`) next to `title` and `description`. `visible=1` marks the start page as watched, so `new` opens no second window.
+- PUT /api/app/settings `{preset?, seconds?, format?, language?, projectsDir?, window, follow, uiLanguage?}` -> `{settings}`. `uiLanguage` is the app's own language (`de`, `en`; absent follows the system). Stored in `<home>/settings.json`; `new` applies what the request leaves open.
+- POST /api/app/keys/:name `{value}`, DELETE /api/app/keys/:name -> `{keys}`; POST /api/app/keys/:name/test -> `{ok, state: "none"|"works"|"partial"|"refused", missing?, creditLeft?, detail?}`. Names: GEMINI_API_KEY, OPENROUTER_API_KEY. Stored in `<home>/keys.dat`, on Windows encrypted for the user (DPAPI). Process variables win over `.env`, `.env` over the store.
+- POST /api/app/films/:id/open -> `{url}` (starts that film's Studio), /forget, /reveal; GET /api/app/films/:id/picture. Ids are hashes of the folder, so no path travels in a URL.
+- POST /api/app/styles `{from, name}` (copy a preset), POST /api/app/styles/:name/reveal, GET /api/app/styles/:name/reference/:file, POST /api/app/agents/:id/skills (`claude`, `codex`) -> `{copied, updated, agents}` (adds the missing skills and replaces the outdated ones; what it replaces is kept in `<home>/replaced-skills/<agent>/<skill>`), POST /api/app/reveal/:what (`home`, `films`, `styles`). All mutations need the token and the matching Origin.
+- POST /api/app/styles/:name/export -> `{file}`: writes `<name>.superint-style.zip` (the whole preset, `preset.json` at the top) into the user's Downloads folder (`SUPERINT_DOWNLOADS` overrides it) under a free name and shows it in the file manager. POST /api/app/styles/import, body: the bytes of a style file, at most 256 MB -> `{name, title, styles}`. Nothing in the file can leave the new preset's folder (no absolute paths, `..`, links or names Windows cannot hold), it unpacks to at most 512 MB and 4000 files, and a taken name gets a number instead of replacing a preset.
+- POST /api/app/tools/:id/install (`chrome`, `ffmpeg`) -> `{started, command}`. Opens a visible terminal window with one fixed winget command; the request carries no command and no arguments, and no agreement is accepted for the user. 400 for an unknown tool, without winget, or when the tool is already found.
+- Errors: `{error,message}` with 409 stale revision, 400 validation, 403 capability/path, 500 operation failure.
+
+Separate preview server, read-only, no Studio token:
+
+- GET /manifest -> bare manifest (live or frozen).
+- GET /player.html -> runtime/player.html. /runtime/* serves runtime files.
+- GET /asset/<project-relative-path> -> asset bytes; HTML receives /runtime/scene.js bootstrap BEFORE user script. Relative asset references resolve normally under /asset/.
+- GET /frame/<clip-id>/<local-frame>.png -> exact FFmpeg-decoded source frame for video; local-frame includes sourceOffsetFrames, measured in project timebase. Cached. PNG/image src same path for preview and export.
+
+Player JS loads /manifest, builds isolated scene iframe instances and visual media layers, and exposes `window.__superint = {ready:Promise, seek(frame):Promise, play(), pause(), getState(), reload():Promise}`. getState() -> `{frame,playing,durationFrames,propDefinitions,actors,errors}`; actors are the boxes visible scenes returned for the frame, mapped through the clip transform to stage pixels, each with its clipId. Stage viewport renders actual project pixels at scale-to-fit; headless viewport uses exact dimensions. Seek frame is integer project frame; resolves only after assets/scene/media readiness and composition paint. All dynamic media elements controlled by runtime.
+
+Studio posts `{source:"superint-studio",action:"seek"|"play"|"pause"|"reload",frame?}` to exact preview origin. Player accepts only parent messages from Studio origin supplied by server as `window.SUPERINT_STUDIO_ORIGIN` (null headless); posts `{source:"superint-player",type:"ready"|"state"|"error",frame,playing,propDefinitions?,message?}` back to that exact origin. UI checks event.source and event.origin. Selecting a clip is UI-only. Reload returns to same frame when valid.
+
+Scene authors import `{defineScene,interpolate,ease,spring,random}` from `/runtime/scene.js`. `defineScene({props?:{key:{type:"text"|"number"|"color"|"boolean",default,label?,min?,max?}},ready?:Promise,render(ctx)})`; ctx `{frame,time,fps:{num,den},width,height,props}`. render may return `{actors:[{id,x,y,w,h,target?}]}` in scene pixels for `review`; target names the actor a highlight must enclose. Source-offset local frame. Static scenes need no registration. Scene bootstrap exposes a frame request/ack bridge to parent player. Agent runtime owns exact internal bridge, no mutations exposed.
+
+Rust modules: model.rs owns serde/schemars manifest types, validation, edit operations; project.rs owns confinement, load/revision/atomic-save/history/snapshot. Root owns CLI/server/media/renderer/process management. Runtime agent owns runtime/, examples/, skills/. Studio agent owns studio/.

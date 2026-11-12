@@ -1,0 +1,19 @@
+/target/
+/dist/
+/studio/node_modules/
+/studio/dist/
+**/.superint/
+**/renders/
+/artifacts/
+*.log
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Reference contact sheets (copyrighted, local only)
+/examples/*.jpg
+
+# Raw copies of third-party docs used for research (summaries live in docs/*.md)
+/docs/research/

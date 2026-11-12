@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#141714;color:#f2f3e9;font-family:Arial,Helvetica,sans-serif}
+.top{position:absolute;left:92px;right:92px;top:65px;display:flex;justify-content:space-between;font:20px Consolas,monospace;letter-spacing:2px;color:#a5ada2;border-bottom:1px solid #41483d;padding-bottom:26px}
+.label{position:absolute;left:94px;top:259px;font:24px Consolas,monospace;letter-spacing:2px;color:#c8ff5f}h1{position:absolute;left:83px;top:346px;font-size:180px;line-height:1;letter-spacing:-10px;font-weight:500;margin:0}
+.spec{position:absolute;left:96px;top:583px;font:26px/1.8 Consolas,monospace;color:#a5ada2}.pipeline{position:absolute;left:94px;right:92px;top:784px;display:flex;align-items:center;gap:24px}.step{padding:24px 28px;border:1px solid #556344;color:#e3e7d9;font:27px Consolas,monospace;flex:1}.arrow{color:#65764f;font:34px Arial}.step.last{background:#c8ff5f;color:#1a2410;border-color:#c8ff5f}
+.graphic{position:absolute;left:1330px;top:262px;width:420px;height:420px}.tile{position:absolute;inset:0;background:#1d2419;border:1px solid #556344;transform-origin:center}.tile:nth-child(2){inset:42px}.tile:nth-child(3){inset:84px;background:#c8ff5f;border:0}.play{position:absolute;left:191px;top:167px;width:0;height:0;border-left:61px solid #1a2410;border-top:42px solid transparent;border-bottom:42px solid transparent}
+.bottom{position:absolute;left:94px;right:92px;bottom:58px;display:flex;justify-content:space-between;font:20px Consolas,monospace;color:#a5ada2}
+</style></head><body>
+<div class="top"><span>SUPERINT VIDEO</span><span>03 / RENDER</span></div>
+<div class="label">LOCAL OUTPUT</div><h1></h1><div class="spec">1920 × 1080 &nbsp; / &nbsp; 30 FPS<br>H.264 + AAC &nbsp; / &nbsp; 15 SECONDS</div>
+<div class="graphic"><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="play"></div></div>
+<div class="pipeline"><div class="step">video.json</div><div class="arrow">→</div><div class="step">Chromium</div><div class="arrow">→</div><div class="step">FFmpeg</div><div class="arrow">→</div><div class="step last">video.mp4</div></div>
+<div class="bottom"><span>SCENE 03</span><span>450 FRAMES</span></div>
+<script type="module">
+import{defineScene,spring,interpolate}from'/runtime/scene.js';
+const title=document.querySelector('h1'),tiles=[...document.querySelectorAll('.tile')],steps=[...document.querySelectorAll('.step')];
+defineScene({props:{title:{type:'text',default:'video.mp4',label:'Output name'},accent:{type:'color',default:'#c8ff5f',label:'Accent'}},render({frame,time,props}){
+title.textContent=props.title;title.style.transform=`translateY(${(1-spring(time,{stiffness:100,damping:23}))*70}px)`;title.style.opacity=interpolate(frame,[0,16],[0,1]);
+tiles.forEach((tile,index)=>{const t=spring(time-index*.1,{stiffness:85,damping:21});tile.style.transform=`rotate(${(1-t)*(18-index*4)}deg) scale(${.82+t*.18})`;tile.style.opacity=interpolate(frame,[index*3,index*3+15],[0,1]);});
+steps.forEach((step,index)=>{step.style.opacity=interpolate(frame,[18+index*9,33+index*9],[0,1]);step.style.transform=`translateY(${(1-spring(time-.6-index*.3,{stiffness:110,damping:24}))*25}px)`;});
+tiles[2].style.background=props.accent;steps[3].style.background=props.accent;steps[3].style.borderColor=props.accent;
+}});
+</script></body></html>

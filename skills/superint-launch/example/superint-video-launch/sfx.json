@@ -1,0 +1,167 @@
+{
+ "under": 28,
+ "cues": [
+  {
+   "frame": 172,
+   "role": "key",
+   "under": 31,
+   "note": "typing the topic"
+  },
+  {
+   "frame": 180,
+   "role": "key",
+   "under": 31,
+   "note": "typing the topic"
+  },
+  {
+   "frame": 187,
+   "role": "key",
+   "under": 31,
+   "note": "typing the topic"
+  },
+  {
+   "frame": 195,
+   "role": "key",
+   "under": 31,
+   "note": "typing the topic"
+  },
+  {
+   "frame": 202,
+   "role": "key",
+   "under": 31,
+   "note": "typing the topic"
+  },
+  {
+   "frame": 210,
+   "role": "key",
+   "under": 31,
+   "note": "typing the topic"
+  },
+  {
+   "frame": 240,
+   "role": "click",
+   "under": 22,
+   "note": "Prompt kopieren, on the bar 4 downbeat"
+  },
+  {
+   "frame": 245,
+   "role": "pop",
+   "under": 28,
+   "note": "toast"
+  },
+  {
+   "frame": 255,
+   "role": "whoosh.short",
+   "under": 30,
+   "note": "the button opens as the terminal"
+  },
+  {
+   "frame": 268,
+   "role": "key.return",
+   "under": 28,
+   "note": "prompt pasted and sent"
+  },
+  {
+   "frame": 309,
+   "role": "tick",
+   "under": 31,
+   "note": "terminal row"
+  },
+  {
+   "frame": 331,
+   "role": "tick",
+   "under": 31,
+   "note": "terminal row"
+  },
+  {
+   "frame": 346,
+   "role": "tick",
+   "under": 31,
+   "note": "terminal row"
+  },
+  {
+   "frame": 354,
+   "role": "tick",
+   "under": 31,
+   "note": "terminal row"
+  },
+  {
+   "frame": 361,
+   "role": "tick",
+   "under": 31,
+   "note": "terminal row"
+  },
+  {
+   "frame": 369,
+   "role": "tick",
+   "under": 31,
+   "note": "terminal row"
+  },
+  {
+   "frame": 376,
+   "role": "tick",
+   "under": 31,
+   "note": "terminal row"
+  },
+  {
+   "frame": 387,
+   "role": "whoosh.short",
+   "under": 28,
+   "note": "scene rows lift off"
+  },
+  {
+   "frame": 409,
+   "role": "snap",
+   "under": 26,
+   "note": "clip hook lands"
+  },
+  {
+   "frame": 412,
+   "role": "snap",
+   "under": 26,
+   "note": "clip space lands"
+  },
+  {
+   "frame": 416,
+   "role": "snap",
+   "under": 26,
+   "note": "clip claude lands"
+  },
+  {
+   "frame": 420,
+   "role": "snap",
+   "under": 26,
+   "note": "clip rule lands"
+  },
+  {
+   "frame": 510,
+   "role": "tick.crisp",
+   "under": 30,
+   "note": "step done: Bau"
+  },
+  {
+   "frame": 540,
+   "role": "tick.crisp",
+   "under": 30,
+   "note": "step done: Review"
+  },
+  {
+   "frame": 795,
+   "role": "click.confirm",
+   "under": 26,
+   "note": "Film fertig (C6, the fifth of F)"
+  },
+  {
+   "frame": 825,
+   "role": "whoosh.long",
+   "under": 28,
+   "note": "render converges into the mark"
+  },
+  {
+   "frame": 840,
+   "role": "hit",
+   "under": 18,
+   "note": "the mark, on the final chord"
+  }
+ ]
+}

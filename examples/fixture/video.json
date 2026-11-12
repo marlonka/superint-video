@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "name": "Synthetic frame contract fixture",
+  "width": 640,
+  "height": 360,
+  "fps": {"num": 30, "den": 1},
+  "durationFrames": 90,
+  "background": "#000000",
+  "tracks": [{"id":"visuals","kind":"visual"}],
+  "clips": [
+    {"id":"first","type":"scene","src":"scenes/markers.html","track":"visuals","startFrame":0,"durationFrames":30,"sourceOffsetFrames":0,"props":{"label":"A","color":"#e83e41"}},
+    {"id":"offset","type":"scene","src":"scenes/markers.html","track":"visuals","startFrame":35,"durationFrames":30,"sourceOffsetFrames":30,"props":{"label":"B","color":"#31c789"}},
+    {"id":"last","type":"scene","src":"scenes/markers.html","track":"visuals","startFrame":60,"durationFrames":30,"sourceOffsetFrames":60,"props":{"label":"C","color":"#4685f5"}}
+  ]
+}

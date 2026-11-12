@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../kit/theme.css">
+  <style>
+    .ui { justify-content: flex-end; }
+    .level { position: absolute; left: 0; right: 0; bottom: 5vh; text-align: center; font-size: 5vmin; font-weight: 1000; }
+    .level small { display: block; margin-top: 0.6vmin; font-size: 2.6vmin; font-weight: 800; color: var(--muted); }
+    /* Dark pill: the label stays readable when the camera is inside a light planet. */
+    .level .pill { display: inline-block; padding: 1.4vmin 3.2vmin; border-radius: 3vmin; background: rgba(13, 20, 48, 0.72); }
+  </style>
+</head>
+<body>
+  <div class="sky"></div>
+  <svg class="art" id="art"></svg>
+  <div id="labels"></div>
+  <div class="vignette"></div>
+  <script type="module">
+    import { defineScene } from '/runtime/scene.js';
+    import { fontsReady, once, fitSvg, el, orb, color, ease, interpolate, random, visible, starField, twinkle, markup } from '../kit/kit.js';
+
+    const art = document.getElementById('art'), labelRoot = document.getElementById('labels');
+    const RATIO = 7; // each level is 1/7 the size of its parent
+    const fills = ['sky', 'mint', 'sun', 'coral', 'pink'];
+    const offsets = [[0.38, -0.22], [-0.3, 0.34], [0.26, 0.3], [-0.2, -0.3]];
+
+    const layout = once(({ width, height }) => {
+      const L = fitSvg(art, width, height);
+      L.starLayer = el('g', {}, art);
+      L.stars = starField(L.starLayer, { w: width, h: height, seed: 'zoom', count: 110 });
+      L.world = el('g', {}, art);
+      return L;
+    });
+
+    let built = null;
+    function build(L, levels) {
+      L.world.replaceChildren();
+      labelRoot.replaceChildren();
+      const centers = [[L.w / 2, L.h / 2]], radii = [(L.portrait ? 34 : 26) * L.u];
+      levels.forEach((_, i) => {
+        if (i === 0) return;
+        const [ox, oy] = offsets[(i - 1) % offsets.length];
+        centers.push([centers[i - 1][0] + ox * radii[i - 1], centers[i - 1][1] + oy * radii[i - 1]]);
+        radii.push(radii[i - 1] / RATIO);
+      });
+      levels.forEach((_, i) => {
+        const g = orb(L.world, { r: radii[i], fill: color(fills[i % fills.length]), glow: true, bands: i % 2 ? 0 : 3 });
+        g.setAttribute('transform', `translate(${centers[i][0]} ${centers[i][1]})`);
+        // Texture: small flat specks inside every level except the last.
+        if (i < levels.length - 1) for (let k = 0; k < 14; k++) {
+          const a = random(`speck${i}`, k) * Math.PI * 2, d = Math.sqrt(random(`speck${i}`, k + 40)) * radii[i] * 0.8;
+          el('circle', { cx: centers[i][0] + Math.cos(a) * d, cy: centers[i][1] + Math.sin(a) * d, r: radii[i] * (0.02 + random(`speck${i}`, k + 80) * 0.03), fill: color('paper'), opacity: 0.25 }, L.world);
+        }
+      });
+      const labels = levels.map(text => {
+        const [main, sub] = text.split('|').map(s => s.trim());
+        const div = document.createElement('div');
+        div.className = 'level';
+        div.innerHTML = `<span class="pill">${markup(main)}${sub ? `<small>${markup(sub)}</small>` : ''}</span>`;
+        labelRoot.appendChild(div);
+        return div;
+      });
+      return { key: JSON.stringify(levels), centers, labels };
+    }
+
+    defineScene({
+      ready: fontsReady,
+      props: {
+        level1: { type: 'text', default: 'Erde | 12.742 km', label: 'Level 1 (Name | detail)' },
+        level2: { type: 'text', default: 'Ozean | 1.000 km', label: 'Level 2' },
+        level3: { type: 'text', default: 'Tropfen | 1 mm', label: 'Level 3' },
+        level4: { type: 'text', default: '*Molekül* | 0,3 nm', label: 'Level 4 (empty = hidden)' },
+        hold: { type: 'number', default: 1.1, label: 'Seconds per level', min: 0.3, max: 6 },
+        travel: { type: 'number', default: 1.5, label: 'Zoom seconds', min: 0.3, max: 6 },
+      },
+      render(context) {
+        const { time, props } = context;
+        const L = layout(context);
+        const levels = [props.level1, props.level2, props.level3, props.level4].filter(s => s.trim());
+        if (built?.key !== JSON.stringify(levels)) built = build(L, levels);
+
+        // Continuous level ℓ: hold on each level, then zoom to the next.
+        const segment = props.hold + props.travel;
+        const j = Math.min(levels.length - 1, Math.floor(time / segment));
+        const local = time - j * segment;
+        const frac = j >= levels.length - 1 ? 0 : interpolate(local, [props.hold, segment], [0, 1], { ease: ease.inOutCubic });
+        const level = j + frac;
+        const zoom = RATIO ** level;
+        // Zooming toward a point in log space: the focus moves by (1 - k^-f) / (1 - 1/k).
+        const next = built.centers[Math.min(j + 1, levels.length - 1)], here = built.centers[j];
+        const w = (1 - RATIO ** -frac) / (1 - 1 / RATIO);
+        const fx = here[0] + (next[0] - here[0]) * w, fy = here[1] + (next[1] - here[1]) * w;
+        L.world.setAttribute('transform', `translate(${L.w / 2} ${L.h / 2}) scale(${zoom}) translate(${-fx} ${-fy})`);
+        L.starLayer.setAttribute('transform', `translate(${L.w / 2} ${L.h / 2}) scale(${1 + level * 0.15}) translate(${-L.w / 2} ${-L.h / 2})`);
+
+        // Level i is reached at i * segment; its label leaves early in the next zoom.
+        built.labels.forEach((label, i) => {
+          const arrive = i * segment + (i ? 0 : 0.2);
+          const leave = i === levels.length - 1 ? Infinity : i * segment + props.hold + props.travel * 0.3;
+          const o = visible(time, arrive, leave);
+          label.style.opacity = o;
+          label.style.transform = `translateY(${(1 - o) * 2}vmin)`;
+        });
+        twinkle(L.stars, time);
+      },
+    });
+  </script>
+</body>
+</html>

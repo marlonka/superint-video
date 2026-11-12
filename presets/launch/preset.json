@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "name": "launch",
+  "title": "Launch film",
+  "description": "The product's own interface rebuilt in code on a dark ground: Geist with a mono for code, the brand's colours or a grey ramp with white as the action colour, windows with soft shadows, large lines read over a softly blurred picture, an end card built from the film's last shape. Made for music-led launch, update and feature films.",
+  "translations": {
+    "de": {
+      "title": "Launch-Film",
+      "description": "Die echte Oberfläche des Produkts, in Code nachgebaut, auf dunklem Grund: Geist und eine Mono-Schrift für Code, die Farben der Marke oder eine Graustufe mit Weiß als Aktionsfarbe, Fenster mit weichen Schatten, große Zeilen über einem weich gezeichneten Bild, ein Schlussbild aus der letzten Form des Films. Gemacht für Launch-, Update- und Feature-Filme mit Musik."
+    }
+  },
+  "formats": {
+    "16:9": { "width": 1920, "height": 1080 },
+    "9:16": { "width": 1080, "height": 1920 },
+    "1:1": { "width": 1080, "height": 1080 }
+  },
+  "defaultFormat": "16:9",
+  "defaults": {
+    "seconds": 30,
+    "language": "de",
+    "stops": [],
+    "concepts": 3,
+    "workflow": "superint-launch"
+  },
+  "music": {
+    "model": "lyria-3.5",
+    "prompt": "Minimal electronic instrumental, calm, precise and confident: warm analog synth pads under a clean plucked arpeggio, a round sub bass, dry tight percussion. 120 BPM. A quiet intro, the drums from the third bar, a lift in the middle, the full theme toward the end, then one final chord struck on a downbeat that rings out to silence. Instrumental only, no vocals."
+  }
+}

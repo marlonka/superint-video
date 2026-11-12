@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "name": "flat-explainer",
+  "title": "Flat-vector explainer",
+  "description": "Rich flat-vector illustration of the real subject: cel-shaded shapes, a character rig, props and places, bright colour worlds. Made for narrated explainers; works for illustrated product stories too.",
+  "translations": {
+    "de": {
+      "title": "Flat-Vektor-Erklärfilm",
+      "description": "Reiche Flat-Vektor-Illustration des echten Gegenstands: Cel-Shading, ein Figuren-Rig, Requisiten und Orte, leuchtende Farbwelten. Gemacht für gesprochene Erklärfilme; trägt auch illustrierte Produktgeschichten."
+    }
+  },
+  "formats": {
+    "16:9": {
+      "width": 1920,
+      "height": 1080
+    },
+    "9:16": {
+      "width": 1080,
+      "height": 1920
+    },
+    "1:1": {
+      "width": 1080,
+      "height": 1080
+    }
+  },
+  "defaultFormat": "16:9",
+  "defaults": {
+    "seconds": 60,
+    "language": "de",
+    "stops": [],
+    "concepts": 3,
+    "workflow": "superint-explainer"
+  },
+  "narration": {
+    "wordsPerMinute": {
+      "de": 140,
+      "en": 165,
+      "*": 150
+    },
+    "model": "gemini-3.8-flash-tts",
+    "voice": "Sadaltager"
+  },
+  "transcription": {
+    "model": "gemini-3.5-transcribe"
+  },
+  "music": {
+    "model": "lyria-3.5",
+    "prompt": "Warm, curious ambient underscore for a science explainer: soft synth pads, gentle plucked arpeggios, light glockenspiel, slow build, no drums in the first half, 80 BPM. Instrumental, no vocals."
+  }
+}

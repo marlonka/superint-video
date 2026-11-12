@@ -1,0 +1,158 @@
+/* flat-explainer theme. Sizes use vmin so 16:9, 9:16 and 1:1 share one layout scale. */
+@font-face {
+  font-family: 'Nunito';
+  src: url('fonts/Nunito.ttf') format('truetype');
+  font-weight: 200 1000;
+  font-display: block;
+}
+
+:root {
+  /* Night: for set pieces that are dark (night, space, deep sea, machines), not the default look */
+  --night: #0d1430;
+  --deep: #15204a;
+  --navy: #1e2f6b;
+  --dusk: #2b3f86;
+  /* Bright grounds: walls, paper, land and water for day scenes */
+  --sunshine: #ffd43b;
+  --cream: #fff6dc;
+  --apricot: #ff9d3d;
+  --grass: #6fd36b;
+  --forest: #1f9a64;
+  --lagoon: #3fe0f0;
+  --ocean: #2856d8;
+  --blush: #ff6fae;
+  --ink: #1b1f3b;
+  /* Saturated accents: two to four per frame, the focal object the strongest */
+  --sun: #ffc83d;
+  --orange: #ff8a3d;
+  --coral: #ff5d5d;
+  --pink: #ff7eb6;
+  --teal: #19c3b1;
+  --mint: #7ff0c0;
+  --sky: #45b8ff;
+  --violet: #8a6cff;
+  --magenta: #e8327c;
+  /* Text */
+  --paper: #f7f4ea;
+  --muted: #9fb0dd;
+
+  --font: 'Nunito', system-ui, sans-serif;
+  --safe: 7vmin;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--night);
+  color: var(--paper);
+  font-family: var(--font);
+  font-weight: 800;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Layers: .sky (background) < .stage (camera) < .ui (text, not affected by camera) < .vignette */
+.sky {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 90% at 50% 38%, var(--deep) 0%, var(--night) 72%);
+}
+/* Colour worlds: each set piece picks its own, and neighbouring set pieces differ. */
+.sky.day { background: linear-gradient(180deg, #4fc3ff 0%, #9be3ff 60%, #e8fbff 100%); }
+.sky.sunshine { background: radial-gradient(120% 100% at 50% 40%, #ffe96b 0%, #ffd43b 70%, #ffc21f 100%); }
+.sky.sunset { background: linear-gradient(180deg, #7b5cff 0%, #ff6fae 38%, #ffa96b 70%, #ffe17a 100%); }
+.sky.warm { background: radial-gradient(120% 100% at 50% 35%, #ffc35c 0%, #ff9d3d 65%, #f2742b 100%); }
+.sky.meadow { background: linear-gradient(180deg, #7ee7c9 0%, #c9f7a8 60%, #f5ffd0 100%); }
+.sky.sea { background: linear-gradient(180deg, #3fe0f0 0%, #2a9df0 45%, #2856d8 100%); }
+.sky.mint { background: linear-gradient(180deg, #d9fff3 0%, #8ff0d2 100%); }
+.sky.alarm { background: radial-gradient(120% 100% at 50% 40%, #ff6b5e 0%, #e8364a 55%, #9e1747 100%); }
+.stage, .ui, .art {
+  position: absolute;
+  inset: 0;
+}
+.stage { transform-origin: 50% 50%; }
+.art { width: 100%; height: 100%; overflow: visible; }
+.ui {
+  padding: var(--safe);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+.vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* Multiply darkens and keeps hue; a normal-blend dark overlay greys out bright colors. */
+  background: radial-gradient(130% 100% at 50% 45%, #fff 55%, #7f88b0 100%);
+  mix-blend-mode: multiply;
+}
+/* Bright set pieces: a light touch that keeps the colours clean. */
+.vignette.soft { background: radial-gradient(130% 100% at 50% 45%, #fff 62%, #e9e2f4 100%); }
+
+/* Type scale */
+.kicker {
+  margin: 0 0 2.4vmin;
+  font-size: 2.6vmin;
+  font-weight: 900;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--sun);
+}
+.headline {
+  margin: 0;
+  max-width: 88vw;
+  font-size: 9.5vmin;
+  font-weight: 900;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.statement {
+  margin: 0;
+  max-width: 84vw;
+  font-size: 6.6vmin;
+  font-weight: 900;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.label {
+  font-size: 3.4vmin;
+  font-weight: 900;
+  line-height: 1.15;
+}
+.small {
+  font-size: 2.2vmin;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+em {
+  font-style: normal;
+  color: var(--sun);
+}
+/* Name tags for places, groups and things: white type on a saturated tag. */
+.tag {
+  display: inline-block;
+  padding: 0.8vmin 1.8vmin;
+  border-radius: 1vmin;
+  background: var(--magenta);
+  color: #fff;
+  font-size: 2.8vmin;
+  font-weight: 900;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.tag.violet { background: #6a3df0; }
+
+/* Per-word reveal (kit.splitWords) */
+.word {
+  display: inline-block;
+  white-space: pre;
+  will-change: transform, opacity;
+}

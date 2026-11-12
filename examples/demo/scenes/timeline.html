@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;color:#222b20;font-family:Arial,Helvetica,sans-serif;background:transparent}
+.paper{position:absolute;inset:0;width:1920px;height:1080px}.top{position:absolute;left:92px;right:92px;top:65px;display:flex;justify-content:space-between;font:20px Consolas,monospace;letter-spacing:2px;color:#66705c;border-bottom:1px solid #c5cabb;padding-bottom:26px}
+h1{position:absolute;left:88px;top:238px;font-size:132px;line-height:1.02;letter-spacing:-7px;font-weight:500;margin:0;width:860px}
+.details{position:absolute;left:94px;top:429px;font:27px/1.85 Consolas,monospace;color:#616b56}.details b{color:#344b1b;font-weight:400}
+.media-label{position:absolute;left:1087px;top:310px;font:18px Consolas,monospace;color:#67715d}.source-info{position:absolute;left:1087px;top:796px;width:690px;display:flex;justify-content:space-between;font:19px Consolas,monospace;color:#67715d}
+.tracks{position:absolute;left:94px;top:748px;width:860px}.track{display:flex;margin:10px 0;height:45px;gap:5px}.track span{display:flex;align-items:center;padding:0 16px;white-space:nowrap;font:17px Consolas,monospace;background:#ccd3b7;color:#364125;border-left:2px solid #7d8a5b}.track .active{background:#52632a;color:#f3f5e8}.track.audio span{background:#d5dbc8;border-color:#b1ba9c;width:100%}.cursor{position:absolute;left:0;top:-14px;bottom:0;width:2px;background:#222b20}.cursor:before{content:'';position:absolute;top:0;left:-5px;width:12px;height:12px;background:#222b20}
+.bottom{position:absolute;left:94px;right:92px;bottom:58px;display:flex;justify-content:space-between;font:20px Consolas,monospace;color:#67715d}
+</style></head><body>
+<svg class="paper" viewBox="0 0 1920 1080"><path d="M0 0H1920V1080H0Z M1086.4 377.6V766.4H1777.6V377.6Z" fill="#eef0e6" fill-rule="evenodd"/></svg>
+<div class="top"><span>SUPERINT VIDEO</span><span>02 / REVIEW</span></div>
+<h1></h1><div class="details"><b>video.json</b><br>Scene + video + audio<br>Frame-based placement</div>
+<div class="media-label">assets/numbered.mp4</div><div class="source-info"><span>LOCAL VIDEO SOURCE</span><span class="frame"></span></div>
+<div class="tracks"><div class="track"><span style="width:33.33%">author.html</span><span class="active" style="width:33.33%">timeline.html</span><span style="width:33.33%">render.html</span></div><div class="track"><span style="width:33.33%;visibility:hidden"></span><span style="width:33.33%">numbered.mp4</span></div><div class="track audio"><span>tone.wav</span></div><div class="cursor"></div></div>
+<div class="bottom"><span>SCENE 02</span><span>SOURCE OFFSET 000</span></div>
+<script type="module">
+import{defineScene,spring,interpolate}from'/runtime/scene.js';
+const title=document.querySelector('h1'),details=document.querySelector('.details'),cursor=document.querySelector('.cursor');
+defineScene({props:{title:{type:'text',default:'Timeline',label:'Title'},accent:{type:'color',default:'#52632a',label:'Accent'}},render({frame,time,props}){
+title.textContent=props.title;title.style.transform=`translateY(${(1-spring(time,{stiffness:95,damping:22}))*75}px)`;title.style.opacity=interpolate(frame,[0,15],[0,1]);
+details.style.opacity=interpolate(frame,[8,24],[0,1]);cursor.style.left=((150+frame)/450*860)+'px';
+document.querySelector('.active').style.background=props.accent;document.querySelector('.frame').textContent=String(frame).padStart(3,'0')+' / 149';
+}});
+</script></body></html>

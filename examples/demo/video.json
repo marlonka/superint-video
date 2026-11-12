@@ -1,0 +1,184 @@
+{
+  "version": 1,
+  "name": "Superint Video / 15 second demo",
+  "width": 1920,
+  "height": 1080,
+  "fps": {
+    "num": 30,
+    "den": 1
+  },
+  "durationFrames": 450,
+  "background": "#141714",
+  "tracks": [
+    {
+      "id": "media",
+      "name": "Source media",
+      "kind": "visual",
+      "hidden": false,
+      "muted": false
+    },
+    {
+      "id": "scenes",
+      "name": "HTML scenes",
+      "kind": "visual",
+      "hidden": false,
+      "muted": false
+    },
+    {
+      "id": "sound",
+      "name": "Audio",
+      "kind": "audio",
+      "hidden": false,
+      "muted": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "numbered-source",
+      "type": "video",
+      "src": "assets/numbered.mp4",
+      "track": "media",
+      "startFrame": 150,
+      "durationFrames": 150,
+      "sourceOffsetFrames": 0,
+      "props": {},
+      "transform": {
+        "x": 472.0,
+        "y": 32.0,
+        "scale": 0.36,
+        "rotation": 0.0
+      },
+      "opacity": 1.0,
+      "gain": 1.0,
+      "fadeInFrames": 0,
+      "fadeOutFrames": 0,
+      "hidden": false,
+      "muted": false,
+      "includeAudio": false
+    },
+    {
+      "id": "author",
+      "type": "scene",
+      "src": "scenes/author.html",
+      "track": "scenes",
+      "startFrame": 0,
+      "durationFrames": 150,
+      "sourceOffsetFrames": 0,
+      "props": {
+        "accent": "#c8ff5f",
+        "title": "Superint\nVideo"
+      },
+      "transform": {
+        "x": 0.0,
+        "y": 0.0,
+        "scale": 1.0,
+        "rotation": 0.0
+      },
+      "opacity": 1.0,
+      "gain": 1.0,
+      "fadeInFrames": 0,
+      "fadeOutFrames": 10,
+      "hidden": false,
+      "muted": false,
+      "includeAudio": false
+    },
+    {
+      "id": "timeline",
+      "type": "scene",
+      "src": "scenes/timeline.html",
+      "track": "scenes",
+      "startFrame": 150,
+      "durationFrames": 150,
+      "sourceOffsetFrames": 0,
+      "props": {
+        "accent": "#52632a",
+        "title": "Timeline"
+      },
+      "transform": {
+        "x": 0.0,
+        "y": 0.0,
+        "scale": 1.0,
+        "rotation": 0.0
+      },
+      "opacity": 1.0,
+      "gain": 1.0,
+      "fadeInFrames": 0,
+      "fadeOutFrames": 0,
+      "hidden": false,
+      "muted": false,
+      "includeAudio": false
+    },
+    {
+      "id": "render",
+      "type": "scene",
+      "src": "scenes/render.html",
+      "track": "scenes",
+      "startFrame": 300,
+      "durationFrames": 150,
+      "sourceOffsetFrames": 0,
+      "props": {
+        "accent": "#c8ff5f",
+        "title": "video.mp4"
+      },
+      "transform": {
+        "x": 0.0,
+        "y": 0.0,
+        "scale": 1.0,
+        "rotation": 0.0
+      },
+      "opacity": 1.0,
+      "gain": 1.0,
+      "fadeInFrames": 12,
+      "fadeOutFrames": 0,
+      "hidden": false,
+      "muted": false,
+      "includeAudio": false
+    },
+    {
+      "id": "soundtrack",
+      "type": "audio",
+      "src": "assets/tone.wav",
+      "track": "sound",
+      "startFrame": 0,
+      "durationFrames": 450,
+      "sourceOffsetFrames": 0,
+      "props": {},
+      "transform": {
+        "x": 0.0,
+        "y": 0.0,
+        "scale": 1.0,
+        "rotation": 0.0
+      },
+      "opacity": 1.0,
+      "gain": 0.18,
+      "fadeInFrames": 30,
+      "fadeOutFrames": 45,
+      "hidden": false,
+      "muted": false,
+      "includeAudio": false
+    },
+    {
+      "id": "audio-overlap",
+      "type": "audio",
+      "src": "assets/tone.wav",
+      "track": "sound",
+      "startFrame": 180,
+      "durationFrames": 60,
+      "sourceOffsetFrames": 180,
+      "props": {},
+      "transform": {
+        "x": 0.0,
+        "y": 0.0,
+        "scale": 1.0,
+        "rotation": 0.0
+      },
+      "opacity": 1.0,
+      "gain": 0.06,
+      "fadeInFrames": 10,
+      "fadeOutFrames": 20,
+      "hidden": false,
+      "muted": false,
+      "includeAudio": false
+    }
+  ]
+}

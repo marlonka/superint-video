@@ -1,0 +1,262 @@
+{
+  "$defs": {
+    "Clip": {
+      "additionalProperties": false,
+      "properties": {
+        "durationFrames": {
+          "format": "uint64",
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "fadeInFrames": {
+          "default": 0,
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "fadeOutFrames": {
+          "default": 0,
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "gain": {
+          "default": 1.0,
+          "format": "double",
+          "maximum": 16.0,
+          "minimum": 0.0,
+          "type": "number"
+        },
+        "hidden": {
+          "default": false,
+          "type": "boolean"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9_-]{1,128}$",
+          "type": "string"
+        },
+        "includeAudio": {
+          "default": false,
+          "description": "Video audio is opt-in. Audio clips always contribute unless muted/hidden.",
+          "type": "boolean"
+        },
+        "muted": {
+          "default": false,
+          "type": "boolean"
+        },
+        "opacity": {
+          "default": 1.0,
+          "format": "double",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "type": "number"
+        },
+        "props": {
+          "additionalProperties": true,
+          "default": {},
+          "type": "object"
+        },
+        "sourceOffsetFrames": {
+          "default": 0,
+          "format": "uint64",
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "src": {
+          "description": "Project-relative path using forward slashes; traversal, remote URLs, Windows device names and symlink escapes are rejected.",
+          "maxLength": 4096,
+          "minLength": 1,
+          "type": "string"
+        },
+        "startFrame": {
+          "format": "uint64",
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "track": {
+          "type": "string"
+        },
+        "transform": {
+          "$ref": "#/$defs/Transform",
+          "default": {
+            "rotation": 0.0,
+            "scale": 1.0,
+            "x": 0.0,
+            "y": 0.0
+          }
+        },
+        "type": {
+          "$ref": "#/$defs/ClipType"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "src",
+        "track",
+        "startFrame",
+        "durationFrames"
+      ],
+      "type": "object"
+    },
+    "ClipType": {
+      "enum": [
+        "scene",
+        "image",
+        "video",
+        "audio"
+      ],
+      "type": "string"
+    },
+    "Fps": {
+      "additionalProperties": false,
+      "properties": {
+        "den": {
+          "format": "uint32",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "num": {
+          "format": "uint32",
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "num",
+        "den"
+      ],
+      "type": "object"
+    },
+    "Track": {
+      "additionalProperties": false,
+      "properties": {
+        "hidden": {
+          "default": false,
+          "type": "boolean"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9_-]{1,128}$",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/TrackKind"
+        },
+        "muted": {
+          "default": false,
+          "type": "boolean"
+        },
+        "name": {
+          "default": "",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind"
+      ],
+      "type": "object"
+    },
+    "TrackKind": {
+      "enum": [
+        "visual",
+        "audio"
+      ],
+      "type": "string"
+    },
+    "Transform": {
+      "additionalProperties": false,
+      "properties": {
+        "rotation": {
+          "default": 0.0,
+          "format": "double",
+          "type": "number"
+        },
+        "scale": {
+          "default": 1.0,
+          "format": "double",
+          "type": "number"
+        },
+        "x": {
+          "default": 0.0,
+          "format": "double",
+          "type": "number"
+        },
+        "y": {
+          "default": 0.0,
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "background": {
+      "default": "#101113",
+      "pattern": "^#[A-Fa-f0-9]{6}([A-Fa-f0-9]{2})?$",
+      "type": "string"
+    },
+    "clips": {
+      "items": {
+        "$ref": "#/$defs/Clip"
+      },
+      "type": "array"
+    },
+    "durationFrames": {
+      "format": "uint64",
+      "maximum": 9007199254740991,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "fps": {
+      "$ref": "#/$defs/Fps",
+      "description": "Rational project timebase; num/den must not exceed 240 frames per second."
+    },
+    "height": {
+      "format": "uint32",
+      "maximum": 8192,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "name": {
+      "default": "Untitled",
+      "type": "string"
+    },
+    "tracks": {
+      "items": {
+        "$ref": "#/$defs/Track"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "version": {
+      "format": "uint32",
+      "maximum": 1,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "width": {
+      "format": "uint32",
+      "maximum": 8192,
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "version",
+    "width",
+    "height",
+    "fps",
+    "durationFrames",
+    "tracks",
+    "clips"
+  ],
+  "title": "Manifest",
+  "type": "object"
+}

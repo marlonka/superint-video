@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../kit/theme.css">
+  <link rel="stylesheet" href="../kit/launch.css">
+  <style>
+    #ground { position: absolute; inset: 0; background: radial-gradient(1500px 1000px at 50% -12%, #181818, var(--ground) 72%); }
+    #name { font-size: 112px; font-weight: 650; letter-spacing: -0.02em; line-height: 1; white-space: nowrap; opacity: 0; }
+    #fact { font-size: 38px; font-weight: 500; color: var(--muted); white-space: nowrap; opacity: 0; }
+  </style>
+</head>
+<body>
+  <div id="ground"></div>
+  <!-- The product's screens go between the first line and the end card: rebuild them in code
+       inside .screen > .world at the product's own pixel sizes (see STYLE.md), with its real strings. -->
+  <div class="lines"><p class="line" id="line"></p></div>
+  <div class="free" id="name"></div>
+  <div class="free" id="fact"></div>
+
+  <script type="module">
+    import { defineScene } from '/runtime/scene.js';
+    import { fontsReady, grid, span, eases, lineIn, lineOut } from '../kit/launch.js';
+
+    const $ = id => document.getElementById(id);
+
+    // A starter: the first line on the ground in three pieces on the beat, the end card on the
+    // track's final chord. Set the bar length and the landing from the measured track.
+    defineScene({
+      ready: fontsReady,
+      props: {
+        line: { type: 'text', default: 'What the product is, in one line', label: 'First line' },
+        name: { type: 'text', default: 'Name', label: 'Product name' },
+        fact: { type: 'text', default: '', label: 'One fact under the name (version, address, "out now")' },
+        bar: { type: 'number', default: 2, min: 0.5, max: 8, label: 'Seconds per bar of the music' },
+        lands: { type: 'number', default: 26, min: 1, label: 'Second the end card lands (the final chord)' },
+      },
+      render({ time: t, props, width, height }) {
+        const B = grid({ bar: props.bar }).beat;
+        const line = $('line');
+        if (line.dataset.text !== props.line) {
+          // three pieces of about equal length, each whole on screen at once
+          const words = props.line.split(/\s+/).filter(Boolean);
+          const cut = [Math.round(words.length / 3), Math.round((2 * words.length) / 3)];
+          const pieces = [words.slice(0, cut[0]), words.slice(cut[0], cut[1]), words.slice(cut[1])].filter(p => p.length);
+          line.innerHTML = pieces.map(p => `<span class="c">${p.join(' ').replace(/[&<>]/g, c => `&#${c.charCodeAt(0)};`)}</span>`).join(' ');
+          line.dataset.text = props.line;
+        }
+        const pieces = [...line.querySelectorAll('.c')];
+        pieces.forEach((piece, i) => lineIn.blur(piece, span(t, B(0.6 + 1.2 * i), B(1.9 + 1.2 * i), eases.out)));
+        lineOut.blur(line, span(t, B(7), B(7.6), eases.in));
+
+        // the end card lands on the final chord and creeps to the last frame
+        const land = props.lands;
+        const creep = 1 + 0.012 * Math.max(0, t - land);
+        const name = $('name'), fact = $('fact');
+        name.textContent = props.name;
+        fact.textContent = props.fact;
+        const nameIn = span(t, land, land + B(1.6), eases.out);
+        name.style.opacity = nameIn;
+        name.style.filter = nameIn < 1 ? `blur(${(1 - nameIn) * 16}px)` : 'none';
+        name.style.transform = `translate(${width / 2 - (name.offsetWidth * creep) / 2}px, ${height / 2 - 70}px) scale(${creep})`;
+        name.style.transformOrigin = '0 0';
+        const factIn = span(t, land + B(2), land + B(3), eases.out);
+        fact.style.opacity = factIn;
+        fact.style.transform = `translate(${width / 2 - fact.offsetWidth / 2}px, ${height / 2 + 70 + (1 - factIn) * 14}px)`;
+        return { actors: nameIn > 0 ? [{ id: 'name', x: width / 2 - name.offsetWidth / 2, y: height / 2 - 70, w: name.offsetWidth, h: 112 }] : [] };
+      },
+    });
+  </script>
+</body>
+</html>

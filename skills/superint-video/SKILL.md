@@ -1,0 +1,119 @@
+---
+name: superint-video
+description: Make and edit videos with the local Superint Video tool - any kind (explainers, launch films, update videos, promos, title cards, loops) in any style, built from HTML scenes and a JSON timeline and rendered to MP4 by the superint-video CLI, with a browser Studio for editing. Read this first for any Superint Video work, when a brief.md or video.json from Superint Video is present, or when the user asks for a video with Superint Video or one of its style presets (blank, flat-explainer, miniature-3d, launch, or their own). Workflow skills (superint-explainer, superint-launch) plan specific kinds of film on top of it; superint-audio adds voice, music and sound.
+---
+
+# Superint Video
+
+Superint Video is a local tool, not an agent. You are the director and the whole studio. The `superint-video` CLI scaffolds projects, checks frames, takes snapshots and review sheets, runs Studio and renders through Chromium and FFmpeg. Everything stays in the project folder. Rendering needs no accounts and no network.
+
+The tool itself has no taste. Three things decide what a film becomes, and each comes from somewhere else:
+
+| Layer | Answers | Comes from |
+| --- | --- | --- |
+| **Workflow** | What kind of film, how it is planned, written, composed and reviewed | A workflow skill: `superint-explainer`, `superint-launch`, or your own |
+| **Look** | Palette, type, shapes, light, characters, motion vocabulary | A style preset: `STYLE.md`, `kit/`, `scenes/lib/`, `blocks/` |
+| **References** | What "good" looks like for this film | Stills, screenshots or clips in the project's `references/` |
+
+Audio (narration, music, sound effects from [Earshot](https://github.com/Leonxlnx/earshot), mix and master) lives in the `superint-audio` skill. Use it whenever the brief wants sound and the keys or Earshot are there: a finished film has sound.
+
+## The rules are a floor, not a ceiling
+
+Everything in these skills and in a preset's `STYLE.md` is the accumulated experience of what made earlier films good and what spoiled them. Treat it as defaults and a minimum bar, never as a limit on what you may do. If you see a better way to serve the user's intent (a stronger idea, a better structure, a technique no rule mentions, a tool you can write in a few lines), do it, check it against the references and the rubric, and say in `report.md` what you did differently and why. Only three things are hard: the user's brief and brand, the truth of what the film claims, and the technical rules below that keep rendering correct.
+
+## Start: as little as the user wants to say
+
+The user should only have to say **what** and **in which style**, and roughly **how long** ("a 60 s Kurzgesagt-style explainer about sleep", "a 25 s launch film for Acme in our brand"). Length is a direction, never a cut. Everything else you decide.
+
+**The user's defaults.** The app keeps what a new film starts from when the request does not say: style, length, format, language and the films folder. `superint-video settings` prints them, and `new` applies them by itself (`fromSettings` in its result lists which). With a default style, `superint-video new --topic "…" --message "…"` is a complete command. What the user says in the request always wins over a default; tell them which defaults you took.
+
+**Where the film goes.** Leave the folder out. `new` then puts the film into the user's films folder (`filmsFolder` in `superint-video settings`: `Superint Video` in their Videos folder unless they chose another), in a folder named after the topic, and prints its path as `project`. Use that path for every later command. Give a folder only when the user names one. Never create a film inside the tool's own folder or inside a code repository: a film is large and is not source code.
+
+1. **Style → preset.** If the user named no style and `settings` shows a default preset, take it. Otherwise run `superint-video preset list --json` and map the user's words to a preset ("Kurzgesagt style", "flat explainer" → `flat-explainer`; a launch, update, product or feature film that shows the product → `launch` (plus the brand kit); "our brand", "clean", "Apple-like" without the product on screen → `blank` plus brand kit or references; "3D", "photoreal", "miniature", "like Videos aus Code" → `miniature-3d`, and read the `superint-miniature` skill). The preset's default `workflow` usually settles the kind of film too.
+2. **Kind of film → workflow skill**, if the preset or the request does not already say it: explainer → `superint-explainer`, launch, update, product or feature film → `superint-launch`. No fitting workflow: plan it with this skill alone.
+3. **Ask only for what you cannot decide well yourself**, in one short round: which preset if the style is ambiguous; the product's material or brand kit for a product film; screenshots of the look when the preset has no references and the user named a style you cannot see. Never ask for what has a sensible default.
+
+```sh
+superint-video new --preset <preset> --workflow <skill> --topic "<topic>" --message "<the one sentence>" --seconds 60 --format 16:9 --language de --reference a.png,b.jpg
+```
+
+More options: `--audience`, `--must "<text>"`, `--avoid "<text>"`, `--stop <names>` (the workflow skill names its stops), `--script <file>` (kept verbatim). `new` refuses to run without a preset from the request or the user's defaults, so the look is always a choice. It prints JSON with the project path, size, frame count, narration word budget and the number of references, and writes `brief.md`.
+
+Then read the workflow skill and follow it. To edit an existing project (a folder with `video.json`), read [references/editing.md](references/editing.md) and change only what was asked.
+
+## Let the user watch
+
+Studio shows the production live: the brief, the preset and skills in use, the references, your current step, the working documents, the latest changes, and the preview, which reloads whenever a scene or `video.json` changes.
+
+- `new` starts Studio in the background, opens it in the browser and prints its address as `studio`. Name that URL in your reply, so the user can watch from the first minute. `superint-video studio <dir>` brings it back, for an existing project too; `--stop` ends it. It ends by itself after two hours without a viewer or a render. Pass `--no-studio` to `new` or `render` only if the user asks.
+- The app is the user's window on everything: `superint-video app` opens its start page (setup, a prompt builder, every film on this computer, the defaults) in a window of its own and returns at once. While that page is open it goes to a new film by itself, so `new` opens no second window. In a film's Studio the logo leads back to it.
+- Studio's Progress panel shows the polish pass live: how many pictures are looked at, what is to fix, and every row with its picture, finding and fix. Fill the worksheet in as you look, not at the end, so the user sees the critique happen.
+- `render` shows itself there, whoever started it: the picture fills with the frame being rendered, with percent, frames per second, time left and a film strip of what is done, and the finished film plays in the same place. Never leave the user guessing whether a render is still running: name the URL again when you start one.
+- Long commands (`check`, `snapshot`, `review`, `polish`, `voice takes`, `music`, `mix`, `listen` and so on) appear under "Running now", and the newest contact sheet under "Looked at last", without you doing anything.
+- Keep `process/status.json` current at every step change and whenever you start something that takes a while:
+
+  ```json
+  {"step": "Beats", "note": "Timing the hook to the word timestamps", "steps": [
+    {"name": "Research", "state": "done"}, {"name": "Beats", "state": "active"}, {"name": "Build"}]}
+  ```
+
+  `steps` are the workflow's steps in order (`state`: `done`, `active`, or omitted for not yet); `note` is one plain sentence in the brief's language about what you are doing right now.
+- Put scenes on the timeline early, even rough, so the user sees the film grow instead of a blank preview until the end.
+
+## Looks, references and the yardstick
+
+- The project's `STYLE.md` is the look contract. The workflow skill's `direction.md` makes it concrete for one film; it may narrow `STYLE.md` but not break it unless the brief says so.
+- `references/` is the yardstick. Before style frames, look at every reference and write into `direction.md` what you take from each (palette, type, light, composition, motion) and what not. Put your style frames and every review contact sheet next to them at the same size. Anything that looks emptier, flatter, cheaper or less finished beside them is a defect.
+- Without references, ask once. Without any, judge against `STYLE.md` and the workflow's rubric, and say in the report that no references were given.
+- References show a look; they are never content. Never copy their scenes, characters, logos or layouts. Reference files of other people's films stay out of version control.
+
+Presets, their layout, where they live and how to make your own: [references/styles.md](references/styles.md).
+
+## How you work
+
+- **Look at what you made.** Judge only frames you rendered and looked at: `snapshot` for single frames, `review` for a pass over the whole film. See [references/review.md](references/review.md).
+- **Critique loops.** First drafts are raw material. Every creative step the workflow names runs at least two rounds of draft → critique → revise. A critique is a list of concrete defects (what, where, why it hurts), not a score. If your host can start a sub-agent, let one critique cold, without your reasoning.
+- **Polish before every render.** Without being asked, and before any delivery render, the film gets a last look by eyes that did not build it. `superint-video polish` lays out a still every 5 s, close-ups, both sides of every cut and the fastest moves; the polisher (a cold sub-agent on the most capable model the host offers, if it can start one) fixes what a viewer would spot at once, pass after pass, until one is clean and `polish --accept` records it. `render` refuses a film with a brief until then. See [references/polish.md](references/polish.md).
+- **Hand over at the render.** The accepted polish pass is the last check. When the render is done, give the user the MP4 and the Studio address and stop: they watch before anything else happens. Thumbnail, report, making-of and cleanup follow once they accept.
+- **Stops.** `brief.md` lists where the user wants to be asked. With none, decide like a director, never ask, and justify the decisions in `report.md`. Outside the stops, ask only when blocked.
+- **Making-of.** Every accepted film gets a short making-of in `report.md` (`## Making-of`, in the brief's language), ready to paste under the video: what the user gave (topic, direction, feedback), what you did step by step, and which models and tools made which part, through which provider, with the real numbers from the project (claims in the register, scenes, frames rendered, takes, music variants, sound effects placed). Only what actually happened; count, don't estimate. Example of the tone: "Das Video ist komplett mit KI gemacht. Ich habe Thema, Richtung und Feedback gegeben …".
+- **Clean up** after a render is accepted: keep the delivered MP4, thumbnail, worksheets and contact sheets; move frame dumps, superseded test renders and comparison encodes to the trash (never delete for good) and name what you moved in `process/review.md`.
+
+## Rules that always apply
+
+- `video.json` is the timing authority. Placement, trims, fades and offsets are integer frames there; scene HTML owns only composition and animation. At 30 fps, 1 s = 30 frames. Format: [references/project.md](references/project.md).
+- Animation is a pure function of `time`/`frame`: no CSS animations, `Math.random()`, wall clock or state accumulated between frames. Seeking backward must look identical to playing forward. See [references/scene-api.md](references/scene-api.md).
+- Timed audio and video belong in the manifest, never as `<audio>`/`<video>` in a scene. Everything a scene loads is local (`../kit/`, `../assets/`).
+- No invented facts, statistics, quotes, product features or customer names. What the film claims comes from the brief, the user's material or sources the workflow skill records.
+- Emulate a style through craft: shape, light, colour, motion, pacing. Never copy names, logos, characters or footage of other channels or brands; brand material only from the user for their own brand.
+- Secrets (`GEMINI_API_KEY`, `OPENROUTER_API_KEY`) belong to the user. They add them under Setup in the app, which keeps them encrypted on their computer and never shows them again; a `.env` file works too. Only the tool reads them. Never ask for a key in the chat, never print, log, commit or paste one, and never write one into a file yourself. When a command says a key is missing, tell the user to open the app (`superint-video app`) and add it there. `doctor --json` shows names only.
+- Preserve the user's work: clip IDs, source offsets, assets, edits made in Studio. Re-read `video.json` before writing if time has passed since you read it.
+
+## CLI
+
+| Command | Use |
+| --- | --- |
+| `doctor --json [--online]` | Chrome/Chromium, FFmpeg, Earshot and API keys present, plus the user's folder and defaults? `--online` also checks which models the keys reach, with live prices. |
+| `app [--no-open] [--stop]` | The app's start page: setup (coding agent with skills, tools, keys), prompt builder, films, defaults; in German or English. Starts in the background and returns its address at once |
+| `settings`, `settings set <key> <value>` | The user's defaults for new films: `preset`, `seconds`, `format`, `language`, `projectsDir`, plus `window` and `follow`. An empty value clears one |
+| `new [<dir>] [--preset <p>] … [--no-studio]` | Project from a style preset plus `brief.md`, with the chosen workflow and references; opens Studio. Without `--preset` it takes the user's default style. Without `<dir>`, the usual case, the film gets a folder named after the topic in the user's films folder |
+| `preset list [--json]` | Presets with description, formats, default workflow and number of references |
+| `preset show <name>` | A preset's configuration, files and references |
+| `preset new <name> --from <preset> [--reference …]` | Fork a preset into the user folder, with new references |
+| `preset reference <name> <files…>` | Add references to a preset; every new project gets a copy |
+| `inspect <dir> --json` | Manifest, revision, clip overview |
+| `check <dir> --json` | Validates manifest and sampled frames of every scene |
+| `snapshot <dir> --frames 0,45,90 --output renders/snapshots` | PNG frames plus a contact sheet |
+| `review <dir> [--offset 1.5] [--every 3] [--frames …] [--strip a-b] [--camera x,y,zoom] [--crop x,y,w,h]` | One polish pass into `renders/review/<n>/`: contact sheet, worksheet, strips and close-ups; measures static stretches, actors cut to a sliver and highlights off their target |
+| `polish <dir> [--every 5] [--accept]` | The last look before a render, into `renders/polish/<n>/`: stills, close-ups at native resolution, both sides of every cut, strips over the fastest moves and a worksheet. A later pass lists only what changed or stayed open; `--accept` records a clean pass |
+| `studio <dir> [--no-open] [--stop]` | Local editor and live view in the browser. Reuses an instance already running for the project (foreground process otherwise; `new` and `render` start it detached) |
+| `render <dir> --output renders/video.mp4 [--audio audio/master.wav] [--codec x265\|x264] [--workers N] [--quality draft] [--unpolished]` | Final MP4 with AAC; x265/HEVC by default (half the size) or x264/H.264 (plays everywhere); with `--audio` the master is muxed and measured on the MP4. A film with a brief needs an accepted polish pass: `--quality draft` for test renders, `--unpolished` only on the user's word |
+| `voice …`, `transcribe …`, `music …`, `sfx …`, `listen …`, `mix …` | Audio: see the `superint-audio` skill |
+
+`init <dir>` creates a minimal one-scene project without a preset. Every command prints JSON on success and `{"error", "message"}` on failure.
+
+## Boundaries
+
+Supported: HTML/CSS/SVG/JS scenes (including canvas and WebGL), images, SDR video, audio clips, frame-exact timing, transforms, opacity, fades, gain, mute, typed scene props, PNG snapshots, MP4 with HEVC (x265) or H.264 (x264) and AAC.
+
+Not supported: hosted rendering, accounts, telemetry, speed ramps, optical flow, HDR, alpha video, built-in motion blur. Identical pixels across different browsers, operating systems and font installs are not guaranteed; fonts shipped in the preset keep text stable.

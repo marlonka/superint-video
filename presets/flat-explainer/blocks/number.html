@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../kit/theme.css">
+  <style>
+    .value { font-size: 20vmin; font-weight: 1000; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .value .affix { font-size: 0.45em; font-weight: 900; color: var(--accent); }
+    .label { margin-top: 2.6vmin; max-width: 58vmin; text-wrap: balance; }
+    .source { position: absolute; left: 0; right: 0; bottom: var(--safe); text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="sky"></div>
+  <div class="stage" id="stage"><svg class="art" id="art"></svg></div>
+  <div class="ui">
+    <div class="value" id="value"><span class="affix" id="prefix"></span><span id="digits"></span><span class="affix" id="suffix"></span></div>
+    <div class="label" id="label"></div>
+  </div>
+  <div class="small source" id="source"></div>
+  <div class="vignette"></div>
+  <script type="module">
+    import { defineScene } from '/runtime/scene.js';
+    import { fontsReady, once, fitSvg, fitText, el, color, enter, between, drift, rise, count, random, starField, twinkle, ease, markup } from '../kit/kit.js';
+
+    const stage = document.getElementById('stage'), art = document.getElementById('art');
+    const $ = id => document.getElementById(id);
+
+    // A ring of dots fills clockwise while the number counts, then the ring breathes.
+    const layout = once(({ width, height }) => {
+      const L = fitSvg(art, width, height);
+      L.stars = starField(art, { w: width, h: height, seed: 'number', count: 70 });
+      L.ring = el('g', { transform: `translate(${width / 2} ${height / 2})` }, art);
+      L.dots = Array.from({ length: 72 }, (_, i) => el('circle', { r: L.u * (0.45 + random('dot', i) * 0.35) }, L.ring));
+      return L;
+    });
+
+    defineScene({
+      ready: fontsReady,
+      props: {
+        value: { type: 'number', default: 71, label: 'Value' },
+        decimals: { type: 'number', default: 0, label: 'Decimals', min: 0, max: 3 },
+        prefix: { type: 'text', default: '', label: 'Prefix' },
+        suffix: { type: 'text', default: '%', label: 'Suffix' },
+        label: { type: 'text', default: 'der Erdoberfläche sind von *Wasser* bedeckt', label: 'Label (*word* = accent)' },
+        source: { type: 'text', default: 'Quelle: USGS', label: 'Source' },
+        accent: { type: 'color', default: '#45b8ff', label: 'Accent' },
+      },
+      render(context) {
+        const { time, props } = context;
+        const L = layout(context);
+        document.documentElement.style.setProperty('--accent', props.accent);
+        $('prefix').textContent = props.prefix;
+        $('suffix').textContent = props.suffix;
+        $('label').innerHTML = markup(props.label);
+        $('source').textContent = props.source;
+
+        const value = $('value');
+        const fitKey = JSON.stringify([props.value, props.decimals, props.prefix, props.suffix]);
+        if (value.dataset.fitted !== fitKey) {
+          // Size for the final, widest string so the count never reflows.
+          $('digits').textContent = count(1, 0, props.value, { decimals: props.decimals });
+          fitText(value, { max: 20, width: Math.min(L.w, L.h) * 0.68, lines: 1 });
+          value.dataset.fitted = fitKey;
+        }
+        const counting = between(time, 0.2, 1.8, ease.outCubic);
+        $('digits').textContent = count(counting, 0, props.value, { decimals: props.decimals });
+        const pop = enter(time, 0.1, { stiffness: 140, damping: 14 });
+        value.style.opacity = Math.min(1, pop * 2);
+        value.style.transform = `scale(${0.6 + 0.4 * pop})`;
+        rise($('label'), enter(time, 0.7));
+        rise($('source'), enter(time, 1.4), 1.5);
+
+        const radius = Math.min(L.w, L.h) * 0.37;
+        const breathe = 1 + 0.015 * Math.sin(time * 2);
+        L.dots.forEach((dot, i) => {
+          const a = (i / L.dots.length) * Math.PI * 2 - Math.PI / 2;
+          const lit = counting * L.dots.length > i;
+          const wob = 1 + 0.03 * Math.sin(time * 1.4 + i);
+          dot.setAttribute('cx', Math.cos(a) * radius * breathe * wob);
+          dot.setAttribute('cy', Math.sin(a) * radius * breathe * wob);
+          dot.setAttribute('fill', lit ? props.accent : color('navy'));
+          dot.setAttribute('opacity', between(time, i * 0.006, 0.3 + i * 0.006));
+        });
+        L.ring.setAttribute('transform', `translate(${L.w / 2} ${L.h / 2}) rotate(${time * 3})`);
+        drift(stage, time, { zoom: 0.01, y: 0 });
+        twinkle(L.stars, time);
+      },
+    });
+  </script>
+</body>
+</html>

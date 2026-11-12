@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../kit/theme.css">
+</head>
+<body>
+  <div class="ui"><h1 class="headline" id="title"></h1></div>
+  <script type="module">
+    import { defineScene } from '/runtime/scene.js';
+    import { fontsReady, splitWords, revealWords, fitText } from '../kit/kit.js';
+
+    const title = document.getElementById('title');
+
+    // A neutral starting card. Replace it with the film's own opening once the look is set.
+    defineScene({
+      ready: fontsReady,
+      props: {
+        title: { type: 'text', default: 'Untitled', label: 'Title (*word* = accent)' },
+      },
+      render(context) {
+        const { time, props, width } = context;
+        const words = splitWords(title, props.title);
+        if (title.dataset.fitted !== props.title) {
+          fitText(title, { max: 9, width: 0.86 * width, lines: 3 });
+          title.dataset.fitted = props.title;
+        }
+        revealWords(words, time, 0.2, 0.08);
+      },
+    });
+  </script>
+</body>
+</html>

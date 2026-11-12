@@ -1,0 +1,890 @@
+/* The start page: setup, a new film, films, defaults. One scrolling column. Space, alignment and
+   type carry the structure; nothing is boxed and no rule separates the parts. */
+.home-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--page);
+}
+.home {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  background: var(--page);
+}
+/* Few controls: one row at any width, unlike the editor's header, which folds. */
+.home > .app-header {
+  flex-wrap: nowrap;
+  justify-content: space-between;
+}
+.home > .app-header > .header-actions {
+  flex: 0 1 auto;
+  flex-wrap: nowrap;
+  min-width: 0;
+  margin-left: auto;
+}
+.home > .app-header > .header-actions > .button {
+  min-width: 0;
+}
+.home > .app-header > .header-actions > .button > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-page {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding: 16px 32px 72px;
+}
+.home-page > * {
+  width: min(100%, 1040px);
+  margin-inline: auto;
+}
+.home-section {
+  padding: 44px 0 8px;
+}
+.home-heading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-bottom: 20px;
+}
+/* A folded section is its heading alone. */
+.home-heading:last-child {
+  margin-bottom: 0;
+}
+.home-heading > h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.home-summary {
+  flex: 1;
+  min-width: min(100%, 280px);
+  margin: 0;
+  color: var(--secondary);
+  font-size: 15px;
+  line-height: 1.45;
+}
+.home-heading > .button {
+  align-self: center;
+}
+.home-subheading {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 500;
+}
+/* A subheading with the one action that belongs to the whole group. */
+.home-subheading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.home-subheading-row > .home-subheading {
+  margin: 0;
+}
+.home-subheading-row > .button {
+  margin-right: -12px;
+}
+/* A failure stays in view wherever on the page the user was when it happened. */
+.home-problem {
+  position: sticky;
+  z-index: 40;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 8px 8px 8px 14px;
+  border: 1px solid var(--error);
+  border-radius: 8px;
+  color: var(--error);
+  background: var(--page);
+}
+.home-problem > span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.home-empty {
+  max-width: 68ch;
+  margin: 0;
+  color: var(--secondary);
+  line-height: 1.5;
+}
+
+/* Setup while something required is missing: the whole page, so it cannot be overlooked. */
+.first-run {
+  padding: 48px 0 24px;
+}
+.first-run > h1 {
+  margin: 0 0 8px;
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+.first-lead {
+  margin: 0 0 44px;
+  color: var(--secondary);
+  font-size: 17px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+/* Unfinished Setup, wherever Setup itself is not in front: the start page and Studio. It is the
+   one inverted block of the app, so nobody takes it for part of the page. */
+.setup-banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  padding: 14px 16px 14px 20px;
+  border-radius: 10px;
+  background: var(--text);
+  color: var(--page);
+}
+.home-page > .setup-banner {
+  margin-top: 24px;
+}
+.setup-banner > svg {
+  flex: none;
+}
+.setup-banner > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: min(100%, 260px);
+}
+.setup-banner strong {
+  font-size: 16px;
+  font-weight: 600;
+}
+.setup-banner span {
+  font-size: 15px;
+  line-height: 1.45;
+}
+.setup-banner > .button.primary,
+.setup-banner > .button.primary:hover:not(:disabled) {
+  border-color: var(--page);
+  background: var(--page);
+  color: var(--text);
+}
+.setup-banner > .button.quiet,
+.setup-banner > .button.quiet:hover:not(:disabled) {
+  background: transparent;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.setup-banner > .button:hover:not(:disabled) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.studio > .setup-banner {
+  flex: none;
+  border-radius: 0;
+}
+
+/* Setup is a ledger. What a group is for stands on the left, its items on the right, and every
+   action sits in one column of equal buttons, level with the name it belongs to. */
+.setup {
+  display: grid;
+  gap: 44px;
+}
+.setup-group {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  column-gap: 56px;
+}
+.setup-group > header > h3 {
+  margin: 0;
+  padding-top: 8px;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 24px;
+}
+.setup-group > header > p {
+  margin: 2px 0 0;
+  color: var(--secondary);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.setup-list {
+  display: grid;
+  gap: 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.setup-item {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 216px;
+  gap: 10px 14px;
+  align-items: start;
+}
+/* Mark, name and button share a first line 40px high. */
+.setup-mark {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 50%;
+}
+.setup-mark > span {
+  display: grid;
+}
+.setup-item.done > .setup-mark {
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--page);
+}
+.setup-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+.setup-text > strong {
+  padding-top: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+}
+.setup-text > span,
+.setup-text > .text-link {
+  color: var(--secondary);
+  font-size: 15px;
+  line-height: 1.45;
+}
+.setup-text > .setup-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+.setup-text > .setup-note.failed {
+  color: var(--error);
+}
+.setup-links {
+  display: flex;
+  gap: 16px;
+}
+/* The models a key is used with, as a small table: what for, which one. */
+.setup-models {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 2px 16px;
+  margin: 6px 0;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.setup-models > dt {
+  color: var(--secondary);
+}
+.setup-models > dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.setup-action {
+  display: grid;
+}
+.setup-action > .button,
+.key-form > .button {
+  width: 100%;
+}
+.setup-action > .button > svg {
+  width: 16px;
+  height: 16px;
+}
+/* The field stands under the text and its button under the other buttons. */
+.setup-item > .key-form {
+  display: grid;
+  grid-column: 2 / -1;
+  grid-template-columns: subgrid;
+  row-gap: 6px;
+  align-items: center;
+}
+.key-form > input {
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 15px;
+}
+.key-form > .text-link {
+  justify-self: start;
+}
+.setup-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+}
+.setup-foot > .button {
+  width: 216px;
+  margin-left: auto;
+}
+.loader.small {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+}
+.language-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--secondary);
+}
+.language-select > select {
+  min-height: 40px;
+  font-size: 15px;
+}
+
+.composer {
+  display: grid;
+  gap: 12px;
+}
+.composer > textarea {
+  width: 100%;
+  min-height: 92px;
+  font-size: 17px;
+}
+.composer-options,
+.default-fields {
+  display: grid;
+  gap: 16px;
+}
+/* The style names are the longest choices. */
+.composer-options {
+  grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+.default-fields {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.composer-options > label,
+.default-fields > label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.composer-options > label > span,
+.default-fields > label > span:first-child {
+  color: var(--secondary);
+  font-size: 14px;
+}
+.composer-options select,
+.default-fields select,
+.default-fields input[type='text'] {
+  width: 100%;
+}
+.composer-prompt {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+/* The prompt as it will be copied: a block of its own, as high as the button beside it. */
+.composer-prompt > pre {
+  flex: 1;
+  min-width: min(100%, 320px);
+  margin: 0;
+  padding: 9px 14px;
+  border-radius: 8px;
+  background: var(--surface);
+  font: inherit;
+  line-height: 22px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.film-grid,
+.style-grid {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* Each film has a little room around it for its hover; the grid gives that room back, so the
+   pictures stand on the page's edge. */
+.film-grid {
+  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  gap: 8px;
+  margin-inline: -8px;
+}
+.film {
+  position: relative;
+  min-width: 0;
+}
+.film-open {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 8px 8px 12px;
+  border-radius: 10px;
+  text-align: left;
+}
+.film-open:hover:not(:disabled) {
+  background: var(--surface);
+}
+.film-picture {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  margin-bottom: 6px;
+  overflow: hidden;
+  border: 1px solid var(--divider);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--secondary);
+}
+.film-picture > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.film-name {
+  padding-right: 36px;
+  font-weight: 500;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.film-state {
+  display: flex;
+  align-items: center;
+  padding-right: 36px;
+  color: var(--secondary);
+  font-size: 13px;
+}
+.film.gone .film-open {
+  opacity: 0.6;
+}
+.film-more {
+  position: absolute;
+  right: 6px;
+  bottom: 10px;
+}
+.film-more > .icon-button {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+}
+.film-more > .more-menu {
+  top: auto;
+  right: 0;
+  bottom: calc(100% + 4px);
+  transform-origin: bottom right;
+}
+
+/* Styles share their rows, so pictures, names, descriptions, facts and actions line up across a
+   row whatever each one has to say. No frame: the picture is the card. */
+.style-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 0 24px;
+  margin-bottom: 20px;
+  /* Asked by the action row below. On the style itself it would switch the shared rows off. */
+  container-type: inline-size;
+}
+.style {
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-row: span 5;
+  min-width: 0;
+  padding-bottom: 28px;
+}
+.style-pictures {
+  display: flex;
+  gap: 1px;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 3 / 1;
+  overflow: hidden;
+  border-radius: 6px;
+  outline: 2px solid transparent;
+  outline-offset: 3px;
+  background: var(--surface);
+  color: var(--secondary);
+  font-size: 13px;
+  transition: outline-color 140ms ease-out;
+}
+/* The default style: a ring around its picture, and its button says so. */
+.style.chosen > .style-pictures {
+  outline-color: var(--text);
+}
+.style-pictures > img {
+  flex: 1;
+  width: 0;
+  height: 100%;
+  object-fit: cover;
+}
+.style-title {
+  padding-top: 14px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.style-description {
+  display: -webkit-box;
+  margin: 4px 0 0;
+  overflow: hidden;
+  color: var(--secondary);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+}
+.style-facts {
+  padding-top: 6px;
+  color: var(--secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.style-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 12px;
+}
+.style-actions .button {
+  white-space: nowrap;
+}
+/* What else a style can do sits in a menu that opens upwards, over the card it belongs to. */
+.style-more {
+  position: relative;
+  margin-right: -8px;
+}
+.style-more > .icon-button {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+}
+.style-more > .more-menu {
+  top: auto;
+  right: 8px;
+  width: max-content;
+  min-width: 220px;
+  bottom: calc(100% + 4px);
+  transform-origin: bottom right;
+}
+.style-actions .button.quiet {
+  padding-inline: 10px;
+}
+/* A style file waits here until the user says yes. */
+.style-import {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 24px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: var(--surface);
+}
+.style-import > p {
+  margin: 0;
+  color: var(--secondary);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.style-import strong {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+}
+@container (max-width: 620px) {
+  .style-import {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .style-import > p {
+    grid-column: 1 / -1;
+  }
+}
+.style-actions > input {
+  flex: 1;
+  width: 0;
+  min-width: 0;
+}
+/* Only a single column is ever this narrow. There the actions stack on purpose, never by accident. */
+@container (max-width: 300px) {
+  form.style-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+.default-fields > label > small {
+  color: var(--secondary);
+  font-size: 13px;
+}
+.default-fields > label.wide {
+  grid-column: 1 / -1;
+}
+.folder-field {
+  display: flex;
+  gap: 8px;
+}
+.folder-field > input {
+  flex: 1;
+}
+.default-fields > label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  grid-column: 1 / -1;
+  min-height: 32px;
+}
+.default-fields > label.check > span {
+  color: var(--text);
+  font-size: 15px;
+}
+.home-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  padding-top: 56px;
+  color: var(--secondary);
+  font-size: 13px;
+}
+.text-link {
+  color: var(--secondary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.text-link:hover:not(:disabled) {
+  color: var(--text);
+}
+@container application (max-width: 860px) {
+  .setup-group {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 12px;
+  }
+  .setup-group > header > h3 {
+    padding-top: 0;
+  }
+}
+@container application (max-width: 760px) {
+  .composer-options {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+  .default-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@container application (max-width: 620px) {
+  .home-page {
+    padding-inline: 16px;
+  }
+  .first-run > h1 {
+    font-size: 26px;
+  }
+  /* No room for the column of buttons: each one goes under its own text, as wide as the text. */
+  .setup-item {
+    grid-template-columns: 20px minmax(0, 1fr);
+  }
+  .setup-action,
+  .setup-item > .key-form {
+    grid-column: 2;
+  }
+  .setup-item > .key-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .setup-foot > .button {
+    width: 100%;
+  }
+}
+
+/* Header buttons say what they are while there is room. */
+.header-actions > .button.quiet.labelled > svg {
+  color: var(--secondary);
+}
+@container application (max-width: 1100px) {
+  .header-actions > .button.quiet.labelled > span:not(.production-indicator) {
+    display: none;
+  }
+  .header-actions > .button.quiet.labelled {
+    width: 44px;
+    padding-inline: 0;
+  }
+}
+.header-actions > .button.labelled {
+  position: relative;
+}
+
+/* Polish: what the last look before a render found. */
+.polish-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+.polish-bar {
+  display: flex;
+  height: 6px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--selected);
+}
+.polish-bar > span {
+  background: var(--text);
+}
+.polish-bar > span.defect {
+  background: var(--error);
+}
+.modal.polish-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 1180px);
+  height: calc(100dvh - 48px);
+  padding: 0;
+  overflow: hidden;
+}
+.polish-modal > .modal-heading {
+  margin: 0;
+  padding: 16px 16px 12px 24px;
+  border-bottom: 1px solid var(--divider);
+}
+.polish-modal .modal-heading p {
+  margin: 4px 0 0;
+  color: var(--secondary);
+  font-size: 14px;
+}
+.polish-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--divider);
+}
+.polish-body {
+  display: grid;
+  grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+.polish-list {
+  margin: 0;
+  padding: 8px;
+  overflow-y: auto;
+  border-right: 1px solid var(--divider);
+  list-style: none;
+}
+.polish-list button {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 10px;
+  width: 100%;
+  padding: 6px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  text-align: left;
+}
+.polish-list button:hover {
+  background: var(--hover);
+}
+.polish-list button[aria-current='true'] {
+  background: var(--selected);
+  border-color: var(--border);
+}
+.polish-list img {
+  width: 96px;
+  aspect-ratio: 16 / 9;
+  border-radius: 5px;
+  background: var(--raised);
+  object-fit: cover;
+}
+.polish-list strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.polish-list span.said {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--secondary);
+  font-size: 13px;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+.verdict {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+}
+.verdict.ok,
+.verdict.kept {
+  background: var(--text);
+  border-color: var(--text);
+}
+.verdict.defect {
+  background: var(--error);
+  border-color: var(--error);
+}
+.polish-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px 24px 24px;
+  overflow-y: auto;
+}
+.polish-view img {
+  width: 100%;
+  border: 1px solid var(--divider);
+  border-radius: 8px;
+  background: var(--raised);
+}
+.polish-view dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 16px;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.polish-view dt {
+  color: var(--secondary);
+}
+.polish-view dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.polish-closeups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+@container application (max-width: 900px) {
+  .polish-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 40%) minmax(0, 1fr);
+  }
+  .polish-list {
+    border-right: 0;
+    border-bottom: 1px solid var(--divider);
+  }
+}

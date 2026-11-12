@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../kit/theme.css">
+  <style>
+    .ui { justify-content: flex-start; }
+    .caption { margin: 0; max-width: 80vw; font-size: 4.6vmin; font-weight: 900; text-wrap: balance; }
+    .callout { position: absolute; max-width: 36vmin; text-align: left; }
+  </style>
+</head>
+<body>
+  <div class="sky"></div>
+  <div class="stage" id="stage"><svg class="art" id="art"></svg><div class="callout label" id="callout"></div></div>
+  <div class="ui"><p class="caption" id="caption"></p></div>
+  <div class="vignette"></div>
+  <script type="module">
+    import { defineScene } from '/runtime/scene.js';
+    import { fontsReady, once, fitSvg, el, blob, color, shade, enter, between, drift, rise, markup, random, drawable, draw } from '../kit/kit.js';
+
+    const stage = document.getElementById('stage'), art = document.getElementById('art');
+    const caption = document.getElementById('caption'), callout = document.getElementById('callout');
+    const tones = ['teal', 'mint', 'sky'];
+
+    const layout = once(({ width, height }) => {
+      const L = fitSvg(art, width, height);
+      L.layer = el('g', {}, art);
+      L.ring = el('circle', { fill: 'none', 'stroke-width': L.u * 0.5 }, art);
+      L.hero = el('path', {}, art);
+      L.line = el('path', { fill: 'none', stroke: color('paper'), 'stroke-width': L.u * 0.35, 'stroke-linecap': 'round' }, art);
+      L.heroAt = L.portrait ? [width * 0.42, height * 0.6] : [width * 0.44, height * 0.6];
+      L.labelAt = L.portrait ? [width * 0.52, height * 0.36] : [width * 0.66, height * 0.34];
+      return L;
+    });
+
+    let built = null;
+    function build(L, n) {
+      L.layer.replaceChildren();
+      const cells = Array.from({ length: n }, (_, i) => {
+        const r = (1.1 + random('size', i) * 1.6) * L.u;
+        const fill = color(tones[i % tones.length]);
+        const g = el('g', {}, L.layer);
+        el('path', { d: blob(`cell${i}`, r, { wobble: 0.16 }), fill: shade(fill, -0.25) }, g);
+        el('path', { d: blob(`cell${i}`, r * 0.82, { wobble: 0.12 }), fill, transform: `translate(${-r * 0.12} ${-r * 0.12})` }, g);
+        return { g, x: random('x', i), y: 0.12 + random('y', i) * 0.84, phase: random('p', i) * 6.28, speed: 0.4 + random('s', i) * 0.6 };
+      });
+      return { n, cells };
+    }
+
+    defineScene({
+      ready: fontsReady,
+      props: {
+        caption: { type: 'text', default: 'In jedem Tropfen: *Milliarden* Moleküle', label: 'Caption (*word* = accent)' },
+        label: { type: 'text', default: 'Streut *blaues* Licht', label: 'Callout (*word* = accent)' },
+        count: { type: 'number', default: 110, label: 'Particles', min: 10, max: 300 },
+        accent: { type: 'color', default: '#ffc83d', label: 'Highlight color' },
+        highlightAt: { type: 'number', default: 1.4, label: 'Highlight at (s)', min: 0, max: 20 },
+      },
+      render(context) {
+        const { time, props } = context;
+        const L = layout(context);
+        const n = Math.round(props.count);
+        if (built?.n !== n) built = build(L, n);
+        caption.innerHTML = markup(props.caption);
+        callout.innerHTML = markup(props.label);
+        rise(caption, enter(time, 0.05));
+
+        const focus = between(time, props.highlightAt, props.highlightAt + 0.6);
+        built.cells.forEach((c, i) => {
+          // Brownian-looking drift from layered sines: deterministic for any frame.
+          const x = c.x * L.w + Math.sin(time * c.speed + c.phase) * 3 * L.u + Math.sin(time * 0.31 + c.phase * 2) * 2 * L.u;
+          const y = c.y * L.h + Math.cos(time * c.speed * 0.8 + c.phase) * 3 * L.u;
+          const appear = enter(time, random('in', i) * 0.6, { stiffness: 140, damping: 15 });
+          c.g.setAttribute('transform', `translate(${x} ${y}) rotate(${time * 20 * (c.speed - 0.7)}) scale(${Math.max(0, appear)})`);
+          c.g.setAttribute('opacity', 1 - 0.65 * focus);
+        });
+
+        const [hx, hy] = L.heroAt;
+        const heroR = 4.2 * L.u;
+        const grow = enter(time, props.highlightAt, { stiffness: 150, damping: 12 });
+        L.hero.setAttribute('d', blob('hero', heroR, { wobble: 0.15, t: time }));
+        L.hero.setAttribute('fill', props.accent);
+        L.hero.setAttribute('transform', `translate(${hx} ${hy + Math.sin(time) * L.u}) scale(${Math.max(0, grow)})`);
+        const pulse = ((time - props.highlightAt) % 1.6) / 1.6;
+        L.ring.setAttribute('cx', hx);
+        L.ring.setAttribute('cy', hy + Math.sin(time) * L.u);
+        L.ring.setAttribute('r', heroR * (1.2 + pulse * 1.2));
+        L.ring.setAttribute('stroke', props.accent);
+        L.ring.setAttribute('opacity', time < props.highlightAt ? 0 : (1 - pulse) * 0.8);
+
+        const [lx, ly] = L.labelAt;
+        L.line.setAttribute('d', `M${hx + heroR * 1.3},${hy - heroR * 0.8} Q${lx - 6 * L.u},${hy - 4 * L.u} ${lx - 1.5 * L.u},${ly + 3 * L.u}`);
+        drawable(L.line);
+        draw(L.line, between(time, props.highlightAt + 0.3, props.highlightAt + 0.9));
+        callout.style.left = `${lx}px`;
+        callout.style.top = `${ly - 2 * L.u}px`;
+        rise(callout, enter(time, props.highlightAt + 0.8));
+        drift(stage, time, { zoom: 0.012 + 0.03 * focus, y: 0 });
+      },
+    });
+  </script>
+</body>
+</html>

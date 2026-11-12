@@ -1,0 +1,5 @@
+* text=auto eol=lf
+*.mp4 -text
+*.wav -text
+# Retain upstream license text exactly, including its whitespace.
+docs/THIRD_PARTY_LICENSES.txt -whitespace

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <style>
+    *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111413;color:#f2f4ea;font-family:Arial,Helvetica,sans-serif}
+    main{position:absolute;inset:100px;display:flex;flex-direction:column;justify-content:center;border-top:2px solid #3b423c;border-bottom:2px solid #3b423c}
+    #subtitle{margin:0 0 40px;font:24px/1.4 Consolas,monospace;letter-spacing:3px;color:#c8ff5f}
+    h1{font-size:152px;font-weight:600;letter-spacing:-8px;line-height:1.04;margin:0;max-width:1500px}
+    #line{position:absolute;bottom:0;left:0;height:8px;width:100%;background:#c8ff5f;transform-origin:left}
+  </style>
+</head>
+<body>
+  <main><p id="subtitle"></p><h1 id="title"></h1><div id="line"></div></main>
+  <script type="module">
+    import {defineScene, spring, interpolate} from '/runtime/scene.js';
+    const title = document.querySelector('#title'), subtitle = document.querySelector('#subtitle'), line = document.querySelector('#line');
+    defineScene({
+      props: {
+        title: {type:'text', default:'Superint Video', label:'Title'},
+        subtitle: {type:'text', default:'HTML / CSS / SVG', label:'Subtitle'},
+        accent: {type:'color', default:'#c8ff5f', label:'Accent'}
+      },
+      render({frame, time, props}) {
+        title.textContent = props.title; subtitle.textContent = props.subtitle;
+        subtitle.style.color = props.accent; line.style.background = props.accent;
+        const reveal = spring(time, {stiffness:100, damping:20});
+        title.style.transform = `translateY(${(1-reveal)*90}px)`;
+        title.style.opacity = interpolate(frame, [0,18], [0,1]);
+        subtitle.style.opacity = interpolate(frame,[6,24],[0,1]);
+        line.style.transform = `scaleX(${interpolate(frame,[0,149],[0,1])})`;
+      }
+    });
+  </script>
+</body>
+</html>
