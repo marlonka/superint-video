@@ -90,5 +90,5 @@ The starter `video.json` may contain the placeholder `"{{topic}}"` in any string
 - Ship references: five to ten stills that show the look at its best.
 - Blocks work at every format in `formats`: lay out from `context.width/height`, not from fixed pixels.
 - Blocks expose texts and values as props so Studio can edit them, accept `*word*` accents, and time everything from the clip-local `time`.
-- Ship fonts locally and await them in `ready`.
+- Ship fonts locally and await them in `ready`. Declare the main font as `--font` on `:root` and set the main text in `var(--font)`, text drawn into a canvas or SVG attribute in `fontFamily(…)`: then the film's font choice in Studio reaches every block, and every font the kit declares with `@font-face` is offered there by itself.
 - Keep a demo: a project created from the preset with all blocks laid out should pass `check`.

@@ -155,6 +155,15 @@ enum Commands {
         #[arg(long)]
         dry_run: bool,
     },
+    /// The film's main font: the one it has, the ones it can take (its own and the tool's), and
+    /// with a family, the switch to it, through Studio when it is open.
+    Fonts {
+        project: PathBuf,
+        family: Option<String>,
+        /// Back to the style's own font.
+        #[arg(long)]
+        reset: bool,
+    },
     /// Read the project, revision and timeline.
     Inspect {
         #[arg(default_value = ".")]
@@ -829,6 +838,11 @@ async fn run() -> Result<()> {
             };
             print_json(superint_video::edit::run(&project, &request).await?);
         }
+        Commands::Fonts {
+            project,
+            family,
+            reset,
+        } => print_json(superint_video::fonts::run(&project, family.as_deref(), reset).await?),
         Commands::Inspect {
             project,
             json: machine,

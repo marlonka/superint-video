@@ -214,6 +214,15 @@
       "minimum": 1,
       "type": "integer"
     },
+    "font": {
+      "description": "The film's main font: a family its own files declare or one of the tool's library. Scenes\ntake it through the `--font` CSS variable; absent, each keeps its style's own.",
+      "maxLength": 100,
+      "minLength": 1,
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "fps": {
       "$ref": "#/$defs/Fps",
       "description": "Rational project timebase; num/den must not exceed 240 frames per second."

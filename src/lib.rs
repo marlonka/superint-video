@@ -3,6 +3,7 @@ pub mod audio;
 pub mod earshot;
 pub mod edit;
 pub mod env;
+pub mod fonts;
 pub mod frontmatter;
 pub mod home;
 pub mod live;

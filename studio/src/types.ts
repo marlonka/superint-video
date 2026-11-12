@@ -23,6 +23,18 @@ export interface Project {
   canUndo?: boolean;
   canRedo?: boolean;
   production?: Production;
+  fonts?: FontChoices;
+}
+/** What the film can take as its main font (`manifest.font`). */
+export interface FontChoices {
+  /** Declared by the film's own files, whatever its style. */
+  film: string[];
+  /** The tool's own, without the film's. */
+  library: string[];
+  /** The style's main font, kept while none is chosen. */
+  style: string | null;
+  /** Whether any scene takes the choice. */
+  follows: boolean;
 }
 /** What the agent is producing, read from brief.md, preset.json and process/status.json. */
 export interface Production {

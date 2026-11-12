@@ -2184,6 +2184,39 @@
                     /><span>{manifest.background || '#101113'}</span>
                   </div></label
                 >
+                {#if project.fonts}
+                  <!-- The film's main font for every scene that takes it; empty keeps the style's. -->
+                  <label class="wide-field"
+                    ><span>{$t('film.font')}</span>
+                    <select
+                      value={manifest.font || ''}
+                      onchange={(event) =>
+                        edit({
+                          type: 'updateProject',
+                          changes: { font: event.currentTarget.value || null },
+                        })}
+                    >
+                      <option value=""
+                        >{project.fonts.style
+                          ? $t('film.fontOfStyle', { font: project.fonts.style })
+                          : $t('film.fontOfScenes')}</option
+                      >
+                      {#if project.fonts.film.length}<optgroup label={$t('film.fontsOfFilm')}
+                          >{#each project.fonts.film as family (family)}<option value={family}
+                              >{family}</option
+                            >{/each}</optgroup
+                        >{/if}
+                      <optgroup label={$t('film.fontsOfTool')}
+                        >{#each project.fonts.library as family (family)}<option value={family}
+                            >{family}</option
+                          >{/each}</optgroup
+                      >
+                    </select>
+                    {#if !project.fonts.follows}<small class="field-note"
+                        >{$t('film.fontNotTaken')}</small
+                      >{/if}</label
+                  >
+                {/if}
               </section>
               <details class="advanced-settings">
                 <summary><span>{$t('film.location')}</span></summary>

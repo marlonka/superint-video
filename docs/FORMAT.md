@@ -48,6 +48,7 @@ Paths use forward slashes relative to the project root. Unicode and spaces are s
 | `fps` | Required positive integer `num` and `den`; ratio at most 240. Example: `30000/1001`. |
 | `durationFrames` | Required positive integer, at most JavaScript's safe integer limit. |
 | `background` | Optional `#RRGGBB` or `#RRGGBBAA`; default `#101113`. |
+| `font` | Optional main font: a family the project's CSS or HTML declares with `@font-face`, or one of the tool's library (`runtime/fonts/fonts.css`). Scenes take it through the `--font` CSS variable; absent, each keeps its style's own. An edit that names another family is rejected. |
 | `tracks` | Required nonempty array. IDs must be unique. |
 | `clips` | Required array; may be empty. IDs must be unique. |
 
@@ -109,7 +110,7 @@ Studio sends `{ "revision": "…", "operation": { ... } }` to `/api/edit`. Opera
 | `addClip` | `clip`; appends a valid clip. |
 | `addTrack` | `track`; appends a valid track. |
 | `updateTrack` | `id`, `changes`; edits `hidden`, `muted` or `name`. |
-| `updateProject` | `changes`; edits name, dimensions, FPS, duration, background or the track array. |
+| `updateProject` | `changes`; edits name, dimensions, FPS, duration, background, font or the track array. `font: null` goes back to the style's. |
 
 A move changes `startFrame` only. A left trim from 10 to 20 advances `sourceOffsetFrames` by 10 and reduces duration by 10. A right trim changes duration only. The operation must include those fields explicitly; changing placement alone never changes source time.
 

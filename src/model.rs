@@ -153,6 +153,11 @@ pub struct Manifest {
     #[serde(default = "default_background")]
     #[schemars(regex(pattern = "^#[A-Fa-f0-9]{6}([A-Fa-f0-9]{2})?$"))]
     pub background: String,
+    /// The film's main font: a family its own files declare or one of the tool's library. Scenes
+    /// take it through the `--font` CSS variable; absent, each keeps its style's own.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(length(min = 1, max = 100))]
+    pub font: Option<String>,
     #[schemars(length(min = 1))]
     pub tracks: Vec<Track>,
     pub clips: Vec<Clip>,
@@ -244,6 +249,15 @@ impl Manifest {
                 && self.background[1..].bytes().all(|b| b.is_ascii_hexdigit()),
             "background must be #RRGGBB or #RRGGBBAA"
         );
+        if let Some(font) = &self.font {
+            ensure!(
+                !font.trim().is_empty()
+                    && font.len() <= 100
+                    && !font.chars().any(|c| c.is_control()
+                        || matches!(c, '"' | '\'' | '\\' | ';' | '{' | '}' | '<' | '>')),
+                "font must be the name of a font family"
+            );
+        }
         ensure!(
             !self.tracks.is_empty(),
             "project requires at least one track"
@@ -465,6 +479,7 @@ impl Manifest {
                             | "fps"
                             | "durationFrames"
                             | "background"
+                            | "font"
                             | "tracks"
                     )),
                     "unsupported project change"

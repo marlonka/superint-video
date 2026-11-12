@@ -53,6 +53,9 @@ html, body {
   font-weight: 800;
   -webkit-font-smoothing: antialiased;
 }
+/* Words drawn into the SVG art carry a font attribute; this rule beats it, so the film's main
+   font (Studio: Film → Font) reaches them too. */
+svg text { font-family: var(--font); }
 
 /* Layers: .sky (background) < .stage (camera) < .ui (text, not affected by camera) < .vignette */
 .sky {

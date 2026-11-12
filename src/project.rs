@@ -83,6 +83,7 @@ impl ProjectStore {
     pub fn edit(&mut self, expected: &str, operation: &Value) -> Result<()> {
         self.ensure_current(expected)?;
         let next = self.manifest.apply_operation(operation)?;
+        self.check_font(&next)?;
         self.persist(expected, &next)?;
         let previous = std::mem::replace(&mut self.manifest, next);
         self.undo.push(previous);
@@ -101,6 +102,7 @@ impl ProjectStore {
         for operation in operations {
             next = next.apply_operation(operation)?;
         }
+        self.check_font(&next)?;
         self.persist(expected, &next)?;
         let previous = std::mem::replace(&mut self.manifest, next);
         self.undo.push(previous);
@@ -109,6 +111,16 @@ impl ProjectStore {
         }
         self.redo.clear();
         Ok(())
+    }
+
+    /// A new main font must be one the film has: its own or the tool's.
+    fn check_font(&self, next: &Manifest) -> Result<()> {
+        match &next.font {
+            Some(font) if next.font != self.manifest.font => {
+                crate::fonts::Choices::of(&self.root).ensure(font)
+            }
+            _ => Ok(()),
+        }
     }
 
     pub fn undo(&mut self, expected: &str) -> Result<()> {

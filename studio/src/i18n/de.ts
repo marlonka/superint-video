@@ -450,6 +450,13 @@ export const de: Catalog = {
   'film.height': 'Höhe',
   'film.frameRate': 'Bildrate',
   'film.background': 'Hintergrund',
+  'film.font': 'Schrift',
+  'film.fontOfStyle': 'Wie im Stil ({font})',
+  'film.fontOfScenes': 'Wie in den Szenen',
+  'film.fontsOfFilm': 'Im Film',
+  'film.fontsOfTool': 'Mitgeliefert',
+  'film.fontNotTaken':
+    'Die Szenen dieses Films legen ihre Schrift selbst fest. Bitte deinen Coding-Agenten, sie auf die Schrift des Films umzustellen.',
   'film.location': 'Speicherort des Projekts',
 
   // Studio: Zeitleiste

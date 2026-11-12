@@ -451,6 +451,13 @@ export const en = {
   'film.height': 'Height',
   'film.frameRate': 'Frame rate',
   'film.background': 'Background',
+  'film.font': 'Font',
+  'film.fontOfStyle': 'As in the style ({font})',
+  'film.fontOfScenes': 'As in the scenes',
+  'film.fontsOfFilm': 'In this film',
+  'film.fontsOfTool': 'Included',
+  'film.fontNotTaken':
+    "This film's scenes set their own font. Ask your coding agent to switch them to the film's font.",
   'film.location': 'Project location',
 
   // Studio: timeline

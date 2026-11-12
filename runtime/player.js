@@ -135,7 +135,7 @@ async function evaluate(at, expectedGeneration) {
     try {
       if (clip.type === 'scene') {
         if (layer.wrapper.style.visibility === 'hidden') { layer.wrapper.style.opacity = '0'; layer.wrapper.style.visibility = 'visible'; }
-        const reply = await sceneRequest(layer, 'frame', { frame: local, time: seconds(local), fps: manifest.fps, width: manifest.width, height: manifest.height, props: clip.props || {}, preview: !captureMode, texts: !captureMode && !playing });
+        const reply = await sceneRequest(layer, 'frame', { frame: local, time: seconds(local), fps: manifest.fps, width: manifest.width, height: manifest.height, props: clip.props || {}, font: manifest.font || null, preview: !captureMode, texts: !captureMode && !playing });
         layer.actors = reply.actors || [];
         layer.texts = reply.texts || [];
       } else if (clip.type === 'video' && layer.loadedFrame !== local) {
