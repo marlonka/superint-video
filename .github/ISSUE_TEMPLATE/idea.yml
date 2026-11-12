@@ -1,0 +1,15 @@
+name: Idee / Idea
+description: Ein Vorschlag für Werkzeug, Skills oder Stile. / A suggestion for the tool, skills or styles.
+labels: [idea]
+body:
+  - type: textarea
+    id: film
+    attributes:
+      label: Welchen Film willst du machen? / What film do you want to make?
+      description: Beschreib das Ziel und woran es heute scheitert. / Describe the goal and what stops you today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Vorschlag (optional) / Proposal (optional)

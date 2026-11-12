@@ -7,7 +7,7 @@ description: Make films in the code-rendered miniature look with Superint Video 
 
 Read the `superint-video` skill first, then the workflow skill (usually `superint-explainer`), then this one. This skill replaces the 2D drawing part of a production: the scenes are one WebGL2 canvas and a world built in code, with a camera that travels through it. Research, message, concepts, script, beats and review work as in the workflow skill.
 
-The film this comes from is in [example/videos-aus-code/](example/videos-aus-code/): every room, the voice, the sound tools. Read a room there before building something similar. It shows how things were solved; it is not a template for the next film's ideas.
+The film this comes from is in [example/videos-aus-code/](example/videos-aus-code/): every room, the voice, the sound tools. Read a room there before building something similar. It shows how things were solved; it is not a template for the next film's ideas. It is a record of one real production (German, November 2026): names, prices and products in its script are as they were then, and the film speaks about its own maker. A new film follows the rules below and never puts the user's own words, feedback or limits on screen.
 
 ## Start
 

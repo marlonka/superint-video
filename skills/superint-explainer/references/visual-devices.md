@@ -1,6 +1,6 @@
 # Visual devices from reference contact sheets
 
-Derived on 2026-10-31 from ten contact sheets of Kurzgesagt films on other topics (one frame every 2 s; the sheet numbers below refer to them; local copies are references of the `flat-explainer` preset, added with `superint-video preset reference`). The sheets are copyrighted. Keep them out of version control, and never copy their scenes, characters or layouts. This file keeps the principles, in our own words, as devices to choose from.
+Derived on 2026-10-31 from ten contact sheets of well-known animated science explainers on other topics (one frame every 2 s; the sheet numbers below refer to them; local copies are references of the `flat-explainer` preset, added with `superint-video preset reference`). The sheets are copyrighted. Keep them out of version control, and never copy their scenes, characters or layouts. This file keeps the principles, in our own words, as devices to choose from.
 
 ## Devices
 

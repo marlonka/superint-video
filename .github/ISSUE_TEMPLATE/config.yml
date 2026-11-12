@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Sicherheitslücke melden / Report a vulnerability
+    url: https://github.com/marlonka/superint-video/security/advisories/new
+    about: Privat melden, nicht als Issue. / Report privately, not as an issue.
+  - name: Handbuch / Manual
+    url: https://github.com/marlonka/superint-video/blob/main/docs/HANDBUCH.md
+    about: Installation, Studio, Presets, Rendern, Fehler beheben.

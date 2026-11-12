@@ -12,8 +12,10 @@
 .env.*
 !.env.example
 
-# Reference contact sheets (copyrighted, local only)
-/examples/*.jpg
+# Demo media, made by scripts/generate-demo-assets.ps1
+/examples/demo/assets/numbered.mp4
+/examples/demo/assets/tone.wav
 
-# Raw copies of third-party docs used for research (summaries live in docs/*.md)
+# Local reference stills of other films stay on the machine that has them
+/examples/*.jpg
 /docs/research/
