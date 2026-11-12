@@ -14,8 +14,27 @@ pub async fn decode(path: &Path, rate: u32) -> Result<Vec<f32>> {
 
 /// Interleaved f32 samples with `channels` channels (FFmpeg up- or downmixes).
 pub async fn decode_channels(path: &Path, rate: u32, channels: u32) -> Result<Vec<f32>> {
+    decode_with(path, rate, channels, None).await
+}
+
+/// Mono samples run through an FFmpeg audio filter first, e.g. `highpass=f=80`.
+pub async fn decode_filtered(path: &Path, rate: u32, filter: &str) -> Result<Vec<f32>> {
+    decode_with(path, rate, 1, Some(filter)).await
+}
+
+async fn decode_with(
+    path: &Path,
+    rate: u32,
+    channels: u32,
+    filter: Option<&str>,
+) -> Result<Vec<f32>> {
     let mut cmd = process::command(process::binary("ffmpeg"));
-    cmd.args(["-nostdin", "-v", "error", "-i"]).arg(path).args([
+    cmd.args(["-nostdin", "-v", "error", "-i"]).arg(path);
+    if let Some(filter) = filter {
+        cmd.args(["-af", filter]);
+    }
+    cmd.args([
+        "-vn",
         "-ac",
         &channels.to_string(),
         "-ar",

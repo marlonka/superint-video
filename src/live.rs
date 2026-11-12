@@ -292,6 +292,16 @@ pub struct Running {
 impl Running {
     /// Only inside a real project: a command in any other folder leaves nothing behind.
     pub fn start(root: &Path, label: &str) -> Option<Self> {
+        Self::begin(root, label, None)
+    }
+
+    /// A command that waits for the user to do something in Studio; `asks` names it, and
+    /// Studio brings the view for it to the front. `recording`: the user reads the voice text.
+    pub fn asking(root: &Path, label: &str, asks: &'static str) -> Option<Self> {
+        Self::begin(root, label, Some(asks))
+    }
+
+    fn begin(root: &Path, label: &str, asks: Option<&'static str>) -> Option<Self> {
         if !root.join("video.json").is_file() {
             return None;
         }
@@ -303,7 +313,9 @@ impl Running {
         let write = {
             let path = path.clone();
             move || {
-                let value = json!({"label": label, "startedAt": started, "updatedAt": now_ms()});
+                let value = json!({
+                    "label": label, "asks": asks, "startedAt": started, "updatedAt": now_ms(),
+                });
                 write_atomic(&path, value.to_string().as_bytes());
             }
         };
@@ -360,7 +372,9 @@ pub fn read(root: &Path) -> Value {
         if now.saturating_sub(value["updatedAt"].as_u64().unwrap_or(0)) > STALE_MS {
             let _ = fs::remove_file(&path);
         } else {
-            running.push(json!({"label": value["label"], "startedAt": value["startedAt"]}));
+            running.push(json!({
+                "label": value["label"], "asks": value["asks"], "startedAt": value["startedAt"],
+            }));
         }
     }
     running.sort_by_key(|r| r["startedAt"].as_u64());

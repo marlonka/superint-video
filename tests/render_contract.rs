@@ -247,10 +247,13 @@ async fn preview_snapshot_and_frozen_silent_export_share_the_frame_contract() ->
     let streams = probe["streams"]
         .as_array()
         .context("missing export streams")?;
-    ensure!(
-        !streams.iter().any(|s| s["codec_type"] == "audio"),
-        "silent composition gained audio"
-    );
+    // A film with nothing to hear still carries a (silent) stereo track: files without an
+    // audio stream are refused by some upload forms, editors and television sets.
+    let audio = streams
+        .iter()
+        .find(|s| s["codec_type"] == "audio")
+        .context("silent composition has no audio track")?;
+    ensure!(audio["channels"] == 2, "silent track is not stereo");
     let video = streams
         .iter()
         .find(|s| s["codec_type"] == "video")

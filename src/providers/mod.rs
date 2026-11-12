@@ -65,6 +65,42 @@ pub const STYLE_OPENROUTER: &str = "google/gemini-4-hydrogen";
 /// Model IDs that begin like this are OpenAI's.
 const OPENAI_PREFIXES: &[&str] = &["gpt-", "whisper-", "tts-"];
 
+/// What the keys there are can do, on whichever way. None of it is needed for a film: picture,
+/// on-screen text, sound effects and the user's own voice work without a key.
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Capabilities {
+    /// Narration by a TTS model.
+    pub ai_voice: bool,
+    /// Word times measured by a transcription model, for a TTS take or the user's recording.
+    pub transcription: bool,
+    /// Generated music.
+    pub music: bool,
+    /// Speaking instead of typing on the start page.
+    pub dictation: bool,
+    /// A style written from pictures.
+    pub style: bool,
+}
+
+/// OpenAI writes down dictations and styles; voice, word times and music need one of the
+/// other ways.
+pub fn capabilities(ready: impl Fn(Provider) -> bool) -> Capabilities {
+    let film = [
+        Provider::AiStudio,
+        Provider::GoogleCloud,
+        Provider::OpenRouter,
+    ]
+    .into_iter()
+    .any(&ready);
+    Capabilities {
+        ai_voice: film,
+        transcription: film,
+        music: film,
+        dictation: film || ready(Provider::OpenAi),
+        style: film || ready(Provider::OpenAi),
+    }
+}
+
 /// Who carries a request. `of` names the provider a model ID belongs to, where Google's
 /// models are `AiStudio`; `GoogleCloud` is the other way to the same models, taken when its
 /// key is saved.
@@ -1131,6 +1167,7 @@ pub async fn doctor(start: &Path, online: bool) -> Result<(Value, bool)> {
             "keys": status,
             "online": online,
             "routes": routes,
+            "capabilities": capabilities(|route| generators.ready(route)),
             "default": "aiStudio",
             "google": "Google's models (gemini-…, lyria-…) go through Google Cloud when GOOGLE_CLOUD_API_KEY is there, else AI Studio, else their twin on OpenRouter",
             "chosen": settings.models(),

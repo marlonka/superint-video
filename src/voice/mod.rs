@@ -1,8 +1,10 @@
 //! Narration. Claude writes `voice.md`; the tool checks it against the rules, sends each
 //! paragraph unchanged to the TTS model, measures every take, and cuts the chosen takes into
-//! `audio/voice.wav` with word timings in `audio/words.json`.
+//! `audio/voice.wav` with word timings in `audio/words.json`. With `source: own` the user
+//! reads the paragraphs aloud instead (see `own`), and the same cut follows.
 pub mod align;
 pub mod check;
+pub mod own;
 pub mod tighten;
 
 use crate::{
@@ -48,7 +50,18 @@ const KEYS: &[&str] = &[
     "tighten",
     "transcription",
     "transcriptionFallback",
+    "source",
 ];
+
+/// Who speaks the text of `voice.md`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Source {
+    /// A TTS model.
+    Ai,
+    /// The user, recorded in Studio or from a file they bring.
+    Own,
+}
 
 /// Values `voice.md` falls back to: the models the user chose in Setup, the project's preset
 /// and brief, then the AI Studio route.
@@ -151,6 +164,7 @@ fn usual_voice(model: &str) -> &'static str {
 
 #[derive(Debug, Clone)]
 pub struct VoiceDoc {
+    pub source: Source,
     pub model: String,
     pub voice: String,
     pub style: Option<String>,
@@ -207,12 +221,20 @@ impl VoiceDoc {
             None => 3,
         };
         ensure!((1..=5).contains(&takes), "takes must be between 1 and 5");
+        let source = match get("source").as_deref() {
+            None | Some("ai") => Source::Ai,
+            Some("own") => Source::Own,
+            Some(other) => bail!("source must be ai or own, not {other}"),
+        };
+        // A model's long pauses are dead air; a person's are how they speak.
         let tighten = match get("tighten").as_deref() {
-            None | Some("true" | "yes") => true,
+            None => source == Source::Ai,
+            Some("true" | "yes") => true,
             Some("false" | "no") => false,
             Some(other) => bail!("tighten must be true or false, not {other}"),
         };
         Ok(Self {
+            source,
             voice: get("voice").unwrap_or_else(|| defaults.voice_for(&model)),
             style: get("style"),
             language: get("language").unwrap_or_else(|| defaults.language.clone()),
@@ -367,15 +389,17 @@ pub fn check_project(root: &Path, explicit_script: Option<&Path>) -> Result<Valu
     let issues = check::check(&doc, script.as_ref().map(|(_, text)| text.as_str()));
     let errors = issues.iter().filter(|i| i.level == Level::Error).count();
     let words = doc.words();
+    let by_model = doc.source == Source::Ai;
     let seconds = words as f64 * 60.0 / f64::from(doc.words_per_minute.max(1))
         + doc.paragraph_pause * doc.paragraphs.len().saturating_sub(1) as f64;
     Ok(json!({
         "ok": errors == 0,
         "errors": errors,
         "file": FILE,
-        "model": doc.model,
-        "provider": doc.provider(),
-        "voice": doc.voice,
+        "source": doc.source,
+        "model": by_model.then_some(&doc.model),
+        "provider": by_model.then(|| doc.provider()),
+        "voice": by_model.then_some(&doc.voice),
         "transcription": doc.transcription,
         "language": doc.language,
         "paragraphs": doc.paragraphs.len(),
@@ -446,6 +470,10 @@ pub struct TakesOptions {
 /// `voice takes`: generate, transcribe and measure takes per paragraph.
 pub async fn takes(root: &Path, options: &TakesOptions) -> Result<Value> {
     let doc = read_doc(root)?;
+    ensure!(
+        doc.source == Source::Ai,
+        "voice.md says `source: own`: the user speaks this film. Run `superint-video voice own --wait` and let them record, then `voice assemble`"
+    );
     let script = script(root, None)?;
     let errors: Vec<String> = check::check(&doc, script.as_ref().map(|(_, t)| t.as_str()))
         .into_iter()
@@ -484,7 +512,9 @@ pub async fn takes(root: &Path, options: &TakesOptions) -> Result<Value> {
     if options.dry_run {
         return dry_run(&generators, &doc, &selected, count).await;
     }
-    generators.reachable(&doc.model)?;
+    generators.reachable(&doc.model).context(
+        "No key reaches the TTS model. A film needs none: with `source: own` in voice.md the user speaks it themselves (`superint-video voice own --wait`), or the film goes without a voice",
+    )?;
     generators.reachable(&doc.transcription)?;
 
     let jobs: Vec<(&Paragraph, u32)> = selected
@@ -860,9 +890,40 @@ fn frames_per_second(root: &Path) -> f64 {
         .unwrap_or(30.0)
 }
 
-/// `voice assemble`: cut the chosen takes into `audio/voice.wav` and write `audio/words.json`.
-pub async fn assemble(root: &Path, pick: &str, verify: bool) -> Result<Value> {
-    let doc = read_doc(root)?;
+/// One paragraph's audio for the cut: a chosen TTS take, or the user's accepted recording.
+struct Piece<'a> {
+    paragraph: &'a Paragraph,
+    file: String,
+    /// What the result reports as picked: the take's number, or `own`.
+    pick: String,
+    route: Option<Provider>,
+    /// The words as a transcriber heard them; none for a recording no key could measure.
+    transcript: Option<Transcript>,
+}
+
+/// The user's accepted recordings, transcribed when a key reaches the transcription model.
+async fn own_pieces<'a>(root: &Path, doc: &'a VoiceDoc) -> Result<Vec<Piece<'a>>> {
+    let takes = own::accepted(root, doc)?;
+    let generators = own::transcriber(root, doc)?;
+    let mut pieces = Vec::new();
+    for (paragraph, take) in doc.paragraphs.iter().zip(takes) {
+        let transcript = match &generators {
+            Some(generators) => Some(own::transcript(root, doc, generators, &take).await?),
+            None => None,
+        };
+        pieces.push(Piece {
+            paragraph,
+            file: take.file,
+            pick: "own".into(),
+            route: None,
+            transcript,
+        });
+    }
+    Ok(pieces)
+}
+
+/// The chosen TTS takes with the transcripts `voice takes` measured them by.
+fn model_pieces<'a>(root: &Path, doc: &'a VoiceDoc, pick: &str) -> Result<Vec<Piece<'a>>> {
     let report: TakesReport = serde_json::from_slice(
         &fs::read(root.join(REPORT))
             .context("No takes yet; run `superint-video voice takes` first")?,
@@ -872,8 +933,7 @@ pub async fn assemble(root: &Path, pick: &str, verify: bool) -> Result<Value> {
         "Model, voice or style in voice.md changed since the takes; run `voice takes` again"
     );
     let choices = picks(&report, pick)?;
-    let syntax = doc.syntax();
-    let mut chosen = Vec::new();
+    let mut pieces = Vec::new();
     for paragraph in &doc.paragraphs {
         let entry = report
             .paragraphs
@@ -891,11 +951,35 @@ pub async fn assemble(root: &Path, pick: &str, verify: bool) -> Result<Value> {
             .iter()
             .find(|t| t.take == number)
             .context("Missing take")?;
-        chosen.push((paragraph, take.clone()));
+        pieces.push(Piece {
+            paragraph,
+            file: take.file.clone(),
+            pick: take.take.to_string(),
+            route: take.route,
+            transcript: Some(
+                serde_json::from_slice(&fs::read(root.join(&take.transcript))?)
+                    .with_context(|| format!("Reading {}", take.transcript))?,
+            ),
+        });
     }
-    let routes: std::collections::BTreeSet<&str> = chosen
+    Ok(pieces)
+}
+
+/// `voice assemble`: cut the chosen takes, or the user's own recordings, into
+/// `audio/voice.wav` and write `audio/words.json`.
+pub async fn assemble(root: &Path, pick: &str, verify: bool) -> Result<Value> {
+    let doc = read_doc(root)?;
+    let syntax = doc.syntax();
+    let pieces = match doc.source {
+        Source::Ai => model_pieces(root, &doc, pick)?,
+        Source::Own => own_pieces(root, &doc).await?,
+    };
+    // Without a transcript the word times are estimated, and nothing can check the result.
+    let measured = pieces.iter().all(|piece| piece.transcript.is_some());
+    let verify = verify && measured;
+    let routes: std::collections::BTreeSet<&str> = pieces
         .iter()
-        .filter_map(|(_, t)| t.route.map(Provider::label))
+        .filter_map(|piece| piece.route.map(Provider::label))
         .collect();
     if routes.len() > 1 {
         eprintln!(
@@ -906,8 +990,8 @@ pub async fn assemble(root: &Path, pick: &str, verify: bool) -> Result<Value> {
 
     let rate = audio::RATE;
     let mut takes = Vec::new();
-    for (_, take) in &chosen {
-        takes.push(audio::decode(&root.join(&take.file), rate).await?);
+    for piece in &pieces {
+        takes.push(audio::decode(&root.join(&piece.file), rate).await?);
     }
     // Match the speech level of every paragraph to the median, within ±6 dB.
     let levels: Vec<f64> = takes
@@ -960,14 +1044,21 @@ pub async fn assemble(root: &Path, pick: &str, verify: bool) -> Result<Value> {
     // Word times from each take, moved to where the take landed in voice.wav.
     let mut tokens = Vec::new();
     let mut from_takes: Vec<Option<(f64, f64)>> = Vec::new();
-    for (index, (paragraph, take)) in chosen.iter().enumerate() {
-        let transcript: Transcript =
-            serde_json::from_slice(&fs::read(root.join(&take.transcript))?)
-                .with_context(|| format!("Reading {}", take.transcript))?;
+    for (index, piece) in pieces.iter().enumerate() {
+        let paragraph = piece.paragraph;
         let reference = align::reference(&paragraph.text, syntax);
-        let hyp = align::hypothesis(&transcript.words, &doc.language);
-        let alignment = align::align(&reference, &hyp);
-        for time in align::times(&reference, &hyp, &alignment) {
+        let heard: Vec<Option<(f64, f64)>> = match &piece.transcript {
+            Some(transcript) => {
+                let hyp = align::hypothesis(&transcript.words, &doc.language);
+                let alignment = align::align(&reference, &hyp);
+                align::times(&reference, &hyp, &alignment)
+            }
+            None => own::estimate(&reference, &analyses[index], rate)
+                .into_iter()
+                .map(Some)
+                .collect(),
+        };
+        for time in heard {
             from_takes.push(time.map(|(start, end)| {
                 (
                     tighten::remap(&placed, index, start, rate),
@@ -1045,6 +1136,8 @@ pub async fn assemble(root: &Path, pick: &str, verify: bool) -> Result<Value> {
         }
         let timing = if from_final[index].is_some() {
             "final"
+        } else if !measured {
+            "estimated"
         } else if from_takes[index].is_some() {
             "take"
         } else {
@@ -1078,12 +1171,18 @@ pub async fn assemble(root: &Path, pick: &str, verify: bool) -> Result<Value> {
         .count();
     Ok(json!({
         "voice": display_path(&voice_file)?.display().to_string(),
+        "source": doc.source,
+        // `estimated`: no key reached a transcription model. The start and end of every
+        // paragraph and every pause are measured from the audio; the words in between are
+        // placed by their syllables and can be a few frames off.
+        "timing": if measured { "measured" } else { "estimated" },
+        "note": (!measured).then_some("Word times are estimated. Sync the picture to paragraph starts and to words next to a pause; do not rely on single words inside a sentence. An API key for a transcription model makes them exact: run `voice assemble` again after the user added one."),
         "words": "audio/words.json",
         "seconds": levels.seconds,
         "peakDb": levels.peak_db,
         "rmsDb": levels.rms_db,
         "fps": fps,
-        "picks": chosen.iter().map(|(p, t)| format!("{}={}", p.number, t.take)).collect::<Vec<_>>().join(","),
+        "picks": pieces.iter().map(|p| format!("{}={}", p.paragraph.number, p.pick)).collect::<Vec<_>>().join(","),
         "gainsDb": gains.iter().map(|g| round(audio::db(*g), 2)).collect::<Vec<_>>(),
         "pausesShortened": shortened,
         "sentencePause": doc.sentence_pause,

@@ -1,19 +1,27 @@
 //! Voice-led mix and master in Rust. Every audio clip of `video.json` is decoded, trimmed,
 //! faded and placed; the music ducks under the words of `audio/words.json` and sits a fixed
 //! distance under the voice; the sum goes to −14 LUFS (BS.1770) through a true-peak limiter.
-//! Claude may tune it in `mix.json`; the tool never changes a clip.
+//! Claude may tune it in `mix.json`; the tool never changes a clip. A film can go without a
+//! voice, without music, or without any sound: then the master is what is left, or silence.
 use crate::{
     audio::{self, Loudness, RATE, round},
     model::{Clip, ClipType, Manifest},
     project::{ProjectStore, atomic_write, safe_path},
+    voice::tighten,
 };
-use anyhow::{Context, Result, bail, ensure};
+use anyhow::{Context, Result, bail};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path};
 
 pub const SETTINGS: &str = "mix.json";
 pub const MASTER: &str = "audio/master.wav";
+/// What the meter reads when nothing is to be heard.
+pub const SILENCE_LUFS: f64 = -70.0;
+/// The narration `voice assemble` cuts, whose words are in `audio/words.json`.
+const NARRATION: &str = "audio/voice.wav";
+/// The track the voice is placed on: the narration, or takes spoken over the picture.
+const VOICE_TRACK: &str = "voice";
 const CHANNELS: usize = 2;
 /// Seconds on the film timeline, start and end.
 type Intervals = Vec<(f64, f64)>;
@@ -94,8 +102,14 @@ pub async fn mix(root: &Path) -> Result<Value> {
         }
         clips += 1;
     }
-    ensure!(clips > 0, "video.json has no audible audio clips");
-    let (speech, mut warnings) = speech(&store.root, manifest)?;
+    let output = store.root.join(MASTER);
+    if let Some(parent) = output.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    if clips == 0 {
+        return silent(&store.root, &output, frames);
+    }
+    let (speech, mut warnings) = speech(&store.root, manifest).await?;
 
     let mut music_report = Value::Null;
     if let Some(music) = buses.get_mut("music") {
@@ -146,10 +160,6 @@ pub async fn mix(root: &Path) -> Result<Value> {
     }
     let (master, measured, reduction) = master(&sum, settings.loudness, settings.ceiling)?;
     let bytes = audio::wav_bytes_channels(&master, RATE, 24, CHANNELS as u16);
-    let output = store.root.join(MASTER);
-    if let Some(parent) = output.parent() {
-        fs::create_dir_all(parent)?;
-    }
     atomic_write(&output, &bytes)?;
     if (measured.integrated_lufs - settings.loudness).abs() > 0.5 {
         warnings.push(format!(
@@ -175,10 +185,35 @@ pub async fn mix(root: &Path) -> Result<Value> {
         "speechIntervals": speech.len(),
         "warnings": warnings,
     });
+    write_report(&store.root, &report)?;
+    Ok(report)
+}
+
+fn write_report(root: &Path, report: &Value) -> Result<()> {
     atomic_write(
-        &store.root.join("audio/master.json"),
-        serde_json::to_string_pretty(&report)?.as_bytes(),
+        &root.join("audio/master.json"),
+        serde_json::to_string_pretty(report)?.as_bytes(),
+    )
+}
+
+/// The master of a film with nothing to hear: silence of the film's length, so the render
+/// has a soundtrack to carry (see `renderer::mix` for why a film is never without one).
+fn silent(root: &Path, output: &Path, frames: usize) -> Result<Value> {
+    let samples = vec![0f32; frames * CHANNELS];
+    atomic_write(
+        output,
+        &audio::wav_bytes_channels(&samples, RATE, 24, CHANNELS as u16),
     )?;
+    let report = json!({
+        "ok": true,
+        "silent": true,
+        "output": MASTER,
+        "seconds": round(frames as f64 / f64::from(RATE), 3),
+        "clips": 0,
+        "note": "No audible audio clips: the master is silence, and the film gets a silent soundtrack.",
+        "warnings": [],
+    });
+    write_report(root, &report)?;
     Ok(report)
 }
 
@@ -232,39 +267,45 @@ struct Word {
     end: f64,
 }
 
-/// Seconds on the film's timeline in which words are spoken, from `audio/words.json` mapped
-/// through every narration clip (the narration may be split, e.g. around a title card). Gaps
-/// under 0.3 s count as speech.
-fn speech(root: &Path, manifest: &Manifest) -> Result<(Intervals, Vec<String>)> {
-    let path = root.join("audio/words.json");
+/// Seconds on the film's timeline in which someone speaks. The narration brings its words
+/// (`audio/words.json`, mapped through every narration clip; it may be split, e.g. around a
+/// title card). Any other clip on the voice track, such as a take the user spoke over the
+/// picture, and a narration without words, is listened to: it speaks where it is not silent.
+/// Gaps under 0.3 s count as speech.
+async fn speech(root: &Path, manifest: &Manifest) -> Result<(Intervals, Vec<String>)> {
     let mut clips: Vec<_> = audible(manifest)
-        .filter(|c| c.src == "audio/voice.wav")
+        .filter(|c| c.src == NARRATION || c.track == VOICE_TRACK)
         .collect();
     if clips.is_empty() {
-        // A music-led film has no narration at all; only a recorded one left off the timeline is a slip.
-        let unplaced = root.join("audio/voice.wav").is_file();
+        // A film without narration is fine; only a cut one left off the timeline is a slip.
+        let unplaced = root.join(NARRATION).is_file();
         let warning = "audio/voice.wav is not placed; the music does not duck";
         return Ok((
             Vec::new(),
             unplaced.then(|| warning.into()).into_iter().collect(),
         ));
     }
-    if !path.is_file() {
-        return Ok((
-            Vec::new(),
-            vec!["audio/words.json is missing; the music does not duck".into()],
-        ));
-    }
-    let words: Vec<Word> =
-        serde_json::from_slice(&fs::read(&path)?).context("audio/words.json is invalid")?;
+    let path = root.join("audio/words.json");
+    let words: Option<Vec<Word>> = match path.is_file() {
+        true => {
+            Some(serde_json::from_slice(&fs::read(&path)?).context("audio/words.json is invalid")?)
+        }
+        false => None,
+    };
     clips.sort_by_key(|c| c.start_frame);
     let mut spans: Vec<(f64, f64)> = Vec::new();
     for clip in clips {
         let offset = manifest.fps.seconds(clip.source_offset_frames);
         let start = manifest.fps.seconds(clip.start_frame);
         let end = manifest.fps.seconds(clip.end_frame());
-        for word in &words {
-            let (a, b) = (start + word.start - offset, start + word.end - offset);
+        let spoken = match &words {
+            Some(words) if clip.src == NARRATION => {
+                words.iter().map(|word| (word.start, word.end)).collect()
+            }
+            _ => spoken(&audio::decode(&safe_path(root, &clip.src)?, RATE).await?),
+        };
+        for (from, to) in spoken {
+            let (a, b) = (start + from - offset, start + to - offset);
             if b > start && a < end {
                 spans.push((a.max(start), b.min(end)));
             }
@@ -279,6 +320,22 @@ fn speech(root: &Path, manifest: &Manifest) -> Result<(Intervals, Vec<String>)> 
         }
     }
     Ok((intervals, Vec::new()))
+}
+
+/// Where a voice recording is not silent, in seconds of the file.
+fn spoken(samples: &[f32]) -> Intervals {
+    let analysis = tighten::Analysis::new(samples, RATE);
+    let Some((first, last)) = analysis.speech() else {
+        return Vec::new();
+    };
+    let seconds = |sample: usize| sample as f64 / f64::from(RATE);
+    let pauses = analysis.pauses((0.3 * f64::from(RATE)) as usize);
+    let starts = std::iter::once(first).chain(pauses.iter().map(|p| p.1));
+    let ends = pauses.iter().map(|p| p.0).chain(std::iter::once(last));
+    starts
+        .zip(ends)
+        .map(|(a, b)| (seconds(a), seconds(b)))
+        .collect()
 }
 
 /// Gain in dB per 10 ms step: `depth` under the words, reached about 80 ms before a word and
@@ -361,8 +418,8 @@ fn during(samples: &[f32], intervals: &[(f64, f64)]) -> Result<Loudness> {
 /// the limiter lowers the loudness and the meter's true peak can exceed the limiter's estimate.
 fn master(sum: &[f32], target: f64, ceiling: f64) -> Result<(Vec<f32>, Loudness, f64)> {
     let start = audio::loudness(sum, RATE, CHANNELS as u32)?;
-    if start.integrated_lufs <= -70.0 {
-        bail!("the mix is silent");
+    if start.integrated_lufs <= SILENCE_LUFS {
+        bail!("the mix is silent although clips are placed; check their gains and files");
     }
     let mut gain = target - start.integrated_lufs;
     let mut internal = ceiling - 0.3;
@@ -477,6 +534,42 @@ mod tests {
         assert!((envelope[150] + 3.0).abs() < 1e-9);
         assert!(envelope[175] > -3.0 && envelope[175] < 0.0, "releasing");
         assert!(envelope[190].abs() < 1e-9);
+    }
+
+    #[test]
+    fn a_recording_speaks_where_it_is_not_silent() {
+        let tone = |seconds: f64| {
+            (0..(seconds * f64::from(RATE)) as usize).map(|i| 0.3 * (i as f32 * 0.05).sin())
+        };
+        let quiet = |seconds: f64| std::iter::repeat_n(0f32, (seconds * f64::from(RATE)) as usize);
+        let samples: Vec<f32> = quiet(0.5)
+            .chain(tone(1.0))
+            .chain(quiet(0.6))
+            .chain(tone(0.5))
+            .chain(quiet(0.2))
+            .chain(tone(0.5))
+            .chain(quiet(0.4))
+            .collect();
+        let heard = spoken(&samples);
+        // The 0.2 s gap is a breath inside a sentence, the 0.6 s gap a pause.
+        assert_eq!(heard.len(), 2);
+        assert!((heard[0].0 - 0.5).abs() < 0.02 && (heard[0].1 - 1.5).abs() < 0.02);
+        assert!((heard[1].0 - 2.1).abs() < 0.02 && (heard[1].1 - 3.3).abs() < 0.02);
+        assert!(spoken(&quiet(1.0).collect::<Vec<_>>()).is_empty());
+    }
+
+    #[test]
+    fn a_film_with_nothing_to_hear_gets_a_silent_master() {
+        let folder = tempfile::tempdir().unwrap();
+        let output = folder.path().join("audio/master.wav");
+        fs::create_dir_all(output.parent().unwrap()).unwrap();
+        let report = silent(folder.path(), &output, RATE as usize / 2).unwrap();
+        assert_eq!(report["silent"], true);
+        assert_eq!(report["seconds"], 0.5);
+        let reader = hound::WavReader::open(&output).unwrap();
+        assert_eq!(reader.spec().channels, 2);
+        assert_eq!(reader.duration(), RATE / 2);
+        assert!(folder.path().join("audio/master.json").is_file());
     }
 
     #[test]

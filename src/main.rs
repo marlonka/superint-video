@@ -285,7 +285,8 @@ enum Commands {
         #[arg(long)]
         unpolished: bool,
     },
-    /// Narration: check voice.md, generate and measure takes, cut voice.wav and words.json.
+    /// Narration: check voice.md, generate and measure takes or let the user record their own
+    /// voice, cut voice.wav and words.json.
     Voice {
         #[command(subcommand)]
         command: VoiceCommand,
@@ -346,7 +347,8 @@ enum Commands {
         #[arg(default_value = ".")]
         project: PathBuf,
     },
-    /// Inspect local dependencies and API keys (names only, never values).
+    /// Inspect local dependencies and API keys (names only, never values), and say what this
+    /// computer can do: AI voice, word times, music, dictation, the user's own voice.
     Doctor {
         #[arg(long)]
         json: bool,
@@ -412,7 +414,33 @@ enum VoiceCommand {
         #[arg(long)]
         dry_run: bool,
     },
-    /// Cut the chosen takes into audio/voice.wav and write audio/words.json.
+    /// The user's own voice (voice.md with `source: own`): opens Studio's recording view, where
+    /// they read the paragraphs aloud or bring an audio file. With --wait it returns once every
+    /// paragraph has an accepted recording. Needs no key; nothing leaves the computer.
+    Own {
+        #[arg(default_value = ".")]
+        project: PathBuf,
+        /// Wait until every paragraph is recorded and accepted. Exit 3 when the time runs out;
+        /// run it again to keep waiting.
+        #[arg(long)]
+        wait: bool,
+        /// How long --wait waits, in seconds.
+        #[arg(long, default_value_t = 540)]
+        timeout: u64,
+        /// An audio file the user already has (WAV, MP3, M4A, Ogg, WebM, FLAC) instead of the
+        /// recording view: the whole narration, split into the paragraphs, or one paragraph
+        /// with --paragraph.
+        #[arg(long)]
+        file: Option<PathBuf>,
+        /// The paragraph --file is the recording of.
+        #[arg(long, requires = "file")]
+        paragraph: Option<usize>,
+        /// Don't open Studio.
+        #[arg(long)]
+        no_studio: bool,
+    },
+    /// Cut the chosen takes, or the user's own recordings, into audio/voice.wav and write
+    /// audio/words.json.
     Assemble {
         #[arg(default_value = ".")]
         project: PathBuf,
@@ -636,6 +664,53 @@ async fn open_app(home: &std::path::Path, port: u16, open: bool) -> Result<Value
         .await
         .context("The app did not start")?;
     Ok(json!({"url": url, "home": home, "alreadyRunning": false}))
+}
+
+/// Shows the recording view and, with `wait`, stays until every paragraph has an accepted
+/// recording or the time is up. Progress goes to stderr, the state at the end is returned.
+async fn own_voice(
+    root: &Path,
+    mut status: Value,
+    wait: bool,
+    timeout: u64,
+    no_studio: bool,
+) -> Result<Value> {
+    // While this value lives, an open Studio brings the recording view to the front.
+    let _asking = live::Running::asking(root, "Waiting for your voice", "recording");
+    let studio = match no_studio {
+        true => None,
+        false => live::ensure_studio(root)
+            .await
+            .map(|url| format!("{url}/#record")),
+    };
+    if let Some(url) = &studio {
+        eprintln!("voice: the user records in Studio: {url}");
+    }
+    let started = std::time::Instant::now();
+    let mut said = None;
+    while wait && status["complete"] != true {
+        if said != Some(status["recorded"].clone()) {
+            eprintln!(
+                "voice: {} of {} paragraphs recorded",
+                status["recorded"], status["total"]
+            );
+            said = Some(status["recorded"].clone());
+        }
+        if started.elapsed().as_secs() >= timeout {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        status = voice::own::status(root)?;
+    }
+    status["studio"] = json!(studio);
+    status["next"] = json!(if status["complete"] == true {
+        "Every paragraph is recorded: run `superint-video voice assemble <dir>`."
+    } else if wait {
+        "Not every paragraph is recorded yet. Run the same command again to keep waiting; do not go on without the voice."
+    } else {
+        "Ask the user to record in Studio, then run `superint-video voice own <dir> --wait`."
+    });
+    Ok(status)
 }
 
 fn user_home() -> Result<PathBuf> {
@@ -1246,6 +1321,39 @@ async fn run() -> Result<()> {
                 )
                 .await?,
             ),
+            VoiceCommand::Own {
+                project,
+                wait,
+                timeout,
+                file,
+                paragraph,
+                no_studio,
+            } => {
+                let root = ProjectStore::open(&project)?.root;
+                let status = voice::own::status(&root)?;
+                if status["source"] != "own" {
+                    bail!(
+                        "voice.md is written for an AI voice. For the user's own voice add `source: own` to its front matter, run `voice check`, then this again"
+                    );
+                }
+                let result = match file {
+                    Some(file) => {
+                        let bytes = std::fs::read(&file)
+                            .with_context(|| format!("Reading {}", file.display()))?;
+                        match paragraph {
+                            Some(number) => voice::own::record(&root, number, &bytes, true).await?,
+                            None => voice::own::whole(&root, &bytes).await?,
+                        }
+                        voice::own::status(&root)?
+                    }
+                    None => own_voice(&root, status, wait, timeout, no_studio).await?,
+                };
+                let complete = result["complete"] == true;
+                print_json(result);
+                if wait && !complete {
+                    std::process::exit(3);
+                }
+            }
             VoiceCommand::Assemble {
                 project,
                 pick,
@@ -1312,8 +1420,24 @@ async fn run() -> Result<()> {
             online,
         } => {
             let dependencies = app::dependencies().await;
-            let (generators, reachable) =
+            let (mut generators, reachable) =
                 providers::doctor(&std::env::current_dir()?, online).await?;
+            // What a film can use here. An agent reads this instead of guessing from the keys.
+            let mut capabilities = generators["capabilities"].take();
+            capabilities["ownVoice"] = json!(true);
+            capabilities["soundEffects"] = json!(
+                dependencies
+                    .iter()
+                    .any(|d| d["name"] == "earshot" && d["ok"] == true)
+            );
+            capabilities["narration"] = json!(if capabilities["aiVoice"] == true {
+                "ai"
+            } else {
+                "own"
+            });
+            capabilities["note"] = json!(
+                "No capability here is needed for a film; never wait for a key. `narration` is the route a film takes unless its prompt names one: `ai` (TTS takes), `own` (the user records: `source: own` in voice.md, then `voice own --wait`), or none at all. Without `music` a film has no music; without `transcription` the word times of an own voice are estimated."
+            );
             // Earshot is needed for sfx only, so it does not fail the doctor.
             let ok = dependencies
                 .iter()
@@ -1322,6 +1446,7 @@ async fn run() -> Result<()> {
             let result = json!({
                 "ok": ok,
                 "version": env!("CARGO_PKG_VERSION"),
+                "capabilities": capabilities,
                 "dependencies": dependencies,
                 "generators": generators,
                 "home": home::dir(),
@@ -1344,6 +1469,25 @@ async fn run() -> Result<()> {
                             .or(dependency.get("path"))
                             .or(dependency.get("error"))
                             .unwrap()
+                    );
+                }
+                for (name, label) in [
+                    ("aiVoice", "AI voice"),
+                    ("transcription", "Measured word times"),
+                    ("music", "Generated music"),
+                    ("dictation", "Dictation"),
+                    ("ownVoice", "Your own voice"),
+                    ("soundEffects", "Sound effects"),
+                ] {
+                    println!(
+                        "{label}: {}",
+                        if result["capabilities"][name] == true {
+                            "yes"
+                        } else if name == "soundEffects" {
+                            "no (needs Earshot)"
+                        } else {
+                            "no (needs an API key)"
+                        }
                     );
                 }
                 for key in result["generators"]["keys"]

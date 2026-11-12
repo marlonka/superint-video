@@ -1,6 +1,8 @@
 //! Rules for Claude's voice text. The tool reports problems; it never rewrites the text.
+//! A text the user reads aloud themselves (`source: own`) is held to what a person needs:
+//! words only, and numbers written out where the word times should be good.
 use super::{
-    VoiceDoc,
+    Source, VoiceDoc,
     align::{self, Segment, Syntax},
 };
 use crate::frontmatter;
@@ -167,6 +169,10 @@ fn issue(level: Level, code: &'static str, paragraph: Option<usize>, message: St
 pub fn check(doc: &VoiceDoc, script: Option<&str>) -> Vec<Issue> {
     use Level::{Error, Warning};
     let syntax = doc.syntax();
+    let own = doc.source == Source::Own;
+    // A person reads digits and symbols without trouble; written out, the word times are
+    // better, because every word then has the length it is said with.
+    let unspoken = if own { Warning } else { Error };
     let mut issues = Vec::new();
     for key in &doc.unknown_keys {
         issues.push(issue(
@@ -202,10 +208,18 @@ pub fn check(doc: &VoiceDoc, script: Option<&str>) -> Vec<Issue> {
             .join(" ");
         words += align::reference(&paragraph.text, syntax).len();
 
+        if own && paragraph.text.contains(['<', '>', '[', ']']) {
+            issues.push(issue(
+                Error,
+                "V16",
+                at,
+                "Tags or brackets left. A person reads this aloud: write only the words, and put a direction such as a pause in a `#` note".into(),
+            ));
+        }
         let digits: String = plain.chars().filter(|c| c.is_ascii_digit()).collect();
         if !digits.is_empty() {
             issues.push(issue(
-                Error,
+                unspoken,
                 "V1",
                 at,
                 format!("Digits left ({digits}); write numbers as they are said"),
@@ -222,7 +236,7 @@ pub fn check(doc: &VoiceDoc, script: Option<&str>) -> Vec<Issue> {
         let symbols: String = symbols.into_iter().collect();
         if !symbols.is_empty() {
             issues.push(issue(
-                Error,
+                unspoken,
                 "V2",
                 at,
                 format!("Symbols left ({symbols}); write them as words"),
@@ -232,7 +246,7 @@ pub fn check(doc: &VoiceDoc, script: Option<&str>) -> Vec<Issue> {
             Syntax::Gemini => plain.contains(['[', ']']),
             Syntax::ElevenLabs => plain.contains(['<', '>']),
         };
-        if wrong {
+        if wrong && !own {
             issues.push(issue(
                 Error,
                 "V6",
@@ -271,7 +285,7 @@ pub fn check(doc: &VoiceDoc, script: Option<&str>) -> Vec<Issue> {
         }
         if !abbreviations.is_empty() {
             issues.push(issue(
-                Error,
+                unspoken,
                 "V3",
                 at,
                 format!(
@@ -285,7 +299,7 @@ pub fn check(doc: &VoiceDoc, script: Option<&str>) -> Vec<Issue> {
             Syntax::ElevenLabs => 10_000,
         };
         let length = paragraph.text.chars().count();
-        if length > limit {
+        if length > limit && !own {
             issues.push(issue(
                 Error,
                 "V8",
@@ -297,7 +311,12 @@ pub fn check(doc: &VoiceDoc, script: Option<&str>) -> Vec<Issue> {
         }
 
         // Tags: syntax, known names, and never in a sentence with a number or a name.
-        for sentence in sentences(&segments) {
+        let tagged = if own {
+            Vec::new()
+        } else {
+            sentences(&segments)
+        };
+        for sentence in tagged {
             let mut sentence_tags = Vec::new();
             let mut has_number_or_name = false;
             for segment in &sentence {
@@ -347,7 +366,7 @@ pub fn check(doc: &VoiceDoc, script: Option<&str>) -> Vec<Issue> {
             format!("{tags} tags for {words} words; at most one per 40 words"),
         ));
     }
-    if !capitals.is_empty() {
+    if !capitals.is_empty() && !own {
         capitals.dedup();
         issues.push(issue(
             Warning,
@@ -361,6 +380,8 @@ pub fn check(doc: &VoiceDoc, script: Option<&str>) -> Vec<Issue> {
     }
     let style = doc.style.as_deref().unwrap_or_default().to_lowercase();
     match syntax {
+        // The voice and its style are the user's own.
+        _ if own => {}
         Syntax::Gemini => {
             let found: Vec<&str> = style
                 .split(|c: char| !c.is_alphanumeric() && c != '-')
@@ -547,6 +568,23 @@ mod tests {
         for code in ["V1", "V2", "V3", "V5", "V6", "V4"] {
             assert!(found.contains(&code), "{code} missing in {found:?}");
         }
+    }
+
+    #[test]
+    fn a_text_the_user_reads_is_held_to_what_a_person_needs() {
+        let own = |body: &str| doc(&format!("---\nsource: own\nvoice: Nobody\n---\n{body}"));
+        // No TTS rule applies: not the voice name, not capitals, not the tag budget.
+        assert!(codes(&check(&own("Die KI hilft dir. Wirklich."), None)).is_empty());
+        // Tags of either model are not for a person to read.
+        for tagged in ["Hallo <short pause> du.", "Hallo [whispers] du."] {
+            let issues = check(&own(tagged), None);
+            assert_eq!(codes(&issues), ["V16"]);
+            assert_eq!(issues[0].level, Level::Error);
+        }
+        // Digits are readable, so they only cost timing.
+        let issues = check(&own("Im Jahr 2026 sind es 40 %."), None);
+        assert_eq!(codes(&issues), ["V1", "V2"]);
+        assert!(issues.iter().all(|i| i.level == Level::Warning));
     }
 
     #[test]
