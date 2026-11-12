@@ -1,6 +1,6 @@
 //! The user's own folder, shared by every project: what a new film defaults to, the API keys
 //! saved in the app, the films this computer knows, and whether a start page is open.
-//! `SUPERINT_HOME`, else `%APPDATA%\superint-video` (`~/.config/superint-video` elsewhere).
+//! `SUPERINT_HOME`, else `%USERPROFILE%\.superint-video` (`~/.config/superint-video` elsewhere).
 use crate::project::{atomic_write as write, millis, now_ms, without_verbatim};
 use crate::providers::Provider;
 use anyhow::{Context, Result, bail};
@@ -22,15 +22,111 @@ const MOST_FILMS: usize = 200;
 /// Folders looked at in the films folder per reading of the list.
 const MOST_SCANNED: usize = 500;
 
+/// The folder's name where it sits among others.
+const NAME: &str = "superint-video";
+
 pub fn dir() -> Option<PathBuf> {
     if let Some(dir) = std::env::var_os("SUPERINT_HOME").filter(|d| !d.is_empty()) {
         return Some(dir.into());
     }
-    let base = std::env::var_os("APPDATA")
+    user_folder()
+}
+
+/// Not `%APPDATA%`: a program started from a packaged app, such as the Claude or ChatGPT
+/// desktop app, writes new files there into that package's private copy
+/// (`%LOCALAPPDATA%\Packages\<package>\LocalCache\Roaming`). Each of them would keep its own
+/// settings and films, and Explorer, which looks at the real folder, would not find it. The
+/// user's profile is the same for every program.
+#[cfg(windows)]
+fn user_folder() -> Option<PathBuf> {
+    Some(PathBuf::from(std::env::var_os("USERPROFILE")?).join(format!(".{NAME}")))
+}
+
+/// Run once as the program starts, before anything reads the folder: the first time, the user's
+/// folder is filled from where versions up to 0.7.0 kept it. A folder `SUPERINT_HOME` names
+/// is left alone.
+#[cfg(windows)]
+pub fn move_in() {
+    if std::env::var_os("SUPERINT_HOME").is_some_and(|d| !d.is_empty()) {
+        return;
+    }
+    let Some(home) = user_folder().filter(|home| !home.exists()) else {
+        return;
+    };
+    if let Err(error) = gather(&home, &earlier_folders()) {
+        eprintln!("Could not bring over the settings of earlier versions: {error:#}");
+    }
+}
+
+#[cfg(not(windows))]
+fn user_folder() -> Option<PathBuf> {
+    let base = std::env::var_os("XDG_CONFIG_HOME")
         .map(PathBuf::from)
-        .or_else(|| std::env::var_os("XDG_CONFIG_HOME").map(PathBuf::from))
         .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))?;
-    Some(base.join("superint-video"))
+    Some(base.join(NAME))
+}
+
+/// Where versions before 0.7.1 kept the folder: `%APPDATA%\superint-video`, and the private
+/// copies packaged apps made of it.
+#[cfg(windows)]
+fn earlier_folders() -> Vec<PathBuf> {
+    let mut found: Vec<PathBuf> = std::env::var_os("APPDATA")
+        .map(|roaming| PathBuf::from(roaming).join(NAME))
+        .into_iter()
+        .collect();
+    if let Some(local) = std::env::var_os("LOCALAPPDATA")
+        && let Ok(packages) = fs::read_dir(PathBuf::from(local).join("Packages"))
+    {
+        found.extend(
+            packages
+                .flatten()
+                .map(|package| package.path().join("LocalCache").join("Roaming").join(NAME)),
+        );
+    }
+    found.retain(|folder| folder.is_dir());
+    found
+}
+
+/// Brings earlier copies of the user's folder into `home` while `home` does not exist yet:
+/// of each file the newest copy. The earlier copies stay where they are. Two programs starting
+/// at once may both gather; the first to finish wins and the other leaves it alone.
+#[cfg(any(windows, test))]
+fn gather(home: &Path, earlier: &[PathBuf]) -> Result<()> {
+    if home.exists() || earlier.is_empty() {
+        return Ok(());
+    }
+    let mut newest: BTreeMap<PathBuf, (std::time::SystemTime, PathBuf)> = BTreeMap::new();
+    for root in earlier {
+        for entry in walkdir::WalkDir::new(root).follow_links(false) {
+            let entry = entry?;
+            if !entry.file_type().is_file() {
+                continue;
+            }
+            let modified = entry.metadata()?.modified()?;
+            let relative = entry.path().strip_prefix(root)?.to_path_buf();
+            if newest
+                .get(&relative)
+                .is_none_or(|(seen, _)| modified > *seen)
+            {
+                newest.insert(relative, (modified, entry.into_path()));
+            }
+        }
+    }
+    let parent = home.parent().context("The user folder has no parent")?;
+    let staging = parent.join(format!(".{NAME}-gathering-{}", std::process::id()));
+    let moved = newest
+        .iter()
+        .try_for_each(|(relative, (_, source))| {
+            let target = staging.join(relative);
+            fs::create_dir_all(target.parent().unwrap_or(&staging))?;
+            fs::copy(source, &target).with_context(|| format!("Copying {}", source.display()))?;
+            Ok::<_, anyhow::Error>(())
+        })
+        .and_then(|()| Ok(fs::rename(&staging, home)?));
+    if moved.is_err() {
+        let _ = fs::remove_dir_all(&staging);
+    }
+    if home.exists() { Ok(()) } else { moved }
 }
 
 pub fn read_json(path: &Path) -> Option<Value> {
@@ -908,6 +1004,47 @@ pub fn mark_watched(home: &Path) {
 mod tests {
     use super::*;
     use tempfile::TempDir;
+
+    #[test]
+    fn earlier_folders_are_gathered_once_with_the_newest_copy_of_each_file() {
+        let root = TempDir::new().unwrap();
+        let roaming = root.path().join("roaming");
+        let package = root.path().join("package");
+        let write_at = |path: &Path, text: &str, seconds: u64| {
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, text).unwrap();
+            let time = std::time::UNIX_EPOCH + std::time::Duration::from_secs(seconds);
+            let file = fs::File::options().write(true).open(path).unwrap();
+            file.set_modified(time).unwrap();
+        };
+        write_at(&roaming.join(SETTINGS), "old", 1_000);
+        write_at(&roaming.join("presets/mine/preset.json"), "mine", 1_000);
+        write_at(&package.join(SETTINGS), "new", 2_000);
+        write_at(&package.join(FILMS), "films", 2_000);
+
+        let nothing = root.path().join("nothing");
+        gather(&nothing, &[]).unwrap();
+        assert!(!nothing.exists());
+
+        let home = root.path().join(".superint-video");
+        gather(&home, &[roaming.clone(), package.clone()]).unwrap();
+        let read = |path: PathBuf| fs::read_to_string(path).unwrap();
+        assert_eq!(read(home.join(SETTINGS)), "new");
+        assert_eq!(read(home.join(FILMS)), "films");
+        assert_eq!(read(home.join("presets/mine/preset.json")), "mine");
+        // The earlier copies stay, and a folder that exists is never gathered into again.
+        assert_eq!(read(roaming.join(SETTINGS)), "old");
+        write_at(&package.join(SETTINGS), "newest", 3_000);
+        gather(&home, &[package]).unwrap();
+        assert_eq!(read(home.join(SETTINGS)), "new");
+        // Nothing is left over from gathering.
+        let mut names: Vec<_> = fs::read_dir(root.path())
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name())
+            .collect();
+        names.sort();
+        assert_eq!(names, [".superint-video", "package", "roaming"]);
+    }
 
     #[test]
     fn settings_round_trip_and_reject_nonsense() {

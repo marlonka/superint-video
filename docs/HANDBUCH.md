@@ -4,7 +4,7 @@ Alles, was in die [README](../README.md) nicht passt: Installation im Detail, St
 
 ## Schnellstart: fertiges Windows-Paket
 
-1. Lade unter [Releases](https://github.com/marlonka/superint-video/releases/latest) die Datei `superint-video-0.7.0-windows-x64.zip` herunter.
+1. Lade unter [Releases](https://github.com/marlonka/superint-video/releases/latest) die Datei `superint-video-0.7.1-windows-x64.zip` herunter.
 2. Entpacke das ZIP in einen beschreibbaren Ordner.
 3. Stelle die Laufzeit-Abhängigkeiten bereit:
 
@@ -42,7 +42,7 @@ $env:SUPERINT_FFPROBE = 'C:\Tools\ffmpeg\bin\ffprobe.exe'
 Das Release enthält `SHA256SUMS.txt` mit den Prüfsummen des ZIPs und der EXE. Vergleiche den ZIP-Hash mit der entsprechenden Zeile:
 
 ```powershell
-Get-FileHash .\superint-video-0.7.0-windows-x64.zip -Algorithm SHA256
+Get-FileHash .\superint-video-0.7.1-windows-x64.zip -Algorithm SHA256
 ```
 
 ## Die App: Startseite und Einrichtung
@@ -82,7 +82,7 @@ Von der Kommandozeile, auch für deinen Coding-Agenten: `superint-video preset c
 
 **Stile weitergeben.** „Als Datei exportieren“ schreibt den ganzen Stil als `<name>.superint-style.zip` in deinen Downloads-Ordner und zeigt die Datei dort; Referenzbilder sind dabei. „Stil importieren“ fügt eine solche Datei zu deinen Stilen hinzu. Gibt es den Namen schon, bekommt der neue Stil eine Nummer („Mein Stil (2)“), ersetzt wird nichts. Ein Stil enthält Code, der läuft, während ein Film entsteht: Importiere nur Stile von Leuten, denen du vertraust. Von der Kommandozeile: `preset export <name>` und `preset import <datei>`.
 
-**API-Schlüssel.** Für die KI-Stimme, erzeugte Musik, das Diktat und Stile aus Bildern brauchst du einen API-Schlüssel aus deinem eigenen Konto: Google AI Studio ist der Standardweg, OpenRouter die Alternative, einer genügt. Du trägst ihn in der Einrichtung ein; die App fragt den Anbieter gleich nach dem Speichern, ob er funktioniert, und „Prüfen“ fragt später noch einmal. Die App speichert ihn nur auf diesem Rechner, unter Windows für dein Benutzerkonto verschlüsselt (`%APPDATA%\superint-video\keys.dat`), und zeigt ihn nie wieder an, auch dem Coding-Agenten nicht. Eine `.env`-Datei oder Umgebungsvariable gilt weiterhin und hat Vorrang. Mit nur einem OpenRouter-Schlüssel laufen die Google-Modelle von selbst über OpenRouter. Ohne API-Schlüssel sprichst du den Film selbst oder er bleibt ohne Stimme; `superint-video doctor --json` zeigt unter `capabilities`, was gerade geht.
+**API-Schlüssel.** Für die KI-Stimme, erzeugte Musik, das Diktat und Stile aus Bildern brauchst du einen API-Schlüssel aus deinem eigenen Konto: Google AI Studio ist der Standardweg, OpenRouter die Alternative, einer genügt. Du trägst ihn in der Einrichtung ein; die App fragt den Anbieter gleich nach dem Speichern, ob er funktioniert, und „Prüfen“ fragt später noch einmal. Die App speichert ihn nur auf diesem Rechner, unter Windows für dein Benutzerkonto verschlüsselt (`%USERPROFILE%\.superint-video\keys.dat`), und zeigt ihn nie wieder an, auch dem Coding-Agenten nicht. Eine `.env`-Datei oder Umgebungsvariable gilt weiterhin und hat Vorrang. Mit nur einem OpenRouter-Schlüssel laufen die Google-Modelle von selbst über OpenRouter. Ohne API-Schlüssel sprichst du den Film selbst oder er bleibt ohne Stimme; `superint-video doctor --json` zeigt unter `capabilities`, was gerade geht.
 
 **Wer spricht.** Unter „Neuer Film“ steht neben Stil und Länge „Stimme“: „KI-Stimme“, „Eigene Stimme“ oder „Ohne Stimme“. Vorgewählt ist die KI-Stimme, wenn ein API-Schlüssel sie erreicht, sonst die eigene Stimme. Die Wahl steht in klaren Worten im Prompt, und der Coding-Agent richtet den Film danach aus.
 
@@ -104,7 +104,7 @@ Im Studio eines Films führt das Logo oben links zur Startseite und „Zurück z
 
 **Feinschliff vor dem Render.** Bevor ein Film gerendert wird, sieht ein Sub-Agent deines Coding-Agents jedes Bild mit frischen Augen an und bessert nach (der Polish-Durchgang, siehe [Prüfen, Snapshots erstellen und rendern](#prüfen-snapshots-erstellen-und-rendern)). Unter „Runden vor jedem Render“ wählst du vorher, wie oft: **1** ist üblich; bei **2** sucht danach eine zweite Runde mit neuen Augen, was nach den ersten Korrekturen noch falsch ist, und arbeitet Details aus; bei **3** geht eine dritte Runde Material, Licht und Bewegung im ganzen Film durch. Jede weitere Runde kostet etwa so viel Zeit und Nutzung deines Coding-Agents wie die erste oder mehr. Die Wahl gilt für jeden Film, auch für einen, der gerade entsteht. Die Knöpfe gehen auch mit Tab und den Pfeiltasten. Die App selbst bessert nichts nach: Sie speichert die Zahl, das Werkzeug nennt sie dem Coding-Agenten bei jedem `polish`, und `render` wartet, bis die letzte Runde sauber ist. Ein einzelner Film kann eine eigene Zahl haben: `polishRounds: 3` oben in seinem `brief.md` (oder `new --polish-rounds 3`). Von der Kommandozeile: `superint-video settings set polishRounds 2`.
 
-Von der Kommandozeile zeigt `superint-video settings` die Einstellungen, und `superint-video settings set preset flat-explainer` ändert eine (leerer Wert: zurück zum Üblichen). `new` übernimmt den Standard-Stil: Mit ihm genügt `superint-video new --topic "…"`, und der Film entsteht im Speicherort für Filme (`filmsFolder` in der Ausgabe von `settings`). Länge, Format und Sprache nennt der Prompt für jeden Film; ohne sie gilt, was der Stil mitbringt. Die Dateien liegen unter `%APPDATA%\superint-video` (anderswo `~/.config/superint-video`, oder dort, wohin `SUPERINT_HOME` zeigt).
+Von der Kommandozeile zeigt `superint-video settings` die Einstellungen, und `superint-video settings set preset flat-explainer` ändert eine (leerer Wert: zurück zum Üblichen). `new` übernimmt den Standard-Stil: Mit ihm genügt `superint-video new --topic "…"`, und der Film entsteht im Speicherort für Filme (`filmsFolder` in der Ausgabe von `settings`). Länge, Format und Sprache nennt der Prompt für jeden Film; ohne sie gilt, was der Stil mitbringt. Die Dateien liegen unter `%USERPROFILE%\.superint-video` (anderswo `~/.config/superint-video`, oder dort, wohin `SUPERINT_HOME` zeigt). Bis 0.7.0 lagen sie unter `%APPDATA%\superint-video`. Startet aber eine verpackte App wie Claude oder ChatGPT die App, legt Windows neue Dateien dort in eine eigene Kopie für diese App, die der Explorer nicht findet. Beim ersten Start übernimmt die App von jeder Datei die neueste Fassung aus diesen Kopien; die alten bleiben unangetastet liegen.
 
 ## Im Studio arbeiten
 
@@ -141,7 +141,7 @@ Das Werkzeug selbst hat keinen Geschmack. Was ein Film wird, kommt aus drei aust
 | **Stil-Preset** | Look: Farbe, Licht, Schrift, Formen, Figuren, Bewegung | `blank` (kein Hauslook), `flat-explainer`, `miniature-3d`, `launch`, oder ein eigenes |
 | **Referenzen** | Woran der Agent seine Bilder misst | Standbilder, Screenshots, Clips in `references/` von Preset oder Projekt |
 
-Dazu kommen der [Werkzeug-Skill](../skills/superint-video/SKILL.md) (Projekt, Szenen-API, CLI, Review, Rendern) und [`superint-audio`](../skills/superint-audio/SKILL.md) (Stimme, Musik, SFX, Mix; je Anbieter eine eigene Datei, Google AI Studio oder OpenRouter). Die App kopiert sie in der Einrichtung mit einem Klick („Skills hinzufügen“). Sind die Skills im Ordner des Agenten nicht mehr die der App, etwa nach einem Update, steht dort „Skills aktualisieren“: Die App ersetzt sie durch ihre eigenen und hebt die bisherigen unter `%APPDATA%\superint-video\replaced-skills\<agent>` auf, je Skill die letzte Fassung. Einen verknüpften Skill-Ordner (Symlink oder Junction) fasst sie nie an. Von Hand kopierst du alle Ordner aus `skills/` (im Paket oder Repository) an die Stelle, an der dein Agent Skills sucht:
+Dazu kommen der [Werkzeug-Skill](../skills/superint-video/SKILL.md) (Projekt, Szenen-API, CLI, Review, Rendern) und [`superint-audio`](../skills/superint-audio/SKILL.md) (Stimme, Musik, SFX, Mix; je Anbieter eine eigene Datei, Google AI Studio oder OpenRouter). Die App kopiert sie in der Einrichtung mit einem Klick („Skills hinzufügen“). Sind die Skills im Ordner des Agenten nicht mehr die der App, etwa nach einem Update, steht dort „Skills aktualisieren“: Die App ersetzt sie durch ihre eigenen und hebt die bisherigen unter `%USERPROFILE%\.superint-video\replaced-skills\<agent>` auf, je Skill die letzte Fassung. Einen verknüpften Skill-Ordner (Symlink oder Junction) fasst sie nie an. Von Hand kopierst du alle Ordner aus `skills/` (im Paket oder Repository) an die Stelle, an der dein Agent Skills sucht:
 
 | Agent | Ordner |
 | --- | --- |
@@ -205,9 +205,9 @@ Ein Preset legt nur den Look fest: Formate, Farben, Schrift, Formen, Bewegung, B
 
 `new` braucht `--preset`, der Look ist also immer eine bewusste Wahl. Es kopiert das Preset vollständig ins Projekt, legt die Referenzen nach `references/` und schreibt `brief.md` mit Thema, Botschaft, Ablauf, Look, Referenzen, Länge, Format, Sprache, Stopps und Wortbudget für den Sprechertext. Weitere Optionen: `--message "<der eine Satz>"`, `--language`, `--audience`, `--must "<text>"`, `--avoid "<text>"`, `--stop <namen>` (die Stopps nennt der Ablauf-Skill, beim Erklärvideo `concept,script,frames,contact`), `--script <datei>`, `--polish-rounds 1-3` (Runden des Feinschliffs nur für diesen Film).
 
-**Referenzen für immer:** `preset reference flat-explainer .\look\*.jpg` legt Bilder ans Preset; jedes neue Projekt bekommt eine Kopie und der Agent misst Style-Frames und Kontaktbögen daran. Bei eingebauten Presets landen sie in `%APPDATA%\superint-video\presets\_references\<name>`. Screenshots fremder Filme gehören nicht in Git.
+**Referenzen für immer:** `preset reference flat-explainer .\look\*.jpg` legt Bilder ans Preset; jedes neue Projekt bekommt eine Kopie und der Agent misst Style-Frames und Kontaktbögen daran. Bei eingebauten Presets landen sie in `%USERPROFILE%\.superint-video\presets\_references\<name>`. Screenshots fremder Filme gehören nicht in Git.
 
-**Eigene Presets:** Am schnellsten schreibt ein Modell den Stil aus Bildern oder aus einem fertigen Film (`preset create`, `preset from-film`, siehe „Eigenen Stil erstellen“ oben). Von Hand: `preset new mein-stil --from blank --reference a.png,b.png` legt `%APPDATA%\superint-video\presets\mein-stil` an (oder im Ordner aus `SUPERINT_PRESETS`). Dort passt du `STYLE.md`, `kit/` und `blocks/` an. `preset export mein-stil` macht daraus eine Datei zum Weitergeben, `preset import <datei>` nimmt eine an. Aufbau und Felder: [Preset-Referenz](../skills/superint-video/references/styles.md).
+**Eigene Presets:** Am schnellsten schreibt ein Modell den Stil aus Bildern oder aus einem fertigen Film (`preset create`, `preset from-film`, siehe „Eigenen Stil erstellen“ oben). Von Hand: `preset new mein-stil --from blank --reference a.png,b.png` legt `%USERPROFILE%\.superint-video\presets\mein-stil` an (oder im Ordner aus `SUPERINT_PRESETS`). Dort passt du `STYLE.md`, `kit/` und `blocks/` an. `preset export mein-stil` macht daraus eine Datei zum Weitergeben, `preset import <datei>` nimmt eine an. Aufbau und Felder: [Preset-Referenz](../skills/superint-video/references/styles.md).
 
 Stile nachzuempfinden ist erlaubt; Presets und Skills weisen den Agenten an, keine Namen, Logos oder Figuren anderer Kanäle zu übernehmen.
 
