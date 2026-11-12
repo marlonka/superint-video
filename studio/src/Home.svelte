@@ -1,21 +1,21 @@
 <script lang="ts">
-  // The start page: setup, a new film, the films, the defaults. While something required is
-  // missing, Setup is the whole page, so nobody starts a film that cannot be made.
+  // The start page: a new film, the styles, the films. Setup is a page of its own, one button in
+  // the header away; while something required is missing it is the whole page, so nobody
+  // starts a film that cannot be made.
   import { onMount } from 'svelte';
   import Icon from './Icon.svelte';
   import Logo from './Logo.svelte';
   import Composer from './home/Composer.svelte';
-  import Defaults from './home/Defaults.svelte';
   import Films from './home/Films.svelte';
   import Setup from './home/Setup.svelte';
   import SetupBanner from './home/SetupBanner.svelte';
+  import Styles from './home/Styles.svelte';
   import {
     announce,
     call,
     needs,
     problem,
     refresh,
-    reveal,
     run,
     setLanguage,
     setupSkipped,
@@ -40,6 +40,14 @@
   let welcoming = false;
   $: if (missing.length > 0 && !$setupSkipped) welcoming = true;
   $: gate = welcoming && !$setupSkipped;
+  /** Setup opened from the header. */
+  let setupOpen = false;
+  // Something in Setup wants a look: a missing part, or skills older than the app.
+  $: attention =
+    missing.length > 0 ||
+    overview.setup.agents.some(
+      (agent) => agent.ready && agent.canInstall && agent.outdated.length > 0,
+    );
   $: if (!overview.project || onclose) document.title = 'Superint Video';
 
   /** Opens a film: the editor underneath when it is this one, its own Studio otherwise. */
@@ -70,13 +78,19 @@
     skipSetup(false);
     page?.scrollTo({ top: 0 });
   }
+  function toggleSetup(open = !setupOpen) {
+    setupOpen = open;
+    page?.scrollTo({ top: 0 });
+  }
   /** From the finished Setup to the first film. */
   function moveOn() {
     welcoming = false;
     page?.scrollTo({ top: 0 });
   }
   function onKey(event: KeyboardEvent) {
-    if (event.key === 'Escape' && onclose) onclose();
+    if (event.key !== 'Escape') return;
+    if (setupOpen && !gate) toggleSetup(false);
+    else if (onclose) onclose();
   }
 
   onMount(() => {
@@ -101,7 +115,7 @@
 
 <div class="home">
   <header class="app-header">
-    <span class="wordmark"><Logo /></span>
+    <span class="wordmark"><Logo /><small class="app-version">{overview.version}</small></span>
     <div class="header-actions">
       {#if onclose}<button class="button" onclick={onclose}
           ><Icon name="arrowLeft" /><span
@@ -109,6 +123,16 @@
               ? $t('home.back', { name: overview.project.name })
               : $t('home.backToFilm')}</span
           ></button
+        >{/if}
+      {#if !gate}<button
+          class="button quiet labelled"
+          aria-pressed={setupOpen}
+          title={$t('setup.title')}
+          onclick={() => toggleSetup()}
+          ><Icon name="settings" /><span>{$t('setup.title')}</span>{#if attention}<span
+              class="production-indicator"
+              aria-hidden="true"
+            ></span>{/if}</button
         >{/if}
       <label class="language-select" title={$t('language.label')}
         ><Icon name="globe" /><span class="sr-only">{$t('language.label')}</span><select
@@ -139,22 +163,13 @@
 
     {#if gate}
       <Setup {overview} first onskip={() => skipSetup(true)} oncontinue={moveOn} />
+    {:else if setupOpen}
+      <Setup {overview} onclose={() => toggleSetup(false)} />
     {:else}
       {#if missing.length}<SetupBanner {missing} onfinish={finishSetup} />{/if}
-      <Setup {overview} />
       <Composer {overview} />
+      <Styles {overview} />
       <Films {overview} {now} onopen={openFilm} />
-      <Defaults {overview} />
     {/if}
-
-    <footer class="home-foot">
-      <span>Superint Video {overview.version}</span>
-      <button class="text-link" onclick={() => reveal('/api/app/reveal/home')}
-        >{$t('foot.settingsFolder')}</button
-      >
-      <button class="text-link" onclick={() => reveal('/api/app/reveal/styles')}
-        >{$t('foot.stylesFolder')}</button
-      >
-    </footer>
   </main>
 </div>

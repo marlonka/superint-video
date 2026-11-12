@@ -101,7 +101,7 @@ Ein Doppelklick auf `Superint Video.exe` öffnet die Startseite. Sie spricht Deu
       <h3>Skills auf dem Stand der App</h3>
       Ein Klick kopiert die Skills in den Ordner deines Agenten. Nach einem Update der App steht dort „Skills aktualisieren“; was ersetzt wird, bleibt auf deinem Rechner erhalten.
       <h3>Filme an einem festen Ort</h3>
-      Jeder Film ist ein Ordner mit allem, was zu ihm gehört, in <code>Videos\Superint Video</code>. Einen anderen Ordner stellst du unter „Vorgaben“ ein.
+      Jeder Film ist ein Ordner mit allem, was zu ihm gehört, in <code>Videos\Superint Video</code>. Einen anderen Ordner wählst du in der Einrichtung unter „Speicherort für Filme“.
     </td>
   </tr>
 </table>
@@ -109,7 +109,7 @@ Ein Doppelklick auf `Superint Video.exe` öffnet die Startseite. Sie spricht Deu
 <p align="center">
   <img src="docs/images/app-styles.jpg" alt="Drei Stil-Karten mit Referenzbildern: Neutral, Flat-Vektor-Erklärfilm und Miniatur aus Code, darüber der Knopf „Stil importieren“" width="100%">
   <br>
-  <sub>Stile unter „Vorgaben“: einen als Standard wählen, eigene Referenzbilder hinzufügen, eine Kopie anlegen, als Datei weitergeben oder eine solche Datei importieren.</sub>
+  <sub>Unter „Stile“: einen als Standard wählen, eigene Referenzbilder hinzufügen, eine Kopie anlegen, als Datei weitergeben oder eine solche Datei importieren.</sub>
 </p>
 
 ## Drei Teile, ein Werkzeug
@@ -127,7 +127,7 @@ Dazu kommen der Werkzeug-Skill [`superint-video`](skills/superint-video/SKILL.md
 Jeder Schritt ist ein Befehl, und jeder Befehl gibt JSON aus. Die CLI schreibt nie selbst Text: Jeden Prompt an Stimme oder Musik schreibt dein Agent.
 
 ```powershell
-superint-video new .\schlaf --preset flat-explainer --topic "Warum Schlaf das Gehirn putzt" --seconds 60   # öffnet Studio; ohne Ordner landet der Film im Filme-Ordner
+superint-video new .\schlaf --preset flat-explainer --topic "Warum Schlaf das Gehirn putzt" --seconds 60   # öffnet Studio; ohne Ordner landet der Film im Speicherort für Filme
 superint-video studio .\schlaf                  # holt Studio zurück
 superint-video voice takes .\schlaf             # Takes pro Absatz, transkribiert und gemessen
 superint-video music .\schlaf                   # Musikvarianten, gemessen
@@ -159,8 +159,7 @@ Alle Befehle und Optionen stehen im [Handbuch](docs/HANDBUCH.md) und in `superin
    - **Chrome** (oder Edge) und **FFmpeg:** Fehlt eines, installiert „Installieren“ es über winget in einem sichtbaren Terminal-Fenster. Die App stimmt dabei nichts für dich zu.
    - **Ein API-Schlüssel** von Google AI Studio oder OpenRouter für Stimme und Musik. Die Einrichtung nennt die Modelle, die damit laufen. Du trägst ihn dort ein, er bleibt verschlüsselt auf deinem Rechner.
    - [Earshot](https://github.com/Leonxlnx/earshot) für Soundeffekte ist freiwillig.
-3. Wähl unter „Vorgaben“ deinen Stil und, wenn du magst, Länge, Format und Sprache.
-4. Schreib unter „Neuer Film“, worum es gehen soll, kopiere den Prompt und füge ihn in Claude Code, ChatGPT Codex oder Google Antigravity ein. Der Film erscheint in der App, während er entsteht, und liegt danach in `Videos\Superint Video`.
+3. Schreib unter „Neuer Film“, worum es gehen soll, kopiere den Prompt und füge ihn in Claude Code, ChatGPT Codex oder Google Antigravity ein. Stil und Länge sucht der Agent passend zum Thema aus, wenn du nichts anderes wählst. Der Film erscheint in der App, während er entsteht, und liegt danach in `Videos\Superint Video`.
 
 Von der Kommandozeile prüfst du die Installation so:
 

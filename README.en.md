@@ -54,7 +54,7 @@ Double-click `Superint Video.exe` to open the start page. Type a topic, pick sty
 
 - **Setup nobody misses.** While something is missing, the app shows only that: a coding agent with the skills, Chrome and FFmpeg, an API key for voice and music. Every row has the one button that does it and names the models your key uses.
 - **Skills kept current.** One click copies the skills into your agent's folder. After an app update it offers "Update the skills"; whatever is replaced stays on your machine.
-- **Films in one place.** Every film is a folder with everything that belongs to it, in `Videos\Superint Video`. You can choose another folder under "Defaults".
+- **Films in one place.** Every film is a folder with everything that belongs to it, in `Videos\Superint Video`. You can choose another one in Setup under "Where films are saved".
 - **Styles as files.** Choose a default style, add your own reference images, duplicate a style, or share it as a single `<name>.superint-style.zip`.
 
 ## Three parts, one tool

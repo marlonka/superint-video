@@ -1,10 +1,12 @@
 <script lang="ts">
-  // Setup: what has to be in place before a film can be made. Shown as the whole page while
-  // something required is missing (`first`), and as one line that opens afterwards.
+  // Setup: what has to be in place before a film can be made, and the choices made once. It is
+  // the whole page while something required is missing (`first`), and a page of its own the
+  // header opens afterwards.
   import Icon from '../Icon.svelte';
   import { format, t, type MessageKey } from '../i18n';
   import { unfold } from '../motion';
   import type { Agent, KeyCheck, KeyRow, Overview, Settings, Tool, UsualModels } from '../types';
+  import SetupFilms from './SetupFilms.svelte';
   import SetupItem from './SetupItem.svelte';
   import {
     announce,
@@ -15,6 +17,7 @@
     needs,
     patch,
     refresh,
+    reveal,
     run,
     saveSettings,
   } from './session';
@@ -25,6 +28,8 @@
   export let onskip: () => void = () => {};
   /** Leaves Setup once everything required is there: the first film is next. */
   export let oncontinue: () => void = () => {};
+  /** Back to the start page, when Setup was opened from the header. */
+  export let onclose: (() => void) | null = null;
 
   type Location = 'eu' | 'us' | 'global';
   type Step = 'agent' | 'tools' | 'keys';
@@ -44,7 +49,6 @@
     { setting: 'dictationModel', label: 'setup.models.dictation', usual: 'dictation' },
   ];
 
-  let open = false;
   // Keys: what is typed stays in this page until Save sends it once. It is never read back.
   let drafts: Record<string, string> = {};
   let replacing: Record<string, boolean> = {};
@@ -86,7 +90,6 @@
   $: total = Object.keys(steps).length;
   $: done = Object.values(steps).filter(Boolean).length;
   $: current = (Object.keys(steps) as Step[]).find((step) => !steps[step]);
-  $: shown = first || open;
   $: next = first ? nextItem(setup, missing) : '';
   $: readyParts = (['picture', 'voice', 'music', 'soundEffects'] as const)
     .filter((part) => setup.can[part])
@@ -472,229 +475,233 @@
             parts: $format.and(readyParts),
           })}{readyAgents.length ? ` · ${$format.and(readyAgents)}` : ''}{/if}
       </p>
-      <button class="button quiet" aria-expanded={shown} onclick={() => (open = !open)}
-        >{$t(shown ? 'common.hide' : 'common.show')}</button
-      >
     </div>
   {/if}
 
-  {#if shown}
-    <div class="setup" transition:unfold>
-      <section class="setup-group" aria-labelledby="setup-agent">
-        {@render heading('agent', 'setup-agent', $t('setup.agent.title'), $t('setup.agent.why'))}
+  <div class="setup">
+    <section class="setup-group" aria-labelledby="setup-agent">
+      {@render heading('agent', 'setup-agent', $t('setup.agent.title'), $t('setup.agent.why'))}
+      <ul class="setup-list">
+        {#each setup.agents as agent (agent.id)}
+          {@const id = `agent-${agent.id}`}
+          <SetupItem title={agent.title} done={agent.ready}>
+            <span
+              >{#if !agent.found}{$t('setup.agent.absent')}{:else if agent.missing.length}{$t(
+                  'setup.agent.missing',
+                  { count: agent.missing.length, total: agent.skills },
+                )}{:else if agent.outdated.length}{$t('setup.agent.outdated', {
+                  count: agent.outdated.length,
+                })}{:else}{$t('setup.agent.ready')}{/if}</span
+            >
+            <svelte:fragment slot="action">
+              {#if !agent.found}{@render site(
+                  agent.get,
+                  $t('setup.get', { name: agent.title }),
+                  next === id,
+                )}{:else if (agent.missing.length || agent.outdated.length) && agent.canInstall}<button
+                  class="button"
+                  class:primary={next === id}
+                  title={agent.missing.length ? undefined : $t('setup.agent.updateHint')}
+                  disabled={$busy === id}
+                  onclick={() => installSkills(agent)}
+                  >{$t(agent.missing.length ? 'setup.agent.add' : 'setup.agent.update')}</button
+                >{/if}
+            </svelte:fragment>
+          </SetupItem>
+        {/each}
+      </ul>
+    </section>
+
+    <section class="setup-group" aria-labelledby="setup-tools">
+      {@render heading('tools', 'setup-tools', $t('setup.tools.title'), $t('setup.tools.why'))}
+      <ul class="setup-list">
+        {#each required as tool (tool.id)}
+          {@const id = `tool-${tool.id}`}
+          <SetupItem title={tool.title} done={tool.ok}>
+            <span>{$t(`setup.tool.${tool.id}.why`)}</span>
+            {#if !tool.ok && installing[tool.id]}<span class="setup-note" role="status"
+                >{$t('setup.tool.installing', { name: tool.title })}</span
+              >{/if}
+            {#if !tool.ok && tool.install}<a
+                class="text-link"
+                href={tool.get}
+                target="_blank"
+                rel="noreferrer">{$t('setup.tool.page')}</a
+              >{/if}
+            <svelte:fragment slot="action">
+              {#if !tool.ok && tool.install}<button
+                  class="button"
+                  class:primary={next === id}
+                  disabled={$busy === id}
+                  onclick={() => installTool(tool)}>{$t('setup.tool.install')}</button
+                >{:else if !tool.ok}{@render site(
+                  tool.get,
+                  $t('setup.tool.page'),
+                  next === id,
+                )}{/if}
+            </svelte:fragment>
+          </SetupItem>
+        {/each}
+      </ul>
+    </section>
+
+    <section class="setup-group" aria-labelledby="setup-keys">
+      {@render heading('keys', 'setup-keys', $t('setup.key.title'), $t('setup.key.why'))}
+      <div class="setup-keys">
         <ul class="setup-list">
-          {#each setup.agents as agent (agent.id)}
-            {@const id = `agent-${agent.id}`}
-            <SetupItem title={agent.title} done={agent.ready}>
-              <span
-                >{#if !agent.found}{$t('setup.agent.absent')}{:else if agent.missing.length}{$t(
-                    'setup.agent.missing',
-                    { count: agent.missing.length, total: agent.skills },
-                  )}{:else if agent.outdated.length}{$t('setup.agent.outdated', {
-                    count: agent.outdated.length,
-                  })}{:else}{$t('setup.agent.ready')}{/if}</span
-              >
-              <svelte:fragment slot="action">
-                {#if !agent.found}{@render site(
-                    agent.get,
-                    $t('setup.get', { name: agent.title }),
-                    next === id,
-                  )}{:else if (agent.missing.length || agent.outdated.length) && agent.canInstall}<button
-                    class="button"
-                    class:primary={next === id}
-                    title={agent.missing.length ? undefined : $t('setup.agent.updateHint')}
-                    disabled={$busy === id}
-                    onclick={() => installSkills(agent)}
-                    >{$t(agent.missing.length ? 'setup.agent.add' : 'setup.agent.update')}</button
-                  >{/if}
-              </svelte:fragment>
-            </SetupItem>
-          {/each}
+          {#each mainKeys as key (key.name)}{@render keyItem(key)}{/each}
         </ul>
+        {#if moreKeys.length && !moreHeld}<button
+            class="text-link setup-more"
+            aria-expanded={moreShown}
+            aria-controls="setup-more-keys"
+            onclick={() => (moreOpen = !moreOpen)}
+            >{$t('setup.more.toggle', {
+              providers: $format.and(moreKeys.map((key) => key.title)),
+            })}</button
+          >{/if}
+        {#if moreShown}
+          <ul class="setup-list" id="setup-more-keys" transition:unfold>
+            {#each moreKeys as key (key.name)}{@render keyItem(key)}{/each}
+          </ul>
+        {/if}
+      </div>
+    </section>
+
+    {#if !first}
+      <section class="setup-group" aria-labelledby="setup-films">
+        {@render heading(null, 'setup-films', $t('setup.films.title'), $t('setup.films.why'))}
+        <SetupFilms {overview} />
       </section>
 
-      <section class="setup-group" aria-labelledby="setup-tools">
-        {@render heading('tools', 'setup-tools', $t('setup.tools.title'), $t('setup.tools.why'))}
+      <section class="setup-group" aria-labelledby="setup-models">
+        {@render heading(null, 'setup-models', $t('setup.models.title'), $t('setup.models.why'))}
         <ul class="setup-list">
-          {#each required as tool (tool.id)}
-            {@const id = `tool-${tool.id}`}
+          <SetupItem
+            title={$t(chosenModels.length ? 'setup.models.own' : 'setup.models.usual')}
+            done={null}
+          >
+            <span
+              >{chosenModels.length
+                ? chosenModels
+                    .map((field) => `${$t(field.label)} ${settings[field.setting]}`)
+                    .join(' · ')
+                : $t('setup.models.usualWhy')}</span
+            >
+            <svelte:fragment slot="action">
+              <button
+                class="button"
+                aria-expanded={modelsOpen}
+                aria-controls="models-form"
+                onclick={() => (modelsOpen ? (modelsOpen = false) : openModels())}
+                >{$t('setup.models.change')}</button
+              >
+            </svelte:fragment>
+            <svelte:fragment slot="below">
+              {#if modelsOpen}
+                <form
+                  class="models-form"
+                  id="models-form"
+                  transition:unfold
+                  onsubmit={(event) => {
+                    event.preventDefault();
+                    saveModels();
+                  }}
+                >
+                  <div class="models-fields">
+                    {#each MODEL_FIELDS as field (field.setting)}
+                      <label
+                        ><span>{$t(field.label)}</span>
+                        <input
+                          type="text"
+                          class:model-id={field.setting !== 'narrationVoice'}
+                          name={field.setting}
+                          autocomplete="off"
+                          spellcheck="false"
+                          placeholder={setup.models[field.usual]}
+                          aria-describedby="models-hint"
+                          bind:value={modelDrafts[field.setting]}
+                        /></label
+                      >
+                    {/each}
+                  </div>
+                  <p class="model-hint" id="models-hint">{$t('setup.models.hint')}</p>
+                  <button class="button" type="submit" disabled={$busy === 'settings'}
+                    >{$t('common.save')}</button
+                  >
+                  <span class="setup-links">
+                    {#if chosenModels.length}<button
+                        class="text-link"
+                        type="button"
+                        disabled={$busy === 'settings'}
+                        onclick={() => saveModels(true)}>{$t('setup.models.reset')}</button
+                      >{/if}
+                    <button class="text-link" type="button" onclick={() => (modelsOpen = false)}
+                      >{$t('common.cancel')}</button
+                    >
+                  </span>
+                </form>
+              {/if}
+            </svelte:fragment>
+          </SetupItem>
+        </ul>
+      </section>
+    {/if}
+
+    {#if optional.length}
+      <section class="setup-group" aria-labelledby="setup-optional">
+        {@render heading(
+          null,
+          'setup-optional',
+          $t('setup.optional.title'),
+          $t('setup.optional.why'),
+        )}
+        <ul class="setup-list">
+          {#each optional as tool (tool.id)}
             <SetupItem title={tool.title} done={tool.ok}>
-              <span>{$t(`setup.tool.${tool.id}.why`)}</span>
+              <span
+                >{$t(`setup.tool.${tool.id}.why`)}{tool.ok && tool.sounds
+                  ? ` ${$t('setup.tool.sounds', { count: tool.sounds })}`
+                  : ''}</span
+              >
               {#if !tool.ok && installing[tool.id]}<span class="setup-note" role="status"
                   >{$t('setup.tool.installing', { name: tool.title })}</span
                 >{/if}
-              {#if !tool.ok && tool.install}<a
-                  class="text-link"
-                  href={tool.get}
-                  target="_blank"
-                  rel="noreferrer">{$t('setup.tool.page')}</a
-                >{/if}
+              {#if !tool.ok}<span class="setup-links">
+                  {#if tool.command}<button class="text-link" onclick={() => copyTask(tool)}
+                      >{$t('setup.tool.copyTask')}</button
+                    >{/if}
+                  <a class="text-link" href={tool.get} target="_blank" rel="noreferrer"
+                    >{$t('setup.tool.project')}</a
+                  >
+                </span>{/if}
               <svelte:fragment slot="action">
                 {#if !tool.ok && tool.install}<button
                     class="button"
-                    class:primary={next === id}
-                    disabled={$busy === id}
+                    disabled={$busy === `tool-${tool.id}`}
                     onclick={() => installTool(tool)}>{$t('setup.tool.install')}</button
-                  >{:else if !tool.ok}{@render site(
-                    tool.get,
-                    $t('setup.tool.page'),
-                    next === id,
-                  )}{/if}
+                  >{:else if !tool.ok}{@render site(tool.get, $t('setup.tool.page'), false)}{/if}
               </svelte:fragment>
             </SetupItem>
           {/each}
         </ul>
       </section>
+    {/if}
 
-      <section class="setup-group" aria-labelledby="setup-keys">
-        {@render heading('keys', 'setup-keys', $t('setup.key.title'), $t('setup.key.why'))}
-        <div class="setup-keys">
-          <ul class="setup-list">
-            {#each mainKeys as key (key.name)}{@render keyItem(key)}{/each}
-          </ul>
-          {#if moreKeys.length && !moreHeld}<button
-              class="text-link setup-more"
-              aria-expanded={moreShown}
-              aria-controls="setup-more-keys"
-              onclick={() => (moreOpen = !moreOpen)}
-              >{$t('setup.more.toggle', {
-                providers: $format.and(moreKeys.map((key) => key.title)),
-              })}</button
-            >{/if}
-          {#if moreShown}
-            <ul class="setup-list" id="setup-more-keys" transition:unfold>
-              {#each moreKeys as key (key.name)}{@render keyItem(key)}{/each}
-            </ul>
-          {/if}
-        </div>
-      </section>
-
-      {#if !first}
-        <section class="setup-group" aria-labelledby="setup-models">
-          {@render heading(null, 'setup-models', $t('setup.models.title'), $t('setup.models.why'))}
-          <ul class="setup-list">
-            <SetupItem
-              title={$t(chosenModels.length ? 'setup.models.own' : 'setup.models.usual')}
-              done={null}
-            >
-              <span
-                >{chosenModels.length
-                  ? chosenModels
-                      .map((field) => `${$t(field.label)} ${settings[field.setting]}`)
-                      .join(' · ')
-                  : $t('setup.models.usualWhy')}</span
-              >
-              <svelte:fragment slot="action">
-                <button
-                  class="button"
-                  aria-expanded={modelsOpen}
-                  aria-controls="models-form"
-                  onclick={() => (modelsOpen ? (modelsOpen = false) : openModels())}
-                  >{$t('setup.models.change')}</button
-                >
-              </svelte:fragment>
-              <svelte:fragment slot="below">
-                {#if modelsOpen}
-                  <form
-                    class="models-form"
-                    id="models-form"
-                    transition:unfold
-                    onsubmit={(event) => {
-                      event.preventDefault();
-                      saveModels();
-                    }}
-                  >
-                    <div class="models-fields">
-                      {#each MODEL_FIELDS as field (field.setting)}
-                        <label
-                          ><span>{$t(field.label)}</span>
-                          <input
-                            type="text"
-                            class:model-id={field.setting !== 'narrationVoice'}
-                            name={field.setting}
-                            autocomplete="off"
-                            spellcheck="false"
-                            placeholder={setup.models[field.usual]}
-                            aria-describedby="models-hint"
-                            bind:value={modelDrafts[field.setting]}
-                          /></label
-                        >
-                      {/each}
-                    </div>
-                    <p class="model-hint" id="models-hint">{$t('setup.models.hint')}</p>
-                    <button class="button" type="submit" disabled={$busy === 'settings'}
-                      >{$t('common.save')}</button
-                    >
-                    <span class="setup-links">
-                      {#if chosenModels.length}<button
-                          class="text-link"
-                          type="button"
-                          disabled={$busy === 'settings'}
-                          onclick={() => saveModels(true)}>{$t('setup.models.reset')}</button
-                        >{/if}
-                      <button class="text-link" type="button" onclick={() => (modelsOpen = false)}
-                        >{$t('common.cancel')}</button
-                      >
-                    </span>
-                  </form>
-                {/if}
-              </svelte:fragment>
-            </SetupItem>
-          </ul>
-        </section>
-      {/if}
-
-      {#if optional.length}
-        <section class="setup-group" aria-labelledby="setup-optional">
-          {@render heading(
-            null,
-            'setup-optional',
-            $t('setup.optional.title'),
-            $t('setup.optional.why'),
-          )}
-          <ul class="setup-list">
-            {#each optional as tool (tool.id)}
-              <SetupItem title={tool.title} done={tool.ok}>
-                <span
-                  >{$t(`setup.tool.${tool.id}.why`)}{tool.ok && tool.sounds
-                    ? ` ${$t('setup.tool.sounds', { count: tool.sounds })}`
-                    : ''}</span
-                >
-                {#if !tool.ok && installing[tool.id]}<span class="setup-note" role="status"
-                    >{$t('setup.tool.installing', { name: tool.title })}</span
-                  >{/if}
-                {#if !tool.ok}<span class="setup-links">
-                    {#if tool.command}<button class="text-link" onclick={() => copyTask(tool)}
-                        >{$t('setup.tool.copyTask')}</button
-                      >{/if}
-                    <a class="text-link" href={tool.get} target="_blank" rel="noreferrer"
-                      >{$t('setup.tool.project')}</a
-                    >
-                  </span>{/if}
-                <svelte:fragment slot="action">
-                  {#if !tool.ok && tool.install}<button
-                      class="button"
-                      disabled={$busy === `tool-${tool.id}`}
-                      onclick={() => installTool(tool)}>{$t('setup.tool.install')}</button
-                    >{:else if !tool.ok}{@render site(tool.get, $t('setup.tool.page'), false)}{/if}
-                </svelte:fragment>
-              </SetupItem>
-            {/each}
-          </ul>
-        </section>
-      {/if}
-
-      <div class="setup-foot">
-        {#if first && done < total}<button class="text-link" onclick={onskip}
-            >{$t('setup.skip')}</button
+    <div class="setup-foot">
+      {#if first && done < total}<button class="text-link" onclick={onskip}
+          >{$t('setup.skip')}</button
+        >{:else if !first}<button class="text-link" onclick={() => reveal('/api/app/reveal/home')}
+          >{$t('setup.settingsFolder')}</button
+        >{/if}
+      <span class="setup-foot-actions">
+        <button class="button" onclick={() => refresh(true)}>{$t('setup.checkAgain')}</button>
+        {#if first && done === total}<button class="button primary" onclick={oncontinue}
+            >{$t('setup.continue')}</button
+          >{:else if onclose}<button class="button primary" onclick={onclose}
+            >{$t('setup.close')}</button
           >{/if}
-        <span class="setup-foot-actions">
-          <button class="button" onclick={() => refresh(true)}>{$t('setup.checkAgain')}</button>
-          {#if first && done === total}<button class="button primary" onclick={oncontinue}
-              >{$t('setup.continue')}</button
-            >{/if}
-        </span>
-      </div>
+      </span>
     </div>
-  {/if}
+  </div>
 </section>

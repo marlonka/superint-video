@@ -220,9 +220,6 @@ export interface Agent {
 }
 export interface Settings {
   preset: string | null;
-  seconds: number | null;
-  format: string | null;
-  language: string | null;
   projectsDir: string | null;
   window: 'app' | 'browser';
   follow: boolean;

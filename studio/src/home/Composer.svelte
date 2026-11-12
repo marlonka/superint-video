@@ -1,22 +1,27 @@
 <script lang="ts">
   // A film starts with one prompt for the coding agent. This builds it from a topic and a few
-  // choices, in the language of the app.
+  // choices, in the language of the app. Left alone, the agent picks style and length to suit
+  // the topic, the picture is wide and the film speaks the language the topic is written in.
   import Icon from '../Icon.svelte';
-  import { format, lengthLabel, locale, t, type Formats, type Translate } from '../i18n';
+  import { format, locale, t, type Formats, type Translate } from '../i18n';
   import type { Overview } from '../types';
   import { tick } from 'svelte';
-  import { FILM_LANGUAGES, FORMATS, LENGTHS, parseLength, styleText } from './choices';
+  import { FILM_LANGUAGES, FORMATS, USUAL_FORMAT, styleText, topicLanguage } from './choices';
   import Dictate from './Dictate.svelte';
+  import LengthField from './LengthField.svelte';
   import { copyText, fail } from './session';
 
   export let overview: Overview;
 
+  /** Style choices that are not a style: the agent picks one to suit the topic, or asks. */
+  const FIT = ':fit';
+  const ASK = ':ask';
+
   let topic = '';
-  let pick = { preset: '', seconds: '', format: '', language: '' };
-  /** The length as typed or picked; the prompt takes the seconds it stands for. */
+  /** Empty is the first choice of a list: the default style, or the one the topic suits. */
+  let pick = { style: '', format: '', language: '' };
   let lengthText = '';
-  $: lengthSeconds = parseLength(lengthText);
-  $: pick.seconds = lengthSeconds ? String(lengthSeconds) : '';
+  let seconds: number | null = null;
   let copied = false;
   let field: HTMLTextAreaElement;
   /** Where the cursor was when the field was left: dictated text goes there. */
@@ -38,10 +43,25 @@
     field.setSelectionRange(at, at);
   }
 
-  $: settings = overview.settings;
   $: styles = overview.styles;
-  $: defaultStyle = styles.find((style) => style.name === settings.preset) || null;
-  $: pickedStyle = styles.find((style) => style.name === (pick.preset || settings.preset)) || null;
+  $: defaultStyle = styles.find((style) => style.name === overview.settings.preset) || null;
+  /** The style the prompt names, or FIT or ASK. */
+  $: style = pick.style || defaultStyle?.name || FIT;
+  $: pickedStyle = styles.find((entry) => entry.name === style) || null;
+  // Only the formats the style can make; wide unless someone picks another.
+  $: formats = FORMATS.filter((entry) => !pickedStyle || pickedStyle.formats.includes(entry.value));
+  $: usualFormat = formats.some((entry) => entry.value === USUAL_FORMAT)
+    ? USUAL_FORMAT
+    : pickedStyle?.defaultFormat || USUAL_FORMAT;
+  $: pictureFormat = formats.some((entry) => entry.value === pick.format)
+    ? pick.format
+    : usualFormat;
+  $: written = topicLanguage(topic);
+  $: language = pick.language || written;
+  // The languages by their names in the app's language, as a list is read.
+  $: languages = FILM_LANGUAGES.map((code) => ({ code, name: $format.language(code) })).sort(
+    (a, b) => a.name.localeCompare(b.name, $locale),
+  );
   // The agents that can take the prompt: those that are set up, else every one the app knows.
   $: ready = overview.setup.agents.filter((agent) => agent.ready);
   $: agents = $format.or(
@@ -49,45 +69,48 @@
   );
   // Off the search path the agent learns where the program is; on it, the prompt stays short.
   $: program = overview.cli.onPath ? null : overview.cli.path;
-  $: prompt = buildPrompt(topic, pick, !settings.preset, program, $t, $format);
+  $: prompt = buildPrompt(topic, style, seconds, pictureFormat, language, program, $t, $format);
 
   // Everything the prompt depends on is an argument, so it is rebuilt when any of it changes,
   // the language of the app included.
   function buildPrompt(
     about: string,
-    chosen: typeof pick,
-    noDefaultStyle: boolean,
+    style: string,
+    seconds: number | null,
+    picture: string,
+    language: string | null,
     program: string | null,
     say: Translate,
     write: Formats,
   ) {
     const details: string[] = [];
-    if (chosen.preset) details.push(say('prompt.style', { name: chosen.preset }));
-    if (chosen.seconds) {
+    if (style !== FIT && style !== ASK) details.push(say('prompt.style', { name: style }));
+    if (seconds) {
       // "about 45 seconds" below two minutes, whole minutes above when they come out even.
-      const seconds = Number(chosen.seconds);
       const length =
         seconds >= 120 && seconds % 60 === 0
           ? say('prompt.minutes', { count: seconds / 60 })
           : say('prompt.seconds', { count: seconds });
       details.push(say('prompt.length', { length }));
     }
-    if (chosen.format) details.push(chosen.format);
-    if (chosen.language)
-      details.push(say('prompt.language', { language: write.language(chosen.language) }));
-    const lines = [say('prompt.about', { topic: about.trim() || '…' })];
-    if (details.length) {
-      const sentence = details.join(', ');
-      lines.push(`${sentence[0].toUpperCase()}${sentence.slice(1)}.`);
-    }
-    if (!chosen.preset && noDefaultStyle) lines.push(say('prompt.askStyle'));
+    details.push(say('prompt.format', { format: picture }));
+    details.push(
+      language
+        ? say('prompt.language', { language: write.language(language) })
+        : say('prompt.topicLanguage'),
+    );
+    const sentence = details.join(', ');
+    const lines = [
+      say('prompt.about', { topic: about.trim() || '…' }),
+      `${sentence[0].toUpperCase()}${sentence.slice(1)}.`,
+    ];
+    const fitStyle = style === FIT;
+    if (fitStyle && !seconds) lines.push(say('prompt.fitBoth'));
+    else if (fitStyle) lines.push(say('prompt.fitStyle'));
+    else if (!seconds) lines.push(say('prompt.fitLength'));
+    if (style === ASK) lines.push(say('prompt.askStyle'));
     if (program) lines.push(say('prompt.program', { path: program }));
     return lines.join('\n');
-  }
-  /** The first, empty choice of a select: the user's default, else what the style brings. */
-  function inherited(own: string | null, fromStyle: string | null) {
-    if (own) return $t('choice.yourDefault', { value: own });
-    return fromStyle ? $t('choice.styleOwn', { value: fromStyle }) : $t('choice.fromStyle');
   }
   async function copyPrompt() {
     if (!(await copyText(prompt, $t('compose.copied', { agents }))))
@@ -115,70 +138,54 @@
       <Dictate available={overview.setup.can.dictate} oninsert={insert} bind:active={dictating} />
     </div>
     <div class="composer-options">
-      <label
-        ><span>{$t('field.style')}</span>
-        <select bind:value={pick.preset}>
+      <div class="composer-choice">
+        <label for="film-style">{$t('field.style')}</label>
+        <select id="film-style" bind:value={pick.style}>
           <option value=""
             >{defaultStyle
               ? $t('choice.yourDefault', { value: styleText(defaultStyle, $locale).title })
-              : $t('compose.style.ask')}</option
+              : $t('choice.fit')}</option
           >
-          {#each styles.filter((style) => style.name !== settings.preset) as style (style.name)}<option
-              value={style.name}>{styleText(style, $locale).title}</option
+          {#if defaultStyle}<option value={FIT}>{$t('choice.fit')}</option>{/if}
+          {#each styles.filter((entry) => entry !== defaultStyle) as entry (entry.name)}<option
+              value={entry.name}>{styleText(entry, $locale).title}</option
             >{/each}
-        </select></label
-      >
-      <label
-        ><span>{$t('field.length')}</span>
-        <!-- Typed or picked: "3 min", "90 s", "2:30", or minutes alone. Empty keeps the default. -->
-        <input
-          type="text"
-          list="film-lengths"
-          autocomplete="off"
-          spellcheck="false"
-          placeholder={inherited(
-            settings.seconds ? lengthLabel(settings.seconds) : null,
-            pickedStyle ? lengthLabel(pickedStyle.seconds) : null,
-          )}
-          aria-invalid={!!lengthText.trim() && !lengthSeconds}
-          aria-describedby="length-note"
-          bind:value={lengthText}
+          <option value={ASK}>{$t('choice.ask')}</option>
+        </select>
+      </div>
+      <div class="composer-choice">
+        <label for="film-length">{$t('field.length')}</label>
+        <LengthField
+          id="film-length"
+          empty={$t('choice.fit')}
+          bind:text={lengthText}
+          bind:seconds
         />
-        <datalist id="film-lengths"
-          >{#each LENGTHS as seconds (seconds)}<option value={lengthLabel(seconds)}
-            ></option>{/each}</datalist
+      </div>
+      <div class="composer-choice">
+        <label for="film-format">{$t('field.format')}</label>
+        <select
+          id="film-format"
+          value={pictureFormat}
+          onchange={(event) => (pick.format = event.currentTarget.value)}
         >
-        {#if lengthText.trim() && (!lengthSeconds || lengthLabel(lengthSeconds) !== lengthText.trim())}<small
-            id="length-note"
-            class="length-note"
-            class:failed={!lengthSeconds}
-            >{lengthSeconds
-              ? $t('compose.lengthIs', { length: lengthLabel(lengthSeconds) })
-              : $t('compose.lengthHelp')}</small
-          >{/if}</label
-      >
-      <label
-        ><span>{$t('field.format')}</span>
-        <select bind:value={pick.format}>
-          <option value="">{inherited(settings.format, pickedStyle?.defaultFormat ?? null)}</option>
-          {#each FORMATS.filter((entry) => !pickedStyle || pickedStyle.formats.includes(entry.value)) as entry (entry.value)}<option
-              value={entry.value}>{$t(entry.label)}</option
+          {#each formats as entry (entry.value)}<option value={entry.value}
+              >{$t(entry.label)}</option
             >{/each}
-        </select></label
-      >
-      <label
-        ><span>{$t('field.language')}</span>
-        <select bind:value={pick.language}>
+        </select>
+      </div>
+      <div class="composer-choice">
+        <label for="film-language">{$t('field.language')}</label>
+        <select id="film-language" bind:value={pick.language}>
           <option value=""
-            >{inherited(
-              settings.language ? $format.language(settings.language) : null,
-              pickedStyle ? $format.language(pickedStyle.language) : null,
-            )}</option
+            >{written
+              ? $t('choice.topicLanguage', { language: $format.language(written) })
+              : $t('choice.topicLanguageOpen')}</option
           >
-          {#each FILM_LANGUAGES as code (code)}<option value={code}>{$format.language(code)}</option
+          {#each languages as entry (entry.code)}<option value={entry.code}>{entry.name}</option
             >{/each}
-        </select></label
-      >
+        </select>
+      </div>
     </div>
     <div class="composer-prompt">
       <pre aria-label={$t('compose.promptLabel')}>{prompt}</pre>

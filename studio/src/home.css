@@ -1,4 +1,4 @@
-/* The start page: setup, a new film, films, defaults. One scrolling column. Space, alignment and
+/* The start page: a new film, the styles, the films; Setup as a page of its own. One scrolling column. Space, alignment and
    type carry the structure; nothing is boxed and no rule separates the parts. */
 .home-layer {
   position: fixed;
@@ -75,24 +75,19 @@
 .home-heading > .button {
   align-self: center;
 }
-.home-subheading {
-  margin: 0 0 12px;
-  font-size: 15px;
-  font-weight: 500;
-}
-/* A subheading with the one action that belongs to the whole group. */
-.home-subheading-row {
+/* The actions that belong to a whole section, at the end of its heading. */
+.home-heading-actions {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-.home-subheading-row > .home-subheading {
-  margin: 0;
-}
-.home-subheading-row > .button {
+  flex-wrap: wrap;
+  gap: 8px;
+  align-self: center;
   margin-right: -12px;
+}
+/* The version stands quietly beside the name, as in an about box. */
+.app-version {
+  color: var(--secondary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
 /* A failure stays in view wherever on the page the user was when it happened. */
 .home-problem {
@@ -406,6 +401,13 @@
   font-size: 14px;
   line-height: 1.45;
 }
+/* A path is read character by character. */
+.setup-text > .setup-path {
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
 .setup-check {
   display: inline-flex;
   align-items: center;
@@ -627,36 +629,89 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.composer-options,
-.default-fields {
-  display: grid;
-  gap: 16px;
-}
 /* The style names are the longest choices. */
 .composer-options {
+  display: grid;
   grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
   gap: 12px 16px;
 }
-.default-fields {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-.composer-options > label,
-.default-fields > label {
+.composer-choice {
   display: flex;
   flex-direction: column;
   gap: 6px;
   min-width: 0;
 }
-.composer-options > label > span,
-.default-fields > label > span:first-child {
+.composer-choice > label {
   color: var(--secondary);
   font-size: 14px;
 }
-.composer-options select,
-.composer-options input[type='text'],
-.default-fields select,
-.default-fields input[type='text'] {
+.composer-choice select,
+.composer-choice input[type='text'] {
   width: 100%;
+}
+/* The length: a field that looks and opens like the lists beside it, and takes typing. */
+.length-field {
+  position: relative;
+}
+.length-field > input[type='text'] {
+  padding-right: 40px;
+}
+.length-toggle {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  bottom: 1px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  border-radius: 0 7px 7px 0;
+  color: var(--secondary);
+}
+.length-toggle:hover {
+  color: var(--text);
+}
+.length-list {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: min(340px, 50dvh);
+  padding: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  transform-origin: top center;
+  transition:
+    opacity 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@starting-style {
+  .length-list {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+.length-list > [role='option'] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.length-list > [role='option'].active {
+  background: var(--hover);
+}
+.length-list > [role='option'] > svg {
+  flex: none;
+  color: var(--secondary);
 }
 /* What a typed length is understood as, or how to write one. */
 .length-note {
@@ -905,39 +960,6 @@
     align-items: stretch;
   }
 }
-.default-fields > label > small {
-  color: var(--secondary);
-  font-size: 13px;
-}
-.default-fields > label.wide {
-  grid-column: 1 / -1;
-}
-.folder-field {
-  display: flex;
-  gap: 8px;
-}
-.folder-field > input {
-  flex: 1;
-}
-.default-fields > label.check {
-  flex-direction: row;
-  align-items: center;
-  gap: 10px;
-  grid-column: 1 / -1;
-  min-height: 32px;
-}
-.default-fields > label.check > span {
-  color: var(--text);
-  font-size: 15px;
-}
-.home-foot {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 20px;
-  padding-top: 56px;
-  color: var(--secondary);
-  font-size: 13px;
-}
 .text-link {
   color: var(--secondary);
   text-decoration: underline;
@@ -963,9 +985,6 @@
 @container application (max-width: 760px) {
   .composer-options {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  }
-  .default-fields {
-    grid-template-columns: minmax(0, 1fr);
   }
 }
 @container application (max-width: 620px) {

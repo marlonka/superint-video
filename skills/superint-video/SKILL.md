@@ -25,7 +25,7 @@ Everything in these skills and in a preset's `STYLE.md` is the accumulated exper
 
 The user should only have to say **what** and **in which style**, and roughly **how long** ("a 60 s flat-vector explainer about sleep", "a 25 s launch film for Acme in our brand"). Length is a direction, never a cut. Everything else you decide.
 
-**The user's defaults.** The app keeps what a new film starts from when the request does not say: style, length, format, language and the films folder. `superint-video settings` prints them, and `new` applies them by itself (`fromSettings` in its result lists which). With a default style, `superint-video new --topic "…" --message "…"` is a complete command. What the user says in the request always wins over a default; tell them which defaults you took.
+**The user's default style.** The app keeps one default style and the films folder; `superint-video settings` prints them, and `new` takes them when the request names neither (`fromSettings` in its result lists which). With a default style, `superint-video new --topic "…" --message "…"` is a complete command. Length, format and language come from the request: the start page's prompt names the format and the language every time. "Choose the style that suits the topic" means you pick the preset; "choose the length that suits the topic" means you decide how long the topic needs and pass it as `--seconds`. What the user says always wins; tell them which style you took and why.
 
 **Where the film goes.** Leave the folder out. `new` then puts the film into the user's films folder (`filmsFolder` in `superint-video settings`: `Superint Video` in their Videos folder unless they chose another), in a folder named after the topic, and prints its path as `project`. Use that path for every later command. Give a folder only when the user names one. Never create a film inside the tool's own folder or inside a code repository: a film is large and is not source code.
 
@@ -57,7 +57,7 @@ Studio shows the production live: the brief, the preset and skills in use, the r
     {"name": "Research", "state": "done"}, {"name": "Beats", "state": "active"}, {"name": "Build"}]}
   ```
 
-  `steps` are the workflow's steps in order (`state`: `done`, `active`, or omitted for not yet); `note` is one plain sentence in the brief's language about what you are doing right now.
+  `steps` are the workflow's steps in order (`state`: `done`, `active`, or omitted for not yet); `note` is one plain sentence about what you are doing right now. Write step names and the note in the language the user writes to you in, even when the film speaks another: the start page and Studio show them to the user as they are.
 - Put scenes on the timeline early, even rough, so the user sees the film grow instead of a blank preview until the end.
 
 ## Looks, references and the yardstick
@@ -97,7 +97,7 @@ Presets, their layout, where they live and how to make your own: [references/sty
 | --- | --- |
 | `doctor --json [--online]` | Chrome/Chromium, FFmpeg, Earshot and API keys present, plus the user's folder and defaults? `--online` also checks which models the keys reach, with live prices. |
 | `app [--no-open] [--stop]` | The app's start page: setup (coding agent with skills, tools, keys), prompt builder, films, defaults; in German or English. Starts in the background and returns its address at once |
-| `settings`, `settings set <key> <value>` | The user's defaults for new films: `preset`, `seconds`, `format`, `language`, `projectsDir`, plus `window` and `follow`. An empty value clears one |
+| `settings`, `settings set <key> <value>` | The user's choices: the default style `preset`, the films folder `projectsDir`, `window` and `follow`, the models. An empty value clears one |
 | `new [<dir>] [--preset <p>] … [--no-studio]` | Project from a style preset plus `brief.md`, with the chosen workflow and references; opens Studio. Without `--preset` it takes the user's default style. Without `<dir>`, the usual case, the film gets a folder named after the topic in the user's films folder |
 | `preset list [--json]` | Presets with description, formats, default workflow and number of references |
 | `preset show <name>` | A preset's configuration, files and references |

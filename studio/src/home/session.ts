@@ -129,7 +129,7 @@ async function putSettings(changes: Partial<Settings>) {
 export function saveSettings(changes: Partial<Settings>, done?: string) {
   return run('settings', async () => {
     await putSettings(changes);
-    announce(done ?? get(t)('defaults.saved'));
+    announce(done ?? get(t)('settings.saved'));
   });
 }
 

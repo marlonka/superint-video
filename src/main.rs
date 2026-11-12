@@ -46,8 +46,8 @@ enum Commands {
         #[arg(long, hide = true)]
         detached: bool,
     },
-    /// What a new film defaults to on this computer (style, length, format, language, films
-    /// folder). Without a subcommand: print them.
+    /// The user's choices on this computer: the default style, the films folder, how the app
+    /// opens, the models. Without a subcommand: print them.
     Settings {
         #[command(subcommand)]
         command: Option<SettingsCommand>,
@@ -82,16 +82,16 @@ enum Commands {
         /// The one sentence the film argues; the viewer should repeat it afterwards.
         #[arg(long)]
         message: Option<String>,
-        /// Target length in seconds (the user's default, else the preset's).
+        /// Target length in seconds (else the preset's).
         #[arg(long)]
         seconds: Option<u32>,
-        /// Aspect name from the preset, e.g. 16:9 or 9:16 (the user's default, else the preset's).
+        /// Aspect name from the preset, e.g. 16:9 or 9:16 (else the preset's).
         #[arg(long)]
         format: Option<String>,
         /// Don't start Studio. Normally it opens in the browser so the user can watch the work.
         #[arg(long)]
         no_studio: bool,
-        /// Narration and on-screen language, e.g. de or en.
+        /// Narration and on-screen language, e.g. de or en (else the preset's).
         #[arg(long)]
         language: Option<String>,
         #[arg(long)]
@@ -558,7 +558,7 @@ fn settings_report(home: &std::path::Path) -> Result<Value> {
         "settings": settings,
         "file": home.join("settings.json"),
         "keys": home::setting_keys(),
-        "note": "Unset values follow the style preset; `filmsFolder` is where `new` puts a film when no folder is given (projectsDir, else Superint Video in the user's Videos folder). The user changes these in the app (`superint-video app`) or with `settings set <key> <value>`. For the models, `superint-video models` says what each job uses and checks a model before `models set`.",
+        "note": "`preset` is the style `new` takes when none is given; `filmsFolder` is where `new` puts a film when no folder is given (projectsDir, else Superint Video in the user's Videos folder). The user changes these in the app (`superint-video app`) or with `settings set <key> <value>`. For the models, `superint-video models` says what each job uses and checks a model before `models set`.",
     }))
 }
 
@@ -654,7 +654,8 @@ async fn run() -> Result<()> {
             stop,
             no_studio,
         } => {
-            // What the request leaves open comes from the user's defaults, then from the preset.
+            // The style comes from the request, else the user's default; what else the request
+            // leaves open comes from the preset.
             let settings = Settings::current();
             let mut from_settings = Vec::new();
             let Some(preset) = preset.or_else(|| {
@@ -669,25 +670,10 @@ async fn run() -> Result<()> {
                     .collect::<Vec<_>>()
                     .join(", ");
                 bail!(
-                    "Choose a style preset with --preset (ask the user which look they want), or let the user pick a default style in the app (`superint-video app`). Available: {names}"
+                    "Choose a style preset with --preset: the one that suits the topic best, or ask the user when the look is unclear. A default style can be set in the app (`superint-video app`). Available: {names}"
                 );
             };
             let preset = Preset::resolve(&preset)?;
-            let seconds =
-                seconds.or_else(|| settings.seconds.inspect(|_| from_settings.push("seconds")));
-            let format = format.or_else(|| {
-                settings
-                    .format
-                    .clone()
-                    .filter(|f| preset.config.formats.contains_key(f))
-                    .inspect(|_| from_settings.push("format"))
-            });
-            let language = language.or_else(|| {
-                settings
-                    .language
-                    .clone()
-                    .inspect(|_| from_settings.push("language"))
-            });
             // Without a folder the film goes to the user's films folder: the one they chose,
             // else `Superint Video` in their Videos folder.
             let directory = match directory {

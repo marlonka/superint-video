@@ -48,14 +48,14 @@ pub enum Window {
     Browser,
 }
 
-/// What a new film starts from when the request does not say. Unset values follow the preset.
+/// The user's choices on this computer. A film's length, format and language are not among
+/// them: the prompt from the start page names them for every film. Files from older versions
+/// that still hold them load; the values are dropped.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
+    /// The style a new film takes when the request names none.
     pub preset: Option<String>,
-    pub seconds: Option<u32>,
-    pub format: Option<String>,
-    pub language: Option<String>,
     /// Where `new` puts a film when no folder is given.
     pub projects_dir: Option<PathBuf>,
     pub window: Window,
@@ -85,9 +85,6 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             preset: None,
-            seconds: None,
-            format: None,
-            language: None,
             projects_dir: None,
             window: Window::App,
             follow: true,
@@ -140,8 +137,6 @@ impl Settings {
     pub fn normalize(&mut self) {
         for value in [
             &mut self.preset,
-            &mut self.format,
-            &mut self.language,
             &mut self.ui_language,
             &mut self.narration_voice,
             &mut self.google_cloud_project,
@@ -190,28 +185,6 @@ impl Settings {
         if let Some(preset) = &self.preset {
             crate::preset::Preset::resolve(preset)
                 .with_context(|| format!("Default style {preset}"))?;
-        }
-        if let Some(seconds) = self.seconds
-            && !(1..=3600).contains(&seconds)
-        {
-            bail!("Length must be between 1 and 3600 seconds");
-        }
-        if let Some(format) = &self.format {
-            let ok = format
-                .split_once(':')
-                .is_some_and(|(w, h)| w.parse::<u32>().is_ok() && h.parse::<u32>().is_ok());
-            if !ok {
-                bail!("Format looks like 16:9 or 9:16");
-            }
-        }
-        if let Some(language) = &self.language {
-            let ok = (2..=12).contains(&language.len())
-                && language
-                    .chars()
-                    .all(|c| c.is_ascii_alphabetic() || c == '-');
-            if !ok {
-                bail!("Language is a code such as de, en or pt-BR");
-            }
         }
         if let Some(folder) = &self.projects_dir
             && !folder.is_absolute()
@@ -292,13 +265,6 @@ impl Settings {
         let text = (!value.is_empty()).then(|| value.to_string());
         match key {
             "preset" => self.preset = text,
-            "seconds" => {
-                self.seconds = text
-                    .map(|v| v.parse().context("Length is a number of seconds"))
-                    .transpose()?
-            }
-            "format" => self.format = text,
-            "language" => self.language = text,
             "projectsDir" => self.projects_dir = text.map(PathBuf::from),
             "window" => {
                 self.window = match value {
@@ -859,11 +825,16 @@ mod tests {
     fn settings_round_trip_and_reject_nonsense() {
         let home = TempDir::new().unwrap();
         assert_eq!(Settings::load(home.path()).unwrap(), Settings::default());
+        // Files from before 0.4.0 still hold a length, format and language: they load.
+        std::fs::write(
+            home.path().join(SETTINGS),
+            r#"{"preset":"blank","seconds":90,"format":"9:16","language":"de"}"#,
+        )
+        .unwrap();
+        let old = Settings::load(home.path()).unwrap();
+        assert_eq!(old.preset.as_deref(), Some("blank"));
         let mut settings = Settings::default();
         settings.set("preset", "flat-explainer").unwrap();
-        settings.set("seconds", "90").unwrap();
-        settings.set("format", "9:16").unwrap();
-        settings.set("language", "de").unwrap();
         settings.set("follow", "off").unwrap();
         settings.set("uiLanguage", "de").unwrap();
         settings
@@ -879,7 +850,6 @@ mod tests {
         settings.save(home.path()).unwrap();
         let loaded = Settings::load(home.path()).unwrap();
         assert_eq!(loaded.preset.as_deref(), Some("flat-explainer"));
-        assert_eq!(loaded.seconds, Some(90));
         assert!(!loaded.follow);
         assert_eq!(loaded.ui_language.as_deref(), Some("de"));
         assert_eq!(
@@ -893,8 +863,9 @@ mod tests {
         assert_eq!(loaded.google_cloud_location.as_deref(), Some("us"));
         assert_eq!(loaded.models()["voice"], "Charon");
 
-        assert!(settings.clone().set("seconds", "0").is_err());
-        assert!(settings.clone().set("format", "wide").is_err());
+        // A film's length, format and language are named in each prompt, not kept here.
+        assert!(settings.clone().set("seconds", "90").is_err());
+        assert!(settings.clone().set("language", "de").is_err());
         assert!(settings.clone().set("preset", "no-such-style").is_err());
         assert!(settings.clone().set("projectsDir", "films").is_err());
         assert!(settings.clone().set("colour", "red").is_err());
@@ -932,11 +903,11 @@ mod tests {
                 .is_err()
         );
         assert!(settings.clone().set("openAiRegion", "jp").is_err());
-        settings.set("seconds", "").unwrap();
-        assert_eq!(settings.seconds, None);
+        settings.set("preset", "").unwrap();
+        assert_eq!(settings.preset, None);
         // Every field of the file is set by its name, so none can be left out of `set`.
         let keys = setting_keys();
-        assert_eq!(keys.len(), 16);
+        assert_eq!(keys.len(), 13);
         for key in keys {
             Settings::default().set(&key, "").unwrap();
         }
