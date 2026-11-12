@@ -5,6 +5,7 @@
 - **Von einem Film ausgehen:** Das Menü „⋯“ eines Films hat „Als Vorlage nutzen“ und „Duplizieren“. Die Vorlage steht dann unter „Neuer Film“ („Ausgehend von …“), und der Prompt sagt dem Coding-Agenten, eine Kopie anzulegen und nur zu ändern, was das neue Thema braucht. „Duplizieren“ legt die Kopie sofort an und öffnet sie. Neu dafür ist `superint-video duplicate <film> --topic "…"`: Briefing, Szenen, Kit, Referenzen und Ton kommen mit, fertige Videos, Bericht, Status und Prüfungen bleiben zurück.
 - **„Erstellte Filme“** heißt die Liste der Filme jetzt.
 - **Sauber ausgerichtet:** „Prompt kopieren“ schließt unten mit dem Prompt ab, die Überschrift „Stile“ steht mit Text und Knöpfen auf einer Linie, und „Passend zum Thema“ im Längenfeld hat dieselbe Schriftfarbe wie die Listen daneben.
+- **Kleinigkeiten:** Wer den Speicherort für Filme unverändert speichert, legt ihn nicht mehr fest; er folgt weiter dem üblichen Ordner. Escape verlässt die Startseite nicht mehr, während jemand tippt. Lange Themen werden für die Spracherkennung nur am Anfang gelesen.
 
 ## 0.4.0 — 2026-11-12
 
