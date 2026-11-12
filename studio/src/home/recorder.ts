@@ -30,7 +30,7 @@ export interface Recording {
 }
 
 /** What a recording is for. */
-export type Purpose =
+type Purpose =
   /** Words to be written down: the browser may clean the signal, and 16 kHz is all a
    * transcription model uses. */
   | 'dictation'

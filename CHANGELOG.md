@@ -1,6 +1,6 @@
 # Versionsverlauf
 
-## Unveröffentlicht
+## 0.8.0 — 2026-11-13
 
 - **Ohne API-Schlüssel:** Ein Film braucht nur noch einen Coding-Agenten, Chrome und FFmpeg. Die Einrichtung hält niemanden mehr wegen eines fehlenden API-Schlüssels auf und sagt, was ohne ihn geht (Bild, Text im Bild, Soundeffekte, die eigene Stimme) und was er dazubringt (KI-Stimme mit exakten Wort-Zeitpunkten, erzeugte Musik, Diktieren, Stile aus Bildern). Das Diktat und „Neuen Stil erstellen“ sagen an Ort und Stelle, dass sie einen brauchen.
 - **Wer spricht:** Unter „Neuer Film“ gibt es „Stimme“ mit „KI-Stimme“, „Eigene Stimme“ und „Ohne Stimme“. Vorgewählt ist, was eingerichtet ist; die Wahl steht im Prompt.

@@ -6,7 +6,7 @@ import type { Translate } from '../i18n';
 import { MicrophoneError } from '../home/recorder';
 
 /** What the clean-up noticed about a recording; each is a reason to record it again. */
-export type TakeNote = 'clipped' | 'quiet' | 'noisy';
+type TakeNote = 'clipped' | 'quiet' | 'noisy';
 
 export interface Take {
   seconds: number;
@@ -44,7 +44,7 @@ export interface VoiceState {
 }
 
 /** Counts in before a take: 3, 2, 1. */
-export const COUNT_FROM = 3;
+const COUNT_FROM = 3;
 const COUNT_STEP_MS = 800;
 
 /**
