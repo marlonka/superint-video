@@ -1,5 +1,9 @@
 # Versionsverlauf
 
+## 0.7.1 — 2026-11-12
+
+- **Ein Ordner für alle Einstellungen:** Einstellungen, API-Schlüssel, die Liste der Filme und eigene Stile liegen jetzt unter `%USERPROFILE%\.superint-video` statt unter `%APPDATA%\superint-video`. Wurde die App aus der Claude- oder ChatGPT-Desktop-App gestartet, schrieb Windows diese Dateien in eine eigene Kopie für jede dieser Apps. Dann hatte jede ihre eigenen Einstellungen, und „Einstellungsordner anzeigen“ und „Ordner deiner Stile“ meldeten im Explorer, der Pfad sei nicht verfügbar. Beim ersten Start übernimmt die App von jeder Datei die neueste Fassung aus allen bisherigen Kopien; die alten bleiben unangetastet liegen.
+
 ## 0.7.0 — 2026-11-12
 
 - **Feinschliff in Runden:** Die Einrichtung hat „Feinschliff vor dem Render“ mit „Runden vor jedem Render“: 1, 2 oder 3, mit der Maus oder mit Tab und den Pfeiltasten. Darunter steht, was die Wahl bringt und was sie an Zeit und Nutzung kostet. Eine Runde ist ein neuer Sub-Agent des Coding-Agents mit frischen Augen; die Runden laufen nacheinander, jede auf dem Bild der vorigen. Die App bessert selbst nichts nach: `polish` nennt dem Agenten Runde und Zahl (`round`, `rounds`), `polish --accept` sagt in `next`, wenn die nächste Runde fällig ist, und `render` wartet, bis die letzte sauber ist. Einstellung `polishRounds` (`settings set polishRounds 2`); ein Film kann in seinem `brief.md` eine eigene Zahl haben, `new --polish-rounds` schreibt sie hinein.
