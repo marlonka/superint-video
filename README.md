@@ -12,7 +12,7 @@
   <img alt="Rust" src="https://img.shields.io/badge/Rust-CLI%20%2B%20Studio-b7410e?style=flat-square&logo=rust">
   <img alt="Windows x64" src="https://img.shields.io/badge/Windows-x64-2f7bf5?style=flat-square">
   <img alt="Lizenz: MIT" src="https://img.shields.io/badge/Lizenz-MIT-3a3a3a?style=flat-square">
-  <a href="https://github.com/marlonka/superint-video/releases/tag/v0.6.0"><img alt="Release: v0.6.0" src="https://img.shields.io/badge/Release-v0.6.0-2e8b57?style=flat-square"></a>
+  <a href="https://github.com/marlonka/superint-video/releases/tag/v0.7.0"><img alt="Release: v0.7.0" src="https://img.shields.io/badge/Release-v0.7.0-2e8b57?style=flat-square"></a>
 </p>
 
 <br>
@@ -67,7 +67,7 @@ Nutze den Skill superint-video: Explainer im Flat-Vector-Stil, 60 Sekunden,
 Thema „Warum Schlaf das Gehirn putzt“.
 ```
 
-Der Agent fragt nur nach, was er nicht selbst gut entscheiden kann, etwa Screenshots des gewünschten Looks. Dann arbeitet er in Schritten, die jeweils eine Datei im Projekt hinterlassen: Recherche mit Quellen, drei Konzepte, Skript, Beats, Style-Frames, Szenen, Ton, Review, Polish und Render. Der Polish-Durchgang läuft von selbst vor jedem Render: Frische Augen sehen sich jedes Standbild, jeden Schnitt und jede Bewegung an und bessern nach, bis nichts mehr auffällt. Nach deiner Abnahme folgt ein Bericht mit einem Making-of zum Einfügen unter das Video.
+Der Agent fragt nur nach, was er nicht selbst gut entscheiden kann, etwa Screenshots des gewünschten Looks. Dann arbeitet er in Schritten, die jeweils eine Datei im Projekt hinterlassen: Recherche mit Quellen, drei Konzepte, Skript, Beats, Style-Frames, Szenen, Ton, Review, Polish und Render. Der Polish-Durchgang läuft von selbst vor jedem Render: Frische Augen sehen sich jedes Standbild, jeden Schnitt und jede Bewegung an und bessern nach, bis nichts mehr auffällt. Wie viele Runden, wählst du vorher in der Einrichtung: eine, zwei oder drei, jede mit neuen Augen und mehr Blick fürs Detail. Nach deiner Abnahme folgt ein Bericht mit einem Making-of zum Einfügen unter das Video.
 
 - **Eine Welt statt Folien.** Jedes Bild ist eine reine Funktion der Zeit, und jede Bewegung hängt an einem Wort der Stimme. So fallen Bild und Wort auf den Frame genau zusammen.
 - **Recherche, die trägt.** Jede Aussage im Film steht mit Quelle im Claim-Register. Drei Konzepte und drei Skriptentwürfe treten gegeneinander an, der beste geht durch Kritikrunden.
@@ -135,7 +135,7 @@ superint-video sfx kit .\schlaf                 # Klänge aus Earshot, auf die F
 superint-video mix .\schlaf                     # Ducking, Master auf −14 LUFS
 superint-video review .\schlaf                  # Kontaktbogen und Arbeitsblatt für die Review-Runde
 superint-video polish .\schlaf                  # letzter Blick vor dem Render: Standbilder, Nahaufnahmen, Schnitte, Bewegungen
-superint-video polish .\schlaf --accept         # sauberen Durchgang festhalten; render verlangt ihn
+superint-video polish .\schlaf --accept         # sauberen Durchgang festhalten; render verlangt ihn für die letzte Runde
 superint-video render .\schlaf --audio audio/master.wav --output renders/video.mp4
 superint-video listen .\schlaf\renders\video.mp4 --project .\schlaf   # gegenhören
 ```
@@ -170,7 +170,7 @@ Von der Kommandozeile prüfst du die Installation so:
 Aus dem Quellcode: `git clone`, dann `.\scripts\build.ps1`. Dafür brauchst du Rust 1.99 und Node.js 26. Details stehen im [Handbuch](docs/HANDBUCH.md#aus-dem-quellcode-bauen).
 
 > [!IMPORTANT]
-> **Stand:** v0.6.0 ist veröffentlicht. Enthalten sind Presets, Ablauf-Skills, Ton und Produktionsbereich sowie die App mit Einrichtung, Diktat, Speicherort für Filme, Stil-Dateien, eigenen Stilen aus Bildern oder fertigen Filmen und neuen Filmen auf Grundlage eines anderen. Geprüft ist nur Windows x64. App und Studio sprechen Deutsch und Englisch; Meldungen der Kommandozeile sind englisch. Kurze SDR-Filme funktionieren gut; lange Projekte, HDR und Ripple-Editing nicht. Die Grenzen stehen im [Handbuch](docs/HANDBUCH.md#grenzen).
+> **Stand:** v0.7.0 ist veröffentlicht. Enthalten sind Presets, Ablauf-Skills, Ton und Produktionsbereich sowie die App mit Einrichtung, Feinschliff in ein bis drei Runden, Diktat, Speicherort für Filme, Stil-Dateien, eigenen Stilen aus Bildern oder fertigen Filmen und neuen Filmen auf Grundlage eines anderen. Geprüft ist nur Windows x64. App und Studio sprechen Deutsch und Englisch; Meldungen der Kommandozeile sind englisch. Kurze SDR-Filme funktionieren gut; lange Projekte, HDR und Ripple-Editing nicht. Die Grenzen stehen im [Handbuch](docs/HANDBUCH.md#grenzen).
 
 ## Datenschutz und KI-Inhalte
 

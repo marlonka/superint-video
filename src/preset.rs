@@ -704,6 +704,8 @@ pub struct Brief<'a> {
     pub script: Option<String>,
     /// Stills or clips that show the look the user wants; copied into `references/`.
     pub references: Vec<PathBuf>,
+    /// Rounds of polish for this film; unset, it follows the user's setting.
+    pub polish_rounds: Option<u8>,
 }
 
 /// Creates a project from a preset and writes `brief.md` for the agent.
@@ -743,6 +745,9 @@ pub fn create_project(
         valid_word(workflow, "Workflow")?;
     }
     let topic = brief.topic.map(str::trim).filter(|t| !t.is_empty());
+    if let Some(rounds) = brief.polish_rounds {
+        crate::polish::parse_rounds(&rounds.to_string())?;
+    }
     for source in &brief.references {
         if !source.is_file() {
             bail!("Reference is not a file: {}", source.display());
@@ -821,7 +826,7 @@ pub fn create_project(
         )
     };
     let brief_text = format!(
-        "---\npreset: {preset}\nworkflow: {workflow_name}\ntopic: {topic_json}\nseconds: {seconds}\nformat: \"{format}\"\nsize: {w}x{h}\nfps: {fps}\nlanguage: {language}\nstops: [{stop_names}]\nconcepts: {concepts}\nnarrationWords: {words}\n---\n\n\
+        "---\npreset: {preset}\nworkflow: {workflow_name}\ntopic: {topic_json}\nseconds: {seconds}\nformat: \"{format}\"\nsize: {w}x{h}\nfps: {fps}\nlanguage: {language}\nstops: [{stop_names}]\nconcepts: {concepts}\nnarrationWords: {words}\n{polish_line}---\n\n\
 # Brief\n\n\
 ## Topic\n\n{topic_text}\n\n\
 ## Message\n\n{message}\n\n\
@@ -843,6 +848,10 @@ Style preset `{preset}`: its rules are in `STYLE.md`.\n\n\
         h = size.height,
         stop_names = stops.join(", "),
         concepts = config.defaults.concepts,
+        polish_line = brief
+            .polish_rounds
+            .map(|rounds| format!("{}: {rounds}\n", crate::polish::BRIEF_KEY))
+            .unwrap_or_default(),
         topic_text = topic.unwrap_or(
             "TODO: what the video is about: the topic, product, release or occasion, and its angle."
         ),
@@ -1008,6 +1017,7 @@ mod tests {
                 stops: Some(vec!["script".into(), "concept".into(), "script".into()]),
                 script: Some("Hallo".into()),
                 references: vec![reference.clone()],
+                polish_rounds: Some(2),
             },
         )
         .unwrap();
@@ -1029,6 +1039,13 @@ mod tests {
         assert!(brief.contains("## Message\n\nWer zu wenig schläft, räumt sein Gehirn nicht auf"));
         // 3 s of German narration at 140 words per minute.
         assert!(brief.contains("narrationWords: 7"));
+        // The rounds chosen for this film are in its brief, and the brief wins over the setting.
+        assert!(brief.contains(
+            "narrationWords: 7
+polishRounds: 2
+---"
+        ));
+        assert_eq!(crate::polish::rounds(&root).unwrap(), (2, "brief"));
         assert_eq!(fs::read_to_string(root.join("script.md")).unwrap(), "Hallo");
         assert!(root.join("STYLE.md").is_file() && root.join("kit/kit.js").is_file());
         assert!(
@@ -1048,6 +1065,7 @@ mod tests {
                     stops: None,
                     script: None,
                     references: Vec::new(),
+                    polish_rounds: None,
                 }
             )
             .is_err()
@@ -1079,6 +1097,7 @@ mod tests {
             stops,
             script: None,
             references: Vec::new(),
+            polish_rounds: None,
         };
         assert!(
             create_project(

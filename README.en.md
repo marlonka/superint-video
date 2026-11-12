@@ -12,7 +12,7 @@
   <img alt="Rust" src="https://img.shields.io/badge/Rust-CLI%20%2B%20Studio-b7410e?style=flat-square&logo=rust">
   <img alt="Windows x64" src="https://img.shields.io/badge/Windows-x64-2f7bf5?style=flat-square">
   <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-3a3a3a?style=flat-square">
-  <a href="https://github.com/marlonka/superint-video/releases/tag/v0.6.0"><img alt="Release: v0.6.0" src="https://img.shields.io/badge/Release-v0.6.0-2e8b57?style=flat-square"></a>
+  <a href="https://github.com/marlonka/superint-video/releases/tag/v0.7.0"><img alt="Release: v0.7.0" src="https://img.shields.io/badge/Release-v0.7.0-2e8b57?style=flat-square"></a>
 </p>
 
 <br>
@@ -35,7 +35,7 @@ Use the superint-video skill: a flat-vector explainer, 60 seconds,
 topic "Why sleep cleans the brain".
 ```
 
-The agent only asks about what it cannot decide well itself, such as screenshots of the look you want. Then it works in steps that each leave a file in the project: research with sources, three concepts, script, beats, style frames, scenes, sound, review, polish and render. The polish pass runs by itself before every render: fresh eyes look at every still, cut and movement and fix things until nothing stands out. After you accept the film, a report follows with a making-of to paste under the video.
+The agent only asks about what it cannot decide well itself, such as screenshots of the look you want. Then it works in steps that each leave a file in the project: research with sources, three concepts, script, beats, style frames, scenes, sound, review, polish and render. The polish pass runs by itself before every render: fresh eyes look at every still, cut and movement and fix things until nothing stands out. You choose the number of rounds in Setup beforehand: one, two or three, each with new eyes and a closer look at the detail. After you accept the film, a report follows with a making-of to paste under the video.
 
 - **One world instead of slides.** Every picture is a pure function of time, and every movement hangs on a word of the voice, so picture and word meet on the exact frame.
 - **Research that holds.** Every claim in the film has a source in the claim register. Three concepts and three script drafts compete; the best goes through rounds of critique.
@@ -105,7 +105,7 @@ Every command and option is in `superint-video <command> --help` and in the (Ger
 Check the installation from the command line with `.\superint-video.exe doctor --json`. To build from source: `git clone`, then `.\scripts\build.ps1` (Rust 1.99 and Node.js 26).
 
 > [!IMPORTANT]
-> **Status:** v0.6.0. Only Windows x64 is tested. Short SDR films work well; long projects, HDR and ripple editing do not. Reports from macOS and Linux are welcome.
+> **Status:** v0.7.0. Only Windows x64 is tested. Short SDR films work well; long projects, HDR and ripple editing do not. Reports from macOS and Linux are welcome.
 
 ## Privacy and AI content
 

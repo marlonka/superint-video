@@ -175,13 +175,13 @@ These passes are yours as the author: composition, flow and the picture against 
 
 ## 8. Polish → `renders/polish/<n>/`, `process/polish.md`
 
-Before any delivery render, fresh eyes go through the film once more: every still at full size, close-ups, both sides of every cut and the fastest moves. Follow `references/polish.md` of the superint-video skill; nobody has to ask for this step. For this workflow:
+Before any delivery render, fresh eyes go through the film once more: every still at full size, close-ups, both sides of every cut and the fastest moves. They do it in as many rounds as the user set (`polishRounds`, 1 to 3), each round a new cold polisher after the one before. Follow `references/polish.md` of the superint-video skill; nobody has to ask for this step. For this workflow:
 
 - The polisher redraws what is built wrong and adds the detail that is missing, in the scene libraries, so one fix reaches every scene. The script, the voice and the timing of the words stay.
 - Judge against the stills in `references/` at the same size: a prop, an icon or a background that is simpler than theirs is a defect even when nothing in it is wrong.
 - Check characters and hero objects settled and mid-move; the strips show the frames in between.
 - With audio, listen to the mix against the picture on a draft render before this step (`render --quality draft`, then `superint-video listen`; see the `superint-audio` skill), so that nothing is left to check after the final render.
-- The gate is `superint-video polish <dir> --accept`. To polish a film that is already delivered, run the same loop, then render under a new name.
+- The gate is `superint-video polish <dir> --accept` of the last round. To polish a film that is already delivered, run the same loop, then render under a new name.
 
 ## 9. Render and hand over
 

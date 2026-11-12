@@ -1,5 +1,11 @@
 # Versionsverlauf
 
+## 0.7.0 — 2026-11-12
+
+- **Feinschliff in Runden:** Die Einrichtung hat „Feinschliff vor dem Render“ mit „Runden vor jedem Render“: 1, 2 oder 3, mit der Maus oder mit Tab und den Pfeiltasten. Darunter steht, was die Wahl bringt und was sie an Zeit und Nutzung kostet. Eine Runde ist ein neuer Sub-Agent des Coding-Agents mit frischen Augen; die Runden laufen nacheinander, jede auf dem Bild der vorigen. Die App bessert selbst nichts nach: `polish` nennt dem Agenten Runde und Zahl (`round`, `rounds`), `polish --accept` sagt in `next`, wenn die nächste Runde fällig ist, und `render` wartet, bis die letzte sauber ist. Einstellung `polishRounds` (`settings set polishRounds 2`); ein Film kann in seinem `brief.md` eine eigene Zahl haben, `new --polish-rounds` schreibt sie hinein.
+- **Spätere Runden sehen mehr:** Der erste Durchgang einer neuen Runde geht über den ganzen Film, mit Standbildern zwischen denen der früheren Runden, Nahaufnahmen jedes Standbilds, schnellen Bewegungen, die noch keine Runde gezeigt hat, der Liste dessen, was frühere Runden behoben haben, und eigenen Fragen: Runde 2 nach dem, was die Korrekturen übrig ließen, und nach Details im Vergleich mit den Referenzen, Runde 3 nach Material, Licht, Bewegung und dem ganzen Film.
+- **Studio** zeigt neben dem Durchgang die Runde („Runde 2 von 3“) und sagt, wenn eine Runde sauber ist und die nächste folgt.
+
 ## 0.6.0 — 2026-11-12
 
 - **Chrome DevTools MCP unter „Freiwillig“:** Die Einrichtung zeigt, bei welchem Coding-Agenten [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp) eingerichtet ist und bei welchem es fehlt. Damit öffnet der Agent Websites und macht Screenshots, etwa für einen Launch-Film über eine Website. „Auftrag kopieren“ gibt ihm die Anleitung für Claude Code, ChatGPT Codex und Google Antigravity, mit `--no-usage-statistics`. Die App liest dafür nur die Einstellungen der Agenten. Der Skill `superint-launch` sagt dem Agenten, wie er damit Screenshots einer Website in `references/` legt.

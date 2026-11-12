@@ -435,17 +435,15 @@ async fn polish_lists_only_what_changed_and_accepts_only_a_clean_pass() -> Resul
     };
 
     let picture = picture_revision(root)?;
-    let (first, pass, previous) = polish::next_output(root);
-    ensure!(pass == 1 && previous.is_none(), "first pass: {pass}");
-    let result = polish::polish(
-        ProjectStore::open(root)?.snapshot()?,
-        &picture,
-        1.0,
-        &first,
-        pass,
-        None,
-    )
-    .await?;
+    let next = polish::next(root, 1);
+    ensure!(
+        next.pass == 1 && next.round == 1 && next.previous.is_none(),
+        "first pass: {}",
+        next.pass
+    );
+    let first = next.output.clone();
+    let result =
+        polish::polish(ProjectStore::open(root)?.snapshot()?, &picture, 1.0, &next).await?;
     for file in [
         "contact-sheet.png",
         "polish.json",
@@ -464,25 +462,31 @@ async fn polish_lists_only_what_changed_and_accepts_only_a_clean_pass() -> Resul
             && result["clean"] == false,
         "first pass: {result}"
     );
-    ensure!(polish::state(root)?["state"] == "missing", "state before");
     ensure!(
-        polish::accept(root, &picture).is_err(),
+        polish::state(root, 1)?["state"] == "missing",
+        "state before"
+    );
+    ensure!(
+        polish::accept(root, &picture, 1).is_err(),
         "a worksheet nobody filled in was accepted"
     );
     fill(&first, "the label sits on the marker")?;
     ensure!(
-        polish::accept(root, &picture).is_err(),
+        polish::accept(root, &picture, 1).is_err(),
         "a pass with defects was accepted"
     );
     fill(&first, "ok: reads at once")?;
-    polish::accept(root, &picture)?;
-    ensure!(polish::state(root)?["state"] == "accepted", "state after");
+    polish::accept(root, &picture, 1)?;
+    ensure!(
+        polish::state(root, 1)?["state"] == "accepted",
+        "state after"
+    );
 
     // Notes and the report do not touch the picture.
     fs::write(root.join("process/review.md"), "a note")?;
     fs::write(root.join("report.md"), "a report")?;
     ensure!(
-        polish::state(root)?["state"] == "accepted",
+        polish::state(root, 1)?["state"] == "accepted",
         "a note made the pass stale"
     );
 
@@ -495,24 +499,22 @@ async fn polish_lists_only_what_changed_and_accepts_only_a_clean_pass() -> Resul
         serde_json::to_vec_pretty(&manifest)?,
     )?;
     ensure!(
-        polish::state(root)?["state"] == "stale",
+        polish::state(root, 1)?["state"] == "stale",
         "state after a change"
     );
     let picture = picture_revision(root)?;
     ensure!(
-        polish::accept(root, &picture).is_err(),
+        polish::accept(root, &picture, 1).is_err(),
         "a pass was accepted for a picture it never saw"
     );
-    let (second, pass, previous) = polish::next_output(root);
-    let result = polish::polish(
-        ProjectStore::open(root)?.snapshot()?,
-        &picture,
-        1.0,
-        &second,
-        pass,
-        previous.as_deref(),
-    )
-    .await?;
+    let next = polish::next(root, 1);
+    ensure!(
+        next.round == 1 && next.previous.is_some(),
+        "a change stays in round 1"
+    );
+    let second = next.output.clone();
+    let result =
+        polish::polish(ProjectStore::open(root)?.snapshot()?, &picture, 1.0, &next).await?;
     let sheet = fs::read_to_string(second.join("polish.md"))?;
     ensure!(
         result["toLookAt"]["stills"] == 2
@@ -523,24 +525,67 @@ async fn polish_lists_only_what_changed_and_accepts_only_a_clean_pass() -> Resul
         "second pass: {result}\n{sheet}"
     );
     fill(&second, "ok: reads at once")?;
-    polish::accept(root, &picture)?;
-    let state = polish::state(root)?;
+    polish::accept(root, &picture, 1)?;
+    let state = polish::state(root, 1)?;
     ensure!(
         state["state"] == "accepted" && state["pass"] == 2,
         "state after the second pass: {state}"
     );
 
     // Nothing changed: the same frames come out pixel for pixel, and the pass is clean.
-    let (third, pass, previous) = polish::next_output(root);
-    let result = polish::polish(
-        ProjectStore::open(root)?.snapshot()?,
-        &picture,
-        1.0,
-        &third,
-        pass,
-        previous.as_deref(),
-    )
-    .await?;
+    let next = polish::next(root, 1);
+    let result =
+        polish::polish(ProjectStore::open(root)?.snapshot()?, &picture, 1.0, &next).await?;
     ensure!(result["clean"] == true, "third pass: {result}");
+
+    // The user wants two rounds: the clean round 1 is not enough to render, and once its last
+    // pass is accepted the next pass starts round 2 over the whole film, between the stills of
+    // round 1, with close-ups of every still and what round 1 found.
+    // As in a real round, the first pass keeps the finding the passes after it answered.
+    fill(&first, "the label sits on the marker")?;
+    let accepted = polish::accept(root, &picture, 2)?;
+    ensure!(
+        accepted["round"] == 1 && accepted["next"].as_str().unwrap_or("").contains("Round 2"),
+        "accept of round 1 of 2: {accepted}"
+    );
+    let state = polish::state(root, 2)?;
+    ensure!(
+        state["state"] == "next-round",
+        "state after round 1 of 2: {state}"
+    );
+    let next = polish::next(root, 2);
+    ensure!(
+        next.round == 2 && next.previous.is_none() && next.pass == 4,
+        "round 2 starts fresh"
+    );
+    let fourth = next.output.clone();
+    let result =
+        polish::polish(ProjectStore::open(root)?.snapshot()?, &picture, 1.0, &next).await?;
+    let sheet = fs::read_to_string(fourth.join("polish.md"))?;
+    ensure!(
+        result["round"] == 2
+            && result["clean"] == false
+            && sheet.starts_with("# Polish pass 4, round 2 of 2")
+            && sheet.contains("## Found in earlier rounds")
+            && sheet.contains("the label sits on the marker")
+            && sheet.contains("## How to look: round 2")
+            && sheet.contains("| frame-000015.png |")
+            && !sheet.contains("| frame-000000.png |")
+            && sheet.contains("| cut-000030.png |")
+            && fourth.join("close-000015-a.png").is_file(),
+        "round 2: {result}
+{sheet}"
+    );
+    ensure!(
+        polish::accept(root, &picture, 2).is_err(),
+        "round 2 was accepted before anyone looked"
+    );
+    fill(&fourth, "ok: holds up")?;
+    let accepted = polish::accept(root, &picture, 2)?;
+    ensure!(accepted["round"] == 2, "accept of round 2: {accepted}");
+    ensure!(
+        polish::state(root, 2)?["state"] == "accepted",
+        "two rounds are done"
+    );
     Ok(())
 }

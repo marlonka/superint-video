@@ -8,6 +8,7 @@
   import type { Agent, KeyCheck, KeyRow, Overview, Settings, Tool, UsualModels } from '../types';
   import SetupFilms from './SetupFilms.svelte';
   import SetupItem from './SetupItem.svelte';
+  import SetupPolish from './SetupPolish.svelte';
   import VoiceChoice from './VoiceChoice.svelte';
   import {
     announce,
@@ -588,6 +589,11 @@
       <section class="setup-group" aria-labelledby="setup-films">
         {@render heading(null, 'setup-films', $t('setup.films.title'), $t('setup.films.why'))}
         <SetupFilms {overview} />
+      </section>
+
+      <section class="setup-group" aria-labelledby="setup-polish">
+        {@render heading(null, 'setup-polish', $t('setup.polish.title'), $t('setup.polish.why'))}
+        <SetupPolish {overview} />
       </section>
 
       <section class="setup-group" aria-labelledby="setup-models">

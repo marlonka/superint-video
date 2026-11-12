@@ -3,13 +3,18 @@
 //! every cut and strips over the fastest moves go on a worksheet with one row each. A later
 //! pass lists only what changed or was left open. `--accept` records a clean pass for the
 //! picture as it stands, and `render` asks for that record. Judging stays with whoever looks.
+//!
+//! A film gets one to three rounds (`polishRounds`). A round is one pair of fresh eyes: its
+//! passes repeat until one is clean. The round after an accepted one starts over the whole film
+//! with stills between the earlier ones, close-ups of every still, moves no round showed yet,
+//! what the earlier rounds fixed, and questions of its own.
 use crate::{
     model::{ClipType, Manifest},
     project::{self, ProjectSnapshot, without_verbatim},
     renderer::{self, Capture},
     review,
 };
-use anyhow::{Context, Result, ensure};
+use anyhow::{Context, Result, bail, ensure};
 use image::{DynamicImage, RgbImage};
 use serde_json::{Value, json};
 use std::{
@@ -48,6 +53,43 @@ const MOST_CUTS: usize = 60;
 const MOST_STRIPS: usize = 24;
 /// The accepted pass, kept with the notes so it survives cleaning `renders/`.
 const RECORD: &str = "process/polish.json";
+/// Rounds a film gets unless the user chose more in the app or its brief says otherwise.
+pub const DEFAULT_ROUNDS: u8 = 1;
+/// The most rounds there are to choose.
+pub const MOST_ROUNDS: u8 = 3;
+/// The key in `brief.md`'s front matter that sets the rounds for one film.
+pub const BRIEF_KEY: &str = "polishRounds";
+/// Most findings of earlier rounds a worksheet repeats.
+const MOST_FOUND: usize = 40;
+
+/// A number of rounds as it is typed in the settings, `brief.md` or on the command line.
+pub fn parse_rounds(text: &str) -> Result<u8> {
+    let text = text.trim();
+    match text.parse::<u8>() {
+        Ok(rounds) if (1..=MOST_ROUNDS).contains(&rounds) => Ok(rounds),
+        _ => bail!("{BRIEF_KEY} is 1, 2 or 3, not \"{text}\""),
+    }
+}
+
+/// How many rounds the film in `root` gets, and where that number comes from: `polishRounds`
+/// in its `brief.md` front matter (`brief`), else the user's setting (`settings`).
+pub fn rounds(root: &Path) -> Result<(u8, &'static str)> {
+    rounds_with(root, crate::home::Settings::current().polish_rounds)
+}
+
+fn rounds_with(root: &Path, setting: u8) -> Result<(u8, &'static str)> {
+    if let Ok(text) = std::fs::read_to_string(root.join("brief.md"))
+        && let Some(value) = crate::frontmatter::split(&text).values.get(BRIEF_KEY)
+    {
+        // An empty value follows the setting, like a missing one.
+        let value = crate::frontmatter::string(value);
+        if !value.is_empty() {
+            let rounds = parse_rounds(&value).context("brief.md")?;
+            return Ok((rounds, "brief"));
+        }
+    }
+    Ok((setting.clamp(1, MOST_ROUNDS), "settings"))
+}
 
 fn passes(root: &Path) -> PathBuf {
     root.join("renders").join("polish")
@@ -68,28 +110,100 @@ pub fn latest_pass(root: &Path) -> Option<PathBuf> {
     latest(root).map(|n| passes(root).join(n.to_string()))
 }
 
-/// `renders/polish/<n>` for the next pass, its number, and the folder of the pass before it.
-pub fn next_output(root: &Path) -> (PathBuf, u32, Option<PathBuf>) {
-    let pass = latest(root).unwrap_or(0) + 1;
-    (passes(root).join(pass.to_string()), pass, latest_pass(root))
+/// The round a pass belonged to; passes from before rounds were round 1.
+fn round_of(data: &Value) -> u8 {
+    data["round"]
+        .as_u64()
+        .map_or(1, |round| round.clamp(1, u64::from(u8::MAX)) as u8)
 }
 
-/// Whether a clean pass is on record for the picture as it stands: `accepted`, `stale` (the
-/// picture changed since) or `missing`.
-pub fn state(root: &Path) -> Result<Value> {
-    let record = std::fs::read(root.join(RECORD))
-        .ok()
-        .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok());
-    let Some(record) = record else {
-        return Ok(json!({"state": "missing"}));
+/// The passes whose frames were all taken, oldest first, with what their `polish.json` says.
+fn finished(root: &Path) -> Vec<(u32, PathBuf, Value)> {
+    let mut done: Vec<(u32, PathBuf, Value)> = std::fs::read_dir(passes(root))
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter_map(|entry| {
+            let pass = entry.file_name().to_str()?.parse::<u32>().ok()?;
+            let data =
+                serde_json::from_slice(&std::fs::read(entry.path().join("polish.json")).ok()?)
+                    .ok()?;
+            Some((pass, entry.path(), data))
+        })
+        .collect();
+    done.sort_by_key(|(pass, ..)| *pass);
+    done
+}
+
+fn record(root: &Path) -> Option<Value> {
+    serde_json::from_slice(&std::fs::read(root.join(RECORD)).ok()?).ok()
+}
+
+/// What the next pass is.
+pub struct Next {
+    /// `renders/polish/<pass>`.
+    pub output: PathBuf,
+    pub pass: u32,
+    /// The round it belongs to, and how many the film gets.
+    pub round: u8,
+    pub rounds: u8,
+    /// The pass before it in the same round: what that pass settled stays settled. None when
+    /// the pass starts a round.
+    pub previous: Option<PathBuf>,
+    /// The passes of the rounds before this one.
+    earlier: Vec<PathBuf>,
+}
+
+/// The next pass of a film that gets `rounds` rounds. It starts the next round once the latest
+/// pass is the accepted one and rounds are left; otherwise it goes on with the latest round,
+/// which after the last round lists only what changed.
+pub fn next(root: &Path, rounds: u8) -> Next {
+    let pass = latest(root).unwrap_or(0) + 1;
+    let done = finished(root);
+    let accepted = record(root).and_then(|record| record["pass"].as_u64());
+    let (round, previous) = match done.last() {
+        None => (1, None),
+        Some((last, folder, data)) => {
+            let round = round_of(data);
+            if accepted == Some(u64::from(*last)) && round < rounds {
+                (round + 1, None)
+            } else {
+                (round, Some(folder.clone()))
+            }
+        }
     };
+    let earlier = done
+        .into_iter()
+        .filter(|(_, _, data)| round_of(data) < round)
+        .map(|(_, folder, _)| folder)
+        .collect();
+    Next {
+        output: passes(root).join(pass.to_string()),
+        pass,
+        round,
+        rounds,
+        previous,
+        earlier,
+    }
+}
+
+/// Whether a clean pass is on record for the picture as it stands, after as many rounds as the
+/// film gets: `accepted`, `next-round` (a round is clean, another is due), `stale` (the picture
+/// changed since) or `missing`.
+pub fn state(root: &Path, rounds: u8) -> Result<Value> {
+    let Some(record) = record(root) else {
+        return Ok(json!({"state": "missing", "rounds": rounds}));
+    };
+    let round = round_of(&record);
     let picture = project::picture_revision(root)?;
-    let state = if record["picture"] == picture {
-        "accepted"
-    } else {
+    let state = if record["picture"] != picture {
         "stale"
+    } else if round < rounds {
+        "next-round"
+    } else {
+        "accepted"
     };
-    Ok(json!({"state": state, "pass": record["pass"]}))
+    Ok(json!({"state": state, "pass": record["pass"], "round": round, "rounds": rounds}))
 }
 
 /// How long Studio's view trusts the last answer about the picture: hashing the whole project
@@ -106,7 +220,12 @@ fn remembered_state(root: &Path) -> Value {
     {
         return value.clone();
     }
-    let value = state(root).unwrap_or_else(|_| json!({"state": "missing"}));
+    // A brief whose rounds do not read is the CLI's to report; the view goes by the setting.
+    let rounds = rounds(root).map_or_else(
+        |_| crate::home::Settings::current().polish_rounds,
+        |(rounds, _)| rounds,
+    );
+    let value = state(root, rounds).unwrap_or_else(|_| json!({"state": "missing"}));
     seen.insert(root.to_path_buf(), (Instant::now(), value.clone()));
     value
 }
@@ -126,17 +245,10 @@ pub fn overview(root: &Path) -> Option<Value> {
         // The frames are still being taken.
         return Some(json!({"pass": pass, "folder": place, "capturing": true, "record": record}));
     };
-    let sheet = std::fs::read_to_string(folder.join("polish.md")).unwrap_or_default();
-    let mut said: BTreeMap<String, (String, String)> = BTreeMap::new();
-    for line in sheet.lines() {
-        let cells = cells(line);
-        if cells.len() >= 6 && cells[0].trim_matches('`').ends_with(".png") {
-            said.insert(
-                cells[0].trim_matches('`').to_string(),
-                (cells[4].clone(), cells[5].clone()),
-            );
-        }
-    }
+    let said: BTreeMap<String, (String, String)> = sheet_rows(&folder)
+        .into_iter()
+        .map(|row| (row.file, (row.said, row.fix)))
+        .collect();
     let mut rows = Vec::new();
     let (mut fine, mut kept, mut defects, mut open) = (0, 0, 0, 0);
     for (kind, list) in [("still", "stills"), ("cut", "cuts"), ("move", "moves")] {
@@ -168,6 +280,9 @@ pub fn overview(root: &Path) -> Option<Value> {
         "folder": place,
         "capturing": false,
         "record": record,
+        "round": round_of(&data),
+        // As many as the film gets now; the pass may have been taken before a change.
+        "rounds": record["rounds"].as_u64().or(data["rounds"].as_u64()).unwrap_or(1),
         "rows": rows,
         "counts": {
             "listed": rows.len(), "ok": fine, "kept": kept, "defects": defects, "open": open,
@@ -185,23 +300,37 @@ struct Row {
     carried: Option<String>,
 }
 
+/// Where a round's stills start, in seconds: each round looks between the stills of the rounds
+/// before it (0, then half of `every`, then a quarter).
+fn offset(round: u8, every: f64) -> f64 {
+    match round {
+        0 | 1 => 0.0,
+        2 => every / 2.0,
+        _ => every / 4.0,
+    }
+}
+
 pub async fn polish(
     snapshot: ProjectSnapshot,
     picture: &str,
     every: f64,
-    output: &Path,
-    pass: u32,
-    previous: Option<&Path>,
+    next: &Next,
 ) -> Result<Value> {
     let started = Instant::now();
+    let (output, pass, round) = (next.output.as_path(), next.pass, next.round);
     let manifest = snapshot.manifest.clone();
     let fps = manifest.fps.num as f64 / manifest.fps.den as f64;
     let duration = manifest.duration_frames;
     ensure!(every * fps >= 1.0, "--every must be at least one frame");
     let (width, height) = (manifest.width, manifest.height);
-    let stills: BTreeSet<u64> = review::grid(every, 0.0, fps, duration)
+    let start = offset(round, every);
+    let stills: BTreeSet<u64> = review::grid(every, start, fps, duration)
         .into_iter()
         .collect();
+    // What the rounds before found, so this one checks the fixes and looks for their kind, and
+    // the moves they showed, so this one shows others.
+    let found = found_before(&next.earlier);
+    let shown = moves_shown(&next.earlier);
     let mut warnings = Vec::new();
     let mut cuts = cuts(&manifest);
     if cuts.len() > MOST_CUTS {
@@ -213,7 +342,11 @@ pub async fn polish(
     let step = ((SAMPLE_SECONDS * fps).round() as usize).max(1);
     let samples: BTreeSet<u64> = (0..duration).step_by(step).chain([duration - 1]).collect();
     // What the pass before settled: an image it called ok or kept stays settled until it changes.
-    let before = previous.map(Before::read).unwrap_or_default();
+    let before = next
+        .previous
+        .as_deref()
+        .map(Before::read)
+        .unwrap_or_default();
     std::fs::create_dir_all(output)?;
     let words = review::words(&snapshot.root, &manifest);
     let capture = Capture::open(snapshot.root.clone(), snapshot.manifest.clone()).await?;
@@ -269,13 +402,14 @@ pub async fn polish(
                 continue;
             }
             let mut letters = Vec::new();
-            // First look: close-ups only where the still shows a new view. After a fix: the
-            // quarters that changed.
+            // First look: close-ups where the still shows a new view, and in a later round of
+            // every still. After a fix: the quarters that changed.
             let whole = review::signature(&image);
             let new_view = views
                 .iter()
                 .all(|other| review::difference(other, &whole) >= NEW_VIEW);
-            if changed && then.is_some() || new_view {
+            let closer = round > 1 && then.is_none();
+            if changed && then.is_some() || new_view || closer {
                 if new_view {
                     views.push(whole);
                 }
@@ -334,8 +468,9 @@ pub async fn polish(
             });
         }
 
-        // The fastest moves of every scene, a few frames apart: ugly frames hide mid-motion.
-        let mut peaks = moves(&signatures, &cuts, duration, fps);
+        // The fastest moves of every scene, a few frames apart: ugly frames hide mid-motion. A
+        // later round shows the fastest ones no round before it showed.
+        let mut peaks = moves(&signatures, &cuts, duration, fps, &shown);
         if peaks.len() > MOST_STRIPS {
             let many = peaks.len();
             let message = format!("{many} fast moves; the {MOST_STRIPS} fastest are shown");
@@ -387,7 +522,8 @@ pub async fn polish(
             })
         };
         let record = json!({
-            "pass": pass, "picture": picture, "revision": snapshot.revision, "every": every,
+            "pass": pass, "round": round, "rounds": next.rounds, "picture": picture,
+            "revision": snapshot.revision, "every": every, "offset": start,
             "fps": fps, "durationFrames": duration, "width": width, "height": height,
             "stills": rows.iter().map(row).collect::<Vec<_>>(),
             "cuts": cut_rows.iter().map(row).collect::<Vec<_>>(),
@@ -400,8 +536,12 @@ pub async fn polish(
         )?;
         let sheet = Worksheet {
             pass,
+            round,
+            rounds: next.rounds,
             picture,
             every,
+            start,
+            found: &found,
             fps,
             duration,
             stills: stills.len(),
@@ -418,6 +558,9 @@ pub async fn polish(
         std::fs::write(&worksheet, sheet)?;
         Ok(json!({
             "pass": pass,
+            "round": round,
+            "rounds": next.rounds,
+            "startsRound": next.previous.is_none(),
             "output": without_verbatim(output),
             "worksheet": without_verbatim(&worksheet),
             "contactSheet": without_verbatim(&contact),
@@ -438,8 +581,9 @@ pub async fn polish(
 }
 
 /// Records the latest pass as clean: nothing changed since its frames were taken, and every row
-/// of its worksheet says `ok` or `kept`.
-pub fn accept(root: &Path, picture: &str) -> Result<Value> {
+/// of its worksheet says `ok` or `kept`. Says whether another round is due for a film that gets
+/// `rounds`.
+pub fn accept(root: &Path, picture: &str, rounds: u8) -> Result<Value> {
     let pass = latest(root).context("No polish pass yet: run `superint-video polish <dir>`")?;
     let folder = passes(root).join(pass.to_string());
     let data: Value = serde_json::from_slice(
@@ -470,15 +614,35 @@ pub fn accept(root: &Path, picture: &str) -> Result<Value> {
         .values()
         .filter(|v| matches!(v, Verdict::Kept))
         .count();
-    let record = json!({"pass": pass, "picture": picture, "rows": verdicts.len(), "kept": kept});
+    let round = round_of(&data);
+    let record = json!({
+        "pass": pass, "round": round, "rounds": rounds, "picture": picture,
+        "rows": verdicts.len(), "kept": kept,
+    });
     let path = root.join(RECORD);
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
     }
     std::fs::write(&path, serde_json::to_vec_pretty(&record)?)?;
+    let next = if round < rounds {
+        format!(
+            "Round {round} of {rounds} is clean. Round {} needs fresh eyes: start a new polisher, cold, with the brief in references/polish.md of the superint-video skill. Its `superint-video polish <dir>` starts round {} over the whole film; render waits until that round is accepted too.",
+            round + 1,
+            round + 1
+        )
+    } else {
+        format!(
+            "{} clean: the film may be rendered.",
+            if rounds == 1 {
+                "The polish is".to_string()
+            } else {
+                format!("All {rounds} rounds are")
+            }
+        )
+    };
     Ok(json!({
-        "accepted": true, "pass": pass, "rows": verdicts.len(), "kept": kept,
-        "record": without_verbatim(&path),
+        "accepted": true, "pass": pass, "round": round, "rounds": rounds,
+        "rows": verdicts.len(), "kept": kept, "record": without_verbatim(&path), "next": next,
     }))
 }
 
@@ -489,28 +653,48 @@ enum Verdict {
     Defect(String),
 }
 
+/// One image row of a worksheet: the image, its Defect cell and its Fix cell.
+struct SheetRow {
+    file: String,
+    said: String,
+    fix: String,
+}
+
+/// The image rows of a pass's worksheet.
+fn sheet_rows(folder: &Path) -> Vec<SheetRow> {
+    let sheet = std::fs::read_to_string(folder.join("polish.md")).unwrap_or_default();
+    sheet
+        .lines()
+        .map(cells)
+        .filter(|cells| cells.len() >= 6 && cells[0].trim_matches('`').ends_with(".png"))
+        .map(|cells| SheetRow {
+            file: cells[0].trim_matches('`').to_string(),
+            said: cells[4].clone(),
+            fix: cells[5].clone(),
+        })
+        .collect()
+}
+
+fn verdict(said: &str) -> Verdict {
+    let said = said.trim();
+    let low = said.to_lowercase();
+    if said.is_empty() {
+        Verdict::Blank
+    } else if low.starts_with("ok") {
+        Verdict::Ok
+    } else if low.starts_with("kept") {
+        Verdict::Kept
+    } else {
+        Verdict::Defect(said.to_string())
+    }
+}
+
 /// The Defect cell of every image row of a pass's worksheet, and the names it had settled before.
 fn verdicts(folder: &Path) -> (BTreeMap<String, Verdict>, BTreeSet<String>) {
-    let sheet = std::fs::read_to_string(folder.join("polish.md")).unwrap_or_default();
-    let mut out = BTreeMap::new();
-    for line in sheet.lines() {
-        let cells = cells(line);
-        if cells.len() < 6 || !cells[0].trim_matches('`').ends_with(".png") {
-            continue;
-        }
-        let said = cells[4].trim();
-        let low = said.to_lowercase();
-        let verdict = if said.is_empty() {
-            Verdict::Blank
-        } else if low.starts_with("ok") {
-            Verdict::Ok
-        } else if low.starts_with("kept") {
-            Verdict::Kept
-        } else {
-            Verdict::Defect(said.to_string())
-        };
-        out.insert(cells[0].trim_matches('`').to_string(), verdict);
-    }
+    let out = sheet_rows(folder)
+        .into_iter()
+        .map(|row| (row.file, verdict(&row.said)))
+        .collect();
     let settled = std::fs::read(folder.join("polish.json"))
         .ok()
         .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok())
@@ -586,6 +770,50 @@ impl Before {
     }
 }
 
+/// What the rounds before found and how it was to be fixed, each finding once, oldest first.
+fn found_before(earlier: &[PathBuf]) -> Vec<(String, String, String)> {
+    let mut said = BTreeSet::new();
+    let mut found = Vec::new();
+    for folder in earlier {
+        for row in sheet_rows(folder) {
+            if matches!(verdict(&row.said), Verdict::Defect(_))
+                && said.insert(row.said.to_lowercase())
+            {
+                found.push((row.file, row.said, row.fix));
+            }
+        }
+    }
+    found
+}
+
+/// The frames whose moves the rounds before showed as strips.
+fn moves_shown(earlier: &[PathBuf]) -> Vec<u64> {
+    let frame = |name: &str| {
+        name.strip_prefix("motion-")?
+            .strip_suffix(".png")?
+            .parse::<u64>()
+            .ok()
+    };
+    let mut shown = BTreeSet::new();
+    for folder in earlier {
+        let Some(data) = std::fs::read(folder.join("polish.json"))
+            .ok()
+            .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok())
+        else {
+            continue;
+        };
+        let listed = data["moves"].as_array().into_iter().flatten();
+        let settled = data["settled"].as_array().into_iter().flatten();
+        shown.extend(
+            listed
+                .filter_map(|row| row["file"].as_str())
+                .chain(settled.filter_map(Value::as_str))
+                .filter_map(frame),
+        );
+    }
+    shown.into_iter().collect()
+}
+
 /// Frames at which a visible clip starts while the film is running: the cuts.
 fn cuts(manifest: &Manifest) -> Vec<u64> {
     let audio: BTreeSet<&str> = manifest
@@ -648,8 +876,15 @@ struct Peak {
 }
 
 /// The fastest moves inside every scene, strongest first: at most one per SECONDS_PER_STRIP of
-/// scene, at least two seconds apart, never across a cut.
-fn moves(samples: &[(u64, Vec<u8>)], cuts: &[u64], duration: u64, fps: f64) -> Vec<Peak> {
+/// scene, at least two seconds apart from each other and from the moves in `shown`, never
+/// across a cut.
+fn moves(
+    samples: &[(u64, Vec<u8>)],
+    cuts: &[u64],
+    duration: u64,
+    fps: f64,
+    shown: &[u64],
+) -> Vec<Peak> {
     let bounds: Vec<u64> = [0]
         .into_iter()
         .chain(cuts.iter().copied())
@@ -673,7 +908,11 @@ fn moves(samples: &[(u64, Vec<u8>)], cuts: &[u64], duration: u64, fps: f64) -> V
             if picked.len() == most {
                 break;
             }
-            if picked.iter().all(|&p| p.abs_diff(frame) >= apart) {
+            if picked
+                .iter()
+                .chain(shown)
+                .all(|&p| p.abs_diff(frame) >= apart)
+            {
                 picked.push(frame);
                 out.push(Peak {
                     frame,
@@ -695,8 +934,14 @@ fn label(frame: u64, fps: f64) -> String {
 /// `polish.md`: how to look, and one row per image for the defect and its fix.
 struct Worksheet<'a> {
     pass: u32,
+    round: u8,
+    rounds: u8,
     picture: &'a str,
     every: f64,
+    /// Seconds from which the stills come every `every`.
+    start: f64,
+    /// What earlier rounds found: image, defect, fix.
+    found: &'a [(String, String, String)],
     fps: f64,
     duration: u64,
     stills: usize,
@@ -711,10 +956,19 @@ struct Worksheet<'a> {
 impl Worksheet<'_> {
     fn render(&self) -> String {
         let cell = |text: &str| text.replace('|', "\\|");
-        let mut md = format!("# Polish pass {}\n\n", self.pass);
+        let mut md = format!("# Polish pass {}", self.pass);
+        if self.rounds > 1 || self.round > 1 {
+            let _ = write!(md, ", round {} of {}", self.round, self.rounds);
+        }
+        md.push_str("\n\n");
+        let from = if self.start > 0.0 {
+            format!(" from {} s on", review::round(self.start, 2))
+        } else {
+            String::new()
+        };
         let _ = writeln!(
             md,
-            "A still every {} s ({}), {} and {}. Picture `{}`, {} frames at {} fps.\n",
+            "A still every {} s{from} ({}), {} and {}. Picture `{}`, {} frames at {} fps.\n",
             self.every,
             count(self.stills, "still"),
             count(self.cuts, "cut"),
@@ -735,7 +989,15 @@ impl Worksheet<'_> {
             md.push_str("Nothing changed and nothing is open: this pass is clean. Record it with `superint-video polish <dir> --accept`.\n");
             return md;
         }
-        md.push_str(HOW_TO_LOOK);
+        if self.round > 1 {
+            md.push_str(&self.found_before());
+        }
+        md.push_str(match self.round {
+            0 | 1 => HOW_TO_LOOK,
+            2 => ROUND_TWO,
+            _ => ROUND_THREE,
+        });
+        md.push_str(FILL_IN);
         let table = |md: &mut String, title: &str, about: &str, rows: &[Row]| {
             if rows.is_empty() {
                 return;
@@ -768,7 +1030,11 @@ impl Worksheet<'_> {
         table(
             &mut md,
             "Stills",
-            "Each still at full size. A still that shows a new view also has close-ups `close-<frame>-<letter>.png` of its quarters (a b across the top, c d across the bottom); a quarter that shows what an earlier close-up showed is left out. For any other detail: `review <dir> --frames <f> --crop x,y,w,h`.",
+            if self.round > 1 {
+                "Each still at full size, with close-ups `close-<frame>-<letter>.png` of its quarters (a b across the top, c d across the bottom); a quarter that shows what an earlier close-up of this pass showed is left out. For any other detail: `review <dir> --frames <f> --crop x,y,w,h`."
+            } else {
+                "Each still at full size. A still that shows a new view also has close-ups `close-<frame>-<letter>.png` of its quarters (a b across the top, c d across the bottom); a quarter that shows what an earlier close-up showed is left out. For any other detail: `review <dir> --frames <f> --crop x,y,w,h`."
+            },
             self.rows,
         );
         table(
@@ -780,9 +1046,49 @@ impl Worksheet<'_> {
         table(
             &mut md,
             "Moves",
-            "The fastest moves, three frames apart.",
+            if self.round > 1 {
+                "The fastest moves no earlier round showed, three frames apart."
+            } else {
+                "The fastest moves, three frames apart."
+            },
             self.move_rows,
         );
+        md
+    }
+
+    /// What the rounds before found, for this round to check and to look for elsewhere.
+    fn found_before(&self) -> String {
+        let mut md = String::from("## Found in earlier rounds\n\n");
+        if self.found.is_empty() {
+            md.push_str("The earlier rounds found nothing to fix.\n\n");
+            return md;
+        }
+        md.push_str("Fixed since. Check that each fix holds wherever the thing appears, and look for the same kind of fault elsewhere.\n\n");
+        let at = |file: &str| {
+            file.trim_end_matches(".png")
+                .rsplit('-')
+                .next()
+                .and_then(|digits| digits.parse::<u64>().ok())
+                .map(|frame| format!("{:.1} s, ", frame as f64 / self.fps))
+                .unwrap_or_default()
+        };
+        for (file, said, fix) in self.found.iter().take(MOST_FOUND) {
+            let fix = if fix.is_empty() {
+                String::new()
+            } else {
+                format!(" Fix: {fix}")
+            };
+            let said = said.trim_end_matches('.');
+            let _ = writeln!(md, "- {}`{file}`: {said}.{fix}", at(file));
+        }
+        if self.found.len() > MOST_FOUND {
+            let _ = writeln!(
+                md,
+                "- and {} more in the worksheets of the earlier rounds",
+                self.found.len() - MOST_FOUND
+            );
+        }
+        md.push('\n');
         md
     }
 }
@@ -807,7 +1113,40 @@ Open every image listed below at full size; the contact sheet is only the map. L
 8. **Moves:** things ease in and out and come from a place that makes sense. Nothing appears or vanishes inside one frame, and layers keep their order mid-move.
 
 Then compare with the references and the workflow's rubric: would this frame stand beside them?
+";
 
+/// A second round, by new eyes after the first round's fixes: what those fixes left, and the
+/// detail the first look skimmed.
+const ROUND_TWO: &str = "## How to look: round 2
+
+An earlier round looked for what a viewer spots at once and fixed it. You are new to this film: look for what is still wrong after those fixes. This round's stills fall between the earlier ones, every still has close-ups, and the moves are ones the earlier round did not show. Open every image listed below at full size; the contact sheet is only the map. Name each thing in the picture before you judge it, then ask:
+
+1. **Do the fixes hold?** Each finding above is gone wherever that thing appears, and its fix broke nothing next to it: a shadow, a seam, a label, an overlap.
+2. **The same fault elsewhere?** A finding is a kind of fault. One floating lamp means every foot and shadow gets a look; one lid too narrow means every part that should fit.
+3. **Behind the hero.** The background, the edges and the corners of every close-up: each prop finished, nothing plain or standing in for a real thing, nothing cut to a sliver.
+4. **Between the stills.** A half-finished entrance, a label mid-fade, two things overlapping for a moment, a gap where something was.
+5. **Detail against the references.** Set each still beside the closest reference and name what the reference has that this frame lacks: texture, small parts, wear, light, things moving in the background. Add it.
+6. **Words on screen.** Spelled right, in the film's language, readable at their size, on screen long enough, gone when the voice moves on.
+
+Anything new or changed still answers the first round's questions: built right, one viewpoint and one light, looks like its name, finished, clean, the same everywhere.
+";
+
+/// A third round: the viewer who pauses, after two rounds of fixes.
+const ROUND_THREE: &str = "## How to look: round 3
+
+Earlier rounds fixed what a viewer spots at once and what was left after that. You are new to this film: look at it as the viewer who pauses and looks closely. This round's stills fall between all earlier ones, every still has close-ups, and the moves are ones no round showed yet. Open every image listed below at full size, name each thing in it, then ask:
+
+1. **Do the fixes hold?** Each finding above is gone everywhere, its kind is found nowhere else, and no fix broke a neighbour.
+2. **One film.** Follow each thing that comes back through every scene: the same size, colour, build and light each time, and one look per place.
+3. **Light and depth.** Shadows agree across cuts; front, middle and back read apart; nothing is flat that should have volume.
+4. **Materials and small parts.** Would the frame hold as a print on a wall? Seams, screws, wear, highlights and edges where the real thing has them.
+5. **Motion.** In the strips: arcs, easing, overlap and follow-through; nothing stiff, nothing linear, nothing passing through something solid.
+6. **Composition.** One place to look at a time, and it is the thing the voice speaks about; no frame crowded, none empty.
+7. **The end.** The last frames and the end card at full size: the message reads, nothing is left over.
+";
+
+/// How every round fills in its worksheet and ends.
+const FILL_IN: &str = "
 Fill in every row before changing anything: the defect and its fix, as concrete as a note to a colleague. `ok` plus a few words when the image holds up; `kept: <reason>` for something left on purpose. Then fix everything, run `check`, and run `polish` again: it lists only what changed or stayed open. A pass with nothing but `ok` and `kept` is recorded with `polish --accept`.
 ";
 
@@ -874,12 +1213,208 @@ mod tests {
                 (frame, picture)
             })
             .collect();
-        let peaks = moves(&samples, &[150], 300, 30.0);
+        let peaks = moves(&samples, &[150], 300, 30.0, &[]);
         let frames: Vec<u64> = peaks.iter().map(|p| p.frame).collect();
         // 75 beats 60 and they are closer than two seconds; the cut itself is no move
         assert_eq!(frames, vec![75, 210]);
         assert_eq!((peaks[0].from, peaks[0].to), (0, 150));
         assert_eq!((peaks[1].from, peaks[1].to), (150, 300));
+        // A later round skips the moves an earlier round showed: the next fastest takes over.
+        let later = moves(&samples, &[150], 300, 30.0, &[75, 210]);
+        let frames: Vec<u64> = later.iter().map(|p| p.frame).collect();
+        assert!(frames.is_empty(), "60 is too close to 75: {frames:?}");
+        let later = moves(&samples, &[150], 300, 30.0, &[150, 210]);
+        let frames: Vec<u64> = later.iter().map(|p| p.frame).collect();
+        assert_eq!(frames, vec![75]);
+    }
+
+    #[test]
+    fn rounds_are_one_to_three_and_the_brief_beats_the_setting() {
+        assert_eq!(DEFAULT_ROUNDS, 1);
+        assert_eq!(
+            crate::home::Settings::default().polish_rounds,
+            DEFAULT_ROUNDS
+        );
+        for (text, rounds) in [("1", 1), ("2", 2), (" 3 ", 3)] {
+            assert_eq!(parse_rounds(text).unwrap(), rounds);
+        }
+        for text in ["0", "4", "-1", "two", "", "2.5", "300"] {
+            assert!(parse_rounds(text).is_err(), "{text} is no number of rounds");
+        }
+        let film = tempfile::tempdir().unwrap();
+        // No brief: the setting, kept inside 1..=3 even when the file holds something else.
+        assert_eq!(rounds_with(film.path(), 2).unwrap(), (2, "settings"));
+        assert_eq!(rounds_with(film.path(), 0).unwrap(), (1, "settings"));
+        assert_eq!(rounds_with(film.path(), 9).unwrap(), (3, "settings"));
+        let brief = film.path().join("brief.md");
+        std::fs::write(&brief, "---\npreset: blank\n---\n\n# Brief\n").unwrap();
+        assert_eq!(rounds_with(film.path(), 2).unwrap(), (2, "settings"));
+        std::fs::write(&brief, "---\npreset: blank\npolishRounds: \"\"\n---\n").unwrap();
+        assert_eq!(rounds_with(film.path(), 2).unwrap(), (2, "settings"));
+        std::fs::write(&brief, "---\npreset: blank\npolishRounds: 3\n---\n").unwrap();
+        assert_eq!(rounds_with(film.path(), 1).unwrap(), (3, "brief"));
+        std::fs::write(&brief, "---\npolishRounds: 5\n---\n").unwrap();
+        let wrong = rounds_with(film.path(), 1).unwrap_err();
+        assert!(format!("{wrong:#}").contains("brief.md"), "{wrong:#}");
+    }
+
+    /// A finished pass of `round` in `renders/polish/<pass>` whose worksheet holds `rows`.
+    fn finished_pass(root: &Path, pass: u32, round: u8, moves: &[&str], rows: &str) -> PathBuf {
+        let folder = passes(root).join(pass.to_string());
+        std::fs::create_dir_all(&folder).unwrap();
+        let moves: Vec<Value> = moves.iter().map(|file| json!({"file": file})).collect();
+        std::fs::write(
+            folder.join("polish.json"),
+            json!({"pass": pass, "round": round, "moves": moves, "settled": ["motion-000400.png"]})
+                .to_string(),
+        )
+        .unwrap();
+        std::fs::write(
+            folder.join("polish.md"),
+            format!(
+                "| Image | Time | Words | Close-ups | Defect | Fix |\n| --- | --- | --- | --- | --- | --- |\n{rows}"
+            ),
+        )
+        .unwrap();
+        folder
+    }
+
+    fn accepted(root: &Path, pass: u32, round: u8) {
+        std::fs::create_dir_all(root.join("process")).unwrap();
+        std::fs::write(
+            root.join(RECORD),
+            json!({"pass": pass, "round": round, "picture": "p"}).to_string(),
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn an_accepted_round_starts_the_next_until_the_last() {
+        let film = tempfile::tempdir().unwrap();
+        let root = film.path();
+        let first = next(root, 2);
+        assert_eq!((first.pass, first.round, first.rounds), (1, 1, 2));
+        assert!(first.previous.is_none() && first.earlier.is_empty());
+
+        // Round 1 goes on until a pass of it is accepted.
+        let one = finished_pass(
+            root,
+            1,
+            1,
+            &["motion-000090.png"],
+            "| frame-000150.png | 5.0 s | | | lamp floats above the desk. | redraw its foot |\n",
+        );
+        let again = next(root, 2);
+        assert_eq!((again.pass, again.round), (2, 1));
+        assert_eq!(again.previous.as_deref(), Some(one.as_path()));
+        let two = finished_pass(
+            root,
+            2,
+            1,
+            &[],
+            "| frame-000150.png | 5.0 s | | | ok: stands now | |\n",
+        );
+        accepted(root, 2, 1);
+
+        // The next round starts fresh and knows what round 1 found and which moves it showed.
+        let round_two = next(root, 2);
+        assert_eq!((round_two.pass, round_two.round), (3, 2));
+        assert!(round_two.previous.is_none());
+        assert_eq!(round_two.earlier, vec![one.clone(), two.clone()]);
+        let found = found_before(&round_two.earlier);
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].1, "lamp floats above the desk.");
+        assert_eq!(found[0].2, "redraw its foot");
+        assert_eq!(moves_shown(&round_two.earlier), vec![90, 400]);
+
+        // A film that gets one round goes on with that round after it was accepted: a change is
+        // looked at in a pass that lists what changed.
+        let one_round = next(root, 1);
+        assert_eq!(
+            (one_round.round, one_round.previous),
+            (1, Some(two.clone()))
+        );
+
+        // A pass of round 2 that is not accepted yet goes on with round 2; once the last round
+        // is accepted, later passes stay in it.
+        let three = finished_pass(root, 3, 2, &[], "");
+        let more = next(root, 2);
+        assert_eq!((more.pass, more.round), (4, 2));
+        assert_eq!(more.previous.as_deref(), Some(three.as_path()));
+        assert_eq!(more.earlier, vec![one, two]);
+        accepted(root, 3, 2);
+        let after = next(root, 2);
+        assert_eq!((after.round, after.previous), (2, Some(three)));
+    }
+
+    #[test]
+    fn each_round_looks_between_the_stills_of_the_rounds_before() {
+        assert_eq!(offset(1, 5.0), 0.0);
+        assert_eq!(offset(2, 5.0), 2.5);
+        assert_eq!(offset(3, 5.0), 1.25);
+        let fps = 30.0;
+        let grids: Vec<BTreeSet<u64>> = (1..=3)
+            .map(|round| {
+                let mut stills = review::grid(5.0, offset(round, 5.0), fps, 900);
+                stills.pop(); // every round ends on the last frame
+                stills.into_iter().collect()
+            })
+            .collect();
+        assert!(grids[0].is_disjoint(&grids[1]));
+        assert!(grids[0].is_disjoint(&grids[2]));
+        assert!(grids[1].is_disjoint(&grids[2]));
+    }
+
+    #[test]
+    fn a_later_round_has_its_own_questions_and_the_earlier_findings() {
+        let found = vec![(
+            "frame-000150.png".to_string(),
+            "lamp floats above the desk.".to_string(),
+            "redraw its foot".to_string(),
+        )];
+        let rows = vec![Row {
+            file: "frame-000075.png".into(),
+            frame: 75,
+            close_ups: vec!['a', 'b', 'c', 'd'],
+            carried: None,
+        }];
+        let sheet = |round: u8, rounds: u8, found: &[(String, String, String)]| {
+            Worksheet {
+                pass: 3,
+                round,
+                rounds,
+                picture: "0123456789abcdef",
+                every: 5.0,
+                start: offset(round, 5.0),
+                found,
+                fps: 30.0,
+                duration: 900,
+                stills: 6,
+                cuts: 0,
+                strips: 0,
+                rows: &rows,
+                cut_rows: &[],
+                move_rows: &[],
+                settled: 0,
+                words: &[],
+            }
+            .render()
+        };
+        let first = sheet(1, 1, &[]);
+        assert!(first.starts_with("# Polish pass 3\n"));
+        assert!(first.contains("## How to look\n") && !first.contains("Found in earlier rounds"));
+        let second = sheet(2, 3, &found);
+        assert!(second.starts_with("# Polish pass 3, round 2 of 3\n"));
+        assert!(second.contains("A still every 5 s from 2.5 s on"));
+        assert!(second.contains(
+            "- 5.0 s, `frame-000150.png`: lamp floats above the desk. Fix: redraw its foot\n"
+        ));
+        assert!(second.contains("## How to look: round 2") && second.contains("Fill in every row"));
+        // The rows still read as the overview and `--accept` read them.
+        assert!(second.contains("| frame-000075.png | 2.5 s |  | a b c d |  | |"));
+        let third = sheet(3, 3, &[]);
+        assert!(third.contains("## How to look: round 3"));
+        assert!(third.contains("The earlier rounds found nothing to fix."));
     }
 
     #[test]

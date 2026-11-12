@@ -403,6 +403,64 @@
   font-size: 14px;
   overflow-wrap: anywhere;
 }
+/* A choice of a few values in the button column: as wide and as high as a button, its parts
+   apart by a hairline. The chosen one is filled like a checked box, where it is; nothing
+   slides between them. */
+.segmented {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  min-height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.segmented > label {
+  position: relative;
+  display: grid;
+  place-items: center;
+  color: var(--secondary);
+  font-size: 16px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    background-color 140ms ease-out,
+    color 140ms ease-out;
+}
+.segmented > label + label {
+  border-inline-start: 1px solid var(--divider);
+}
+.segmented > label:hover:not(.checked) {
+  background: var(--hover);
+  color: var(--text);
+}
+.segmented > label.checked {
+  background: var(--text);
+  color: var(--page);
+  font-weight: 650;
+}
+/* The radio itself is the label's whole face: clicks and the keyboard reach it there. */
+.segmented input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+/* Focus sits on the chosen part, so the ring goes round the whole choice, as on a field. */
+.segmented:has(input:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .segmented > label {
+    transition: none;
+  }
+}
 .setup-check {
   display: inline-flex;
   align-items: center;

@@ -128,6 +128,10 @@ enum Commands {
         /// (explainer: concept, script, frames, contact). Omit to run through to the render.
         #[arg(long, value_delimiter = ',')]
         stop: Option<Vec<String>>,
+        /// Rounds of polish before the render for this film, 1 to 3, written into brief.md.
+        /// Without it the film follows the user's setting (`settings set polishRounds`).
+        #[arg(long, value_parser = clap::value_parser!(u8).range(1..=3))]
+        polish_rounds: Option<u8>,
     },
     /// List, show or copy presets.
     Preset {
@@ -240,7 +244,9 @@ enum Commands {
     },
     /// The last look before a render, for eyes that did not build the film: a still every few
     /// seconds, close-ups at native resolution, both sides of every cut and strips over the
-    /// fastest moves, on a worksheet. A later pass lists only what changed or stayed open.
+    /// fastest moves, on a worksheet. A later pass lists only what changed or stayed open. A film
+    /// gets 1 to 3 rounds (polishRounds in brief.md, else the user's setting); once a round is
+    /// accepted, the next pass starts the next round over the whole film.
     Polish {
         #[arg(default_value = ".")]
         project: PathBuf,
@@ -252,7 +258,8 @@ enum Commands {
         accept: bool,
     },
     /// Render a verified MP4. Existing output requires --overwrite. A film with a brief needs an
-    /// accepted polish pass for its picture, unless --quality draft or --unpolished.
+    /// accepted polish pass for its picture after all its rounds, unless --quality draft or
+    /// --unpolished.
     Render {
         #[arg(default_value = ".")]
         project: PathBuf,
@@ -642,7 +649,7 @@ fn settings_report(home: &std::path::Path) -> Result<Value> {
         "settings": settings,
         "file": home.join("settings.json"),
         "keys": home::setting_keys(),
-        "note": "`preset` is the style `new` takes when none is given; `filmsFolder` is where `new` puts a film when no folder is given (projectsDir, else Superint Video in the user's Videos folder). The user changes these in the app (`superint-video app`) or with `settings set <key> <value>`. For the models, `superint-video models` says what each job uses and checks a model before `models set`.",
+        "note": "`preset` is the style `new` takes when none is given; `filmsFolder` is where `new` puts a film when no folder is given (projectsDir, else Superint Video in the user's Videos folder); `polishRounds` (1 to 3) is how many rounds of polish, each by fresh eyes, a film gets before its render unless its brief.md sets polishRounds. The user changes these in the app (`superint-video app`) or with `settings set <key> <value>`. For the models, `superint-video models` says what each job uses and checks a model before `models set`.",
     }))
 }
 
@@ -772,6 +779,7 @@ async fn run() -> Result<()> {
             script,
             stop,
             no_studio,
+            polish_rounds,
         } => {
             // The style comes from the request, else the user's default; what else the request
             // leaves open comes from the preset.
@@ -834,10 +842,13 @@ async fn run() -> Result<()> {
                     stops: stop,
                     script,
                     references,
+                    polish_rounds,
                 },
             )?;
             created["fromSettings"] = json!(from_settings);
             let root = ProjectStore::open(&directory)?.root;
+            let (rounds, from) = polish::rounds(&root)?;
+            created["polish"] = json!({"rounds": rounds, "from": from});
             if let Some(home) = home::dir() {
                 let name = home::film_name(topic.as_deref().unwrap_or_default())
                     .unwrap_or_else(|| "Untitled".into());
@@ -1111,22 +1122,21 @@ async fn run() -> Result<()> {
         } => {
             let store = ProjectStore::open(project)?;
             let picture = project::picture_revision(&store.root)?;
-            if accept {
-                print_json(polish::accept(&store.root, &picture)?);
+            let (rounds, from) = polish::rounds(&store.root)?;
+            let mut result = if accept {
+                polish::accept(&store.root, &picture, rounds)?
             } else {
-                let (output, pass, previous) = polish::next_output(&store.root);
-                print_json(
-                    polish::polish(
-                        store.snapshot()?,
-                        &picture,
-                        every.unwrap_or(polish::EVERY_SECONDS),
-                        &output,
-                        pass,
-                        previous.as_deref(),
-                    )
-                    .await?,
-                );
-            }
+                let next = polish::next(&store.root, rounds);
+                polish::polish(
+                    store.snapshot()?,
+                    &picture,
+                    every.unwrap_or(polish::EVERY_SECONDS),
+                    &next,
+                )
+                .await?
+            };
+            result["roundsFrom"] = json!(from);
+            print_json(result);
         }
         Commands::Render {
             project,
@@ -1140,15 +1150,26 @@ async fn run() -> Result<()> {
             unpolished,
         } => {
             let store = ProjectStore::open(project)?;
-            // A film made from a brief is polished before its final render; a bare project is not held up.
-            let polished = polish::state(&store.root)?;
-            if quality == "final"
-                && !unpolished
-                && polished["state"] != "accepted"
-                && store.root.join("brief.md").is_file()
-            {
+            // A film made from a brief is polished before its final render, in as many rounds as
+            // it gets; a bare project is not held up.
+            let briefed = store.root.join("brief.md").is_file();
+            let rounds = if briefed {
+                polish::rounds(&store.root)?.0
+            } else {
+                polish::DEFAULT_ROUNDS
+            };
+            let polished = polish::state(&store.root, rounds)?;
+            if quality == "final" && !unpolished && polished["state"] != "accepted" && briefed {
+                let skip = "For a test render pass --quality draft; to render at final quality anyway pass --unpolished.";
+                if polished["state"] == "next-round" {
+                    let done = polished["round"].as_u64().unwrap_or(1);
+                    bail!(
+                        "Round {done} of {rounds} polish rounds is accepted; round {} needs fresh eyes. Start a new polisher, cold, with the brief in references/polish.md of the superint-video skill: its `superint-video polish <dir>` starts that round over the whole film, and it ends with `polish --accept`. {skip}",
+                        done + 1
+                    );
+                }
                 bail!(
-                    "No polish pass is accepted for this picture ({}). Run `superint-video polish <dir>`, fix what it lists, run it again until a pass is clean, then `polish --accept`. For a test render pass --quality draft; to render at final quality anyway pass --unpolished.",
+                    "No polish pass is accepted for this picture ({}). Run `superint-video polish <dir>`, fix what it lists, run it again until a pass is clean, then `polish --accept`. {skip}",
                     polished["state"].as_str().unwrap_or("missing")
                 );
             }

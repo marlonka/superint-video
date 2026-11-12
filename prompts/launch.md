@@ -30,7 +30,7 @@ Ein Fremder weiß nach 3 Sekunden, was das Produkt ist, und am Ende, was es tut.
 - Beurteile nur, was du gerendert und dir angesehen hast.
 
 ## Abgabe
-Vor dem Render läuft ohne Nachfrage der Polish-Durchgang des Skills (frische Augen, wenn möglich ein Sub-Agent mit dem stärksten verfügbaren Modell), bis ein Durchgang sauber ist. Dann das Hauptformat rendern und mir sofort MP4 und Studio-Adresse nennen.
+Vor dem Render läuft ohne Nachfrage der Polish-Durchgang des Skills (frische Augen, wenn möglich ein Sub-Agent mit dem stärksten verfügbaren Modell), bis ein Durchgang sauber ist, in so vielen Runden, wie in der Einrichtung eingestellt. Dann das Hauptformat rendern und mir sofort MP4 und Studio-Adresse nennen.
 
 Nach meiner Abnahme: Varianten, Poster, Kontaktbogen, script.md, direction.md, process/ und report.md mit gewählter Direction und Begründung, Musiklizenz bzw. Herkunft und was geprüft ist.
 ````

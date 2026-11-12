@@ -54,6 +54,18 @@ export const en = {
   'setup.films.opening': 'Opening',
   'setup.films.follow': 'Go to a new film as soon as the coding agent begins it',
   'setup.films.window': 'Open in a window of its own instead of a browser tab',
+  'setup.polish.title': 'Polish before the render',
+  'setup.polish.why':
+    'A sub-agent of your coding agent looks at every frame with fresh eyes and fixes what it finds before the film is rendered.',
+  'setup.polish.choice': 'Rounds before each render',
+  'setup.polish.rounds': { one: '{count} round', other: '{count} rounds' },
+  'setup.polish.what1':
+    'Fresh eyes check every still, cut and move and fix what they find. The usual choice.',
+  'setup.polish.what2':
+    'After the first round, a second with new eyes looks for what is still wrong and works out the detail. About twice the time and usage.',
+  'setup.polish.what3':
+    'A third round then goes through materials, light and motion across the whole film. About three times the time and usage.',
+  'setup.polish.saved': 'Polish: {rounds} before each render',
   'settings.saved': 'Saved',
   'setup.continue': 'On to the first film',
   'setup.ready': 'Ready for {parts}',
@@ -486,6 +498,9 @@ export const en = {
   'polish.state.capturing': 'Taking the pictures of the film',
   'polish.state.accepted': 'Clean: this picture may be rendered',
   'polish.state.nothingLeft': 'Nothing left to fix in this pass',
+  'polish.state.nextRound': 'Round {round} is clean; round {next} follows with fresh eyes',
+  'polish.round': 'round {round} of {rounds}',
+  'polish.headingRound': 'Polish, round {round} of {rounds}, pass {pass}',
   'polish.state.stale': 'The picture changed since the last clean pass',
   'polish.state.working': 'In progress',
   'polish.summary': '{fine} of {listed} pictures fine, {defects} to fix',
