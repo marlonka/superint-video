@@ -153,7 +153,8 @@ export interface KeyRow {
   title: string;
   recommended: boolean;
   present: boolean;
-  source: 'app' | 'file' | 'environment' | null;
+  /** `google`: no key, the user's Google sign-in (Google Cloud only). */
+  source: 'app' | 'file' | 'environment' | 'google' | null;
   get: string;
   /** For few users: folded away in Setup until it holds a key. */
   more: boolean;
@@ -163,6 +164,11 @@ export interface KeyRow {
   place?: { project: string | null; location: string; servedIn: string; fixed: boolean };
   /** OpenAI: the region of its address. */
   region?: 'global' | 'eu';
+  /** Google Cloud: the user's Google sign-in (Application Default Credentials). `cli`: the
+   * Google Cloud CLI that signs in is installed. */
+  signIn?: { found: boolean; kind: string | null; cli: boolean };
+  /** Google Cloud: a key, or a sign-in with a project. */
+  ready?: boolean;
 }
 /** The models a film and a dictation use when the user names none. */
 export interface UsualModels {

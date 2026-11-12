@@ -100,6 +100,28 @@ fn elsewhere(name: &str) -> Option<PathBuf> {
 /// add theirs; this process, started before, still has the old one.
 #[cfg(windows)]
 fn on_saved_path(name: &str) -> Option<PathBuf> {
+    let file = format!("{name}.exe");
+    saved_folders()
+        .into_iter()
+        .map(|folder| folder.join(&file))
+        .find(|path| path.is_file())
+}
+
+/// A command by its whole file name, such as `gcloud.cmd`: on this process's search path, else
+/// on the one Windows has saved since.
+#[cfg(windows)]
+pub fn find_command(file: &str) -> Option<PathBuf> {
+    std::env::var_os("PATH")
+        .map(|path| std::env::split_paths(&path).collect::<Vec<_>>())
+        .unwrap_or_default()
+        .into_iter()
+        .chain(saved_folders())
+        .map(|folder| folder.join(file))
+        .find(|path| path.is_file())
+}
+
+#[cfg(windows)]
+fn saved_folders() -> Vec<PathBuf> {
     [
         (
             registry::MACHINE,
@@ -116,8 +138,7 @@ fn on_saved_path(name: &str) -> Option<PathBuf> {
             .collect::<Vec<_>>()
     })
     .filter(|folder| !folder.as_os_str().is_empty())
-    .map(|folder| folder.join(format!("{name}.exe")))
-    .find(|file| file.is_file())
+    .collect()
 }
 
 /// `%NAME%` replaced by the variable's value, as Windows does for a saved search path.

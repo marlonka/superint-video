@@ -113,10 +113,18 @@ export const de: Catalog = {
   'setup.models.music': 'Musik',
   'setup.models.dictation': 'Diktat',
   'setup.key.GOOGLE_CLOUD_API_KEY.why':
-    'Dieselben Google-Modelle über dein Google-Cloud-Projekt (Gemini Enterprise Agent Platform), dort abgerechnet und zu dessen Bedingungen. Solange dieser Schlüssel da ist, nimmt er den Platz von AI Studio ein.',
+    'Dieselben Google-Modelle über dein Google-Cloud-Projekt (Gemini Enterprise Agent Platform), dort abgerechnet und zu dessen Bedingungen. Ist es eingerichtet, nimmt es den Platz von AI Studio ein.',
   'setup.key.OPENAI_API_KEY.why':
     'Nur zum Sprechen statt Tippen, mit gpt-transcribe. Für einen Film braucht es einen der anderen Schlüssel.',
   'setup.more.toggle': 'Weitere Anbieter: {providers}',
+  'setup.cloud.signIn': 'Mit Google anmelden',
+  'setup.cloud.signInWhy':
+    'Empfohlen: mit deinem Google-Konto statt mit einem API-Schlüssel. Ein Fenster holt dafür bei Bedarf die Google Cloud CLI und öffnet die Anmeldung im Browser.',
+  'setup.cloud.signingIn':
+    'Ein Fenster führt durch die Anmeldung. Die App bemerkt sie von selbst, sobald sie fertig ist.',
+  'setup.cloud.useKey': 'Stattdessen einen API-Schlüssel eintragen',
+  'setup.cloud.needsProject':
+    'Für die Anmeldung fehlt noch die Projekt-ID: unter „Projekt und Region“ eintragen.',
   'setup.cloud.express':
     'Express-Modus: Google verarbeitet global. Für die Region eu die Projekt-ID eintragen.',
   'setup.cloud.place': 'Projekt {project}, Region {location}.',
@@ -148,6 +156,8 @@ export const de: Catalog = {
   'setup.models.reset': 'Zurück zu den Standardmodellen',
   'setup.models.saved': 'Modelle gespeichert',
   'setup.key.source.app': 'Auf diesem Rechner gespeichert.',
+  'setup.key.source.google':
+    'Mit deinem Google-Konto angemeldet (Application Default Credentials). Abmelden: gcloud auth application-default revoke',
   'setup.key.source.file': 'In einer .env-Datei gefunden. Zum Ändern die Datei bearbeiten.',
   'setup.key.source.environment': 'Als Umgebungsvariable gesetzt. Zum Ändern die Variable ändern.',
   'setup.key.asking': '{provider} wird gefragt …',

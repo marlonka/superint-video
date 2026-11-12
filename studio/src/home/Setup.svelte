@@ -53,6 +53,10 @@
   let installing: Record<string, boolean> = {};
   /** The providers few people need are folded away until asked for or holding a key. */
   let moreOpen = false;
+  /** Google Cloud: the user chose a key over the Google sign-in. */
+  let keyByHand: Record<string, boolean> = {};
+  /** Google Cloud: the sign-in window was opened from here. */
+  let signingIn = false;
   // Google Cloud's project and region, while they are being changed.
   let placeOpen = false;
   let placeProject = '';
@@ -205,6 +209,13 @@
     return plain.startsWith('models/') ? plain.slice('models/'.length) : plain;
   }
 
+  /** Opens the window that signs the user in with Google; the app notices the sign-in itself. */
+  function signIn() {
+    void run('google-sign-in', async () => {
+      await call('/api/app/google/sign-in');
+      signingIn = true;
+    });
+  }
   function openPlace() {
     placeProject = settings.googleCloudProject ?? '';
     placeLocation = settings.googleCloudLocation ?? 'eu';
@@ -274,7 +285,8 @@
   {@const typed = !!(drafts[key.name] || '').trim()}
   {@const own = key.present && key.source === 'app'}
   {@const refused = typeof check === 'object' && check.state === 'refused'}
-  <SetupItem title={key.title} done={key.present && !refused}>
+  {@const google = !!key.signIn && !key.present}
+  <SetupItem title={key.title} done={key.present && key.ready !== false && !refused}>
     <span>{$t(`setup.key.${key.name}.why`)}</span>
     <dl class="setup-models">
       {#each ROLES.filter((role) => key.models[role]) as role (role)}
@@ -282,13 +294,27 @@
         <dd>{key.models[role]}</dd>
       {/each}
     </dl>
-    {#if key.place}
-      <span
-        >{key.place.project
-          ? $t('setup.cloud.place', { project: key.place.project, location: key.place.location })
-          : $t('setup.cloud.express')}
-        {#if key.place.fixed}{$t('setup.cloud.fixed')}{/if}</span
-      >
+    {#if google}<span>{$t('setup.cloud.signInWhy')}</span>
+      {#if signingIn}<span class="setup-note" role="status">{$t('setup.cloud.signingIn')}</span
+        >{/if}
+      {#if !keyByHand[key.name]}<button
+          class="text-link"
+          onclick={() => (keyByHand = { ...keyByHand, [key.name]: true })}
+          >{$t('setup.cloud.useKey')}</button
+        >{/if}
+    {/if}
+    {#if key.place && (key.present || keyByHand[key.name])}
+      {#if key.source === 'google' && !key.place.project}<span class="setup-note failed"
+          >{$t('setup.cloud.needsProject')}</span
+        >{:else}<span
+          >{key.place.project
+            ? $t('setup.cloud.place', {
+                project: key.place.project,
+                location: key.place.location,
+              })
+            : $t('setup.cloud.express')}
+          {#if key.place.fixed}{$t('setup.cloud.fixed')}{/if}</span
+        >{/if}
       {#if !key.place.fixed && !placeOpen}<button
           class="text-link"
           aria-label={$t('setup.cloud.changeFor')}
@@ -327,10 +353,14 @@
           class="button"
           disabled={check === 'checking'}
           onclick={() => checkKey(key)}>{$t('setup.key.check')}</button
+        >{:else if google}<button
+          class="button"
+          disabled={$busy === 'google-sign-in'}
+          onclick={signIn}>{$t('setup.cloud.signIn')}</button
         >{:else}{@render site(key.get, $t('setup.key.get'), next === id && !typed)}{/if}
     </svelte:fragment>
     <svelte:fragment slot="below">
-      {#if !key.present || (own && replacing[key.name])}
+      {#if (!key.present && (!google || keyByHand[key.name])) || (own && replacing[key.name])}
         <form
           class="key-form"
           onsubmit={(event) => {

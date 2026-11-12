@@ -115,10 +115,18 @@ export const en = {
   'setup.models.music': 'Music',
   'setup.models.dictation': 'Dictation',
   'setup.key.GOOGLE_CLOUD_API_KEY.why':
-    'The same Google models through your Google Cloud project (Gemini Enterprise Agent Platform), billed there and under its terms. While this key is here, it takes the place of AI Studio.',
+    'The same Google models through your Google Cloud project (Gemini Enterprise Agent Platform), billed there and under its terms. Once it is set up, it takes the place of AI Studio.',
   'setup.key.OPENAI_API_KEY.why':
     'Only for speaking instead of typing, with gpt-transcribe. A film needs one of the other keys.',
   'setup.more.toggle': 'More providers: {providers}',
+  'setup.cloud.signIn': 'Sign in with Google',
+  'setup.cloud.signInWhy':
+    'Recommended: your Google account instead of an API key. A window brings the Google Cloud CLI if needed and opens the sign-in in your browser.',
+  'setup.cloud.signingIn':
+    'A window walks you through the sign-in. The app notices it by itself once it is done.',
+  'setup.cloud.useKey': 'Use an API key instead',
+  'setup.cloud.needsProject':
+    'The sign-in still needs the project ID: enter it under "Project and region".',
   'setup.cloud.express':
     'Express mode: Google serves it globally. For the eu region, add the project ID.',
   'setup.cloud.place': 'Project {project}, region {location}.',
@@ -150,6 +158,8 @@ export const en = {
   'setup.models.reset': 'Back to the usual models',
   'setup.models.saved': 'Models saved',
   'setup.key.source.app': 'Saved on this computer.',
+  'setup.key.source.google':
+    'Signed in with your Google account (Application Default Credentials). To sign out: gcloud auth application-default revoke',
   'setup.key.source.file': 'Found in a .env file. To change it, edit that file.',
   'setup.key.source.environment':
     'Set as an environment variable. To change it, change the variable.',

@@ -130,27 +130,30 @@ pub async fn visible(g: &Generators, model: &str) -> Result<bool> {
 async fn interact(g: &Generators, body: &Value, timeout: Duration) -> Result<Value> {
     let key = g.keys.require(env::GEMINI)?;
     let url = format!("{BASE}/v1beta/interactions");
-    interact_at(g, Provider::AiStudio, &url, key.expose(), body, timeout).await
+    let auth = [("x-goog-api-key", key.expose().to_string())];
+    interact_at(g, Provider::AiStudio, &url, &auth, body, timeout).await
 }
 
 /// Creates an interaction at `url` and polls it until it settles. Google Cloud's Interactions
-/// API works the same way under its own address.
+/// API works the same way under its own address; `auth` are the headers that say who asks.
 pub(super) async fn interact_at(
     g: &Generators,
     provider: Provider,
     url: &str,
-    key: &str,
+    auth: &[(&str, String)],
     body: &Value,
     timeout: Duration,
 ) -> Result<Value> {
     let label = provider.label();
+    let with_auth = |mut request: reqwest::RequestBuilder| {
+        for (name, value) in auth {
+            request = request.header(*name, value);
+        }
+        request
+    };
     let response = g
         .send(provider, || {
-            g.http
-                .post(url)
-                .header("x-goog-api-key", key)
-                .json(body)
-                .timeout(timeout)
+            with_auth(g.http.post(url)).json(body).timeout(timeout)
         })
         .await?;
     let mut value: Value = response.json().await.map_err(|e| g.transport(e))?;
@@ -172,10 +175,7 @@ pub(super) async fn interact_at(
         tokio::time::sleep(Duration::from_secs(2)).await;
         value = g
             .send(provider, || {
-                g.http
-                    .get(&poll)
-                    .header("x-goog-api-key", key)
-                    .timeout(Duration::from_secs(60))
+                with_auth(g.http.get(&poll)).timeout(Duration::from_secs(60))
             })
             .await?
             .json()

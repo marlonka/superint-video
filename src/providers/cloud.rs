@@ -3,12 +3,15 @@
 //! Cloud's terms. Speech and transcription answer on `generateContent` there (they are not on
 //! its Interactions API), Lyria 3 on the Interactions API (checked 2026-11-12).
 //!
-//! The key goes in `x-goog-api-key`. With a project (from Setup or `GOOGLE_CLOUD_PROJECT`) the
-//! requests go to the project in its location, `eu` unless another is chosen, so the data stay
-//! there. Without one, an express-mode key reaches the global endpoints, the only ones Google
-//! documents for express mode. Lyria 3 is served in `global` only, so music goes there.
+//! Who asks: a Google Cloud API key the user saved (`x-goog-api-key`), else the user's Google
+//! sign-in (Application Default Credentials, see `gauth`): a short-lived token, billed to the
+//! project. With a project (from Setup, `GOOGLE_CLOUD_PROJECT` or the sign-in's quota project)
+//! the requests go to the project in its location, `eu` unless another is chosen, so the data
+//! stay there. Without one, an express-mode key reaches the global endpoints, the only ones
+//! Google documents for express mode; a sign-in needs a project. Lyria 3 is served in `global`
+//! only, so music goes there.
 use super::{
-    Generators, Provider, SpeechRequest, TranscribeRequest, Transcript, Word, aistudio,
+    Generators, Provider, SpeechRequest, TranscribeRequest, Transcript, Word, aistudio, gauth,
     language_tag,
 };
 use crate::{
@@ -36,11 +39,14 @@ pub struct Place {
 
 impl Place {
     /// `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION` from the environment or `.env`, as
-    /// Google's SDKs read them, else what Setup saved, else express mode and the EU.
-    pub fn of(keys: &Keys, settings: &Settings) -> Self {
+    /// Google's SDKs read them, else what Setup saved, else the sign-in's quota project, else
+    /// express mode; the EU unless a location is named.
+    pub fn of(keys: &Keys, settings: &Settings, sign_in: Option<&gauth::Adc>) -> Self {
         let given = |value: &Option<String>| value.clone().filter(|v| !v.trim().is_empty());
         Self {
-            project: given(&keys.cloud_project).or_else(|| given(&settings.google_cloud_project)),
+            project: given(&keys.cloud_project)
+                .or_else(|| given(&settings.google_cloud_project))
+                .or_else(|| sign_in.and_then(|adc| adc.quota_project.clone())),
             location: given(&keys.cloud_location)
                 .or_else(|| given(&settings.google_cloud_location))
                 .unwrap_or_else(|| LOCATIONS[0].into()),
@@ -100,16 +106,40 @@ pub fn model(model: &str) -> &str {
     }
 }
 
+/// The headers that say who asks: the saved key, else a token of the user's Google sign-in
+/// with the project it bills to.
+pub(super) async fn auth(g: &Generators) -> Result<Vec<(&'static str, String)>> {
+    if let Some(key) = g.keys.get(env::GOOGLE_CLOUD) {
+        return Ok(vec![("x-goog-api-key", key.expose().to_string())]);
+    }
+    let Some(sign_in) = &g.google else {
+        g.keys.require(env::GOOGLE_CLOUD)?;
+        unreachable!("require fails without the key");
+    };
+    let Some(project) = &g.cloud.project else {
+        bail!(
+            "The Google sign-in needs a project: the user enters its ID in Setup under Google Cloud, Project and region (or sets GOOGLE_CLOUD_PROJECT)"
+        );
+    };
+    let token = gauth::token(&g.http, sign_in).await?;
+    Ok(vec![
+        ("Authorization", format!("Bearer {token}")),
+        ("x-goog-user-project", project.clone()),
+    ])
+}
+
+fn with(request: reqwest::RequestBuilder, auth: &[(&str, String)]) -> reqwest::RequestBuilder {
+    auth.iter().fold(request, |request, (name, value)| {
+        request.header(*name, value)
+    })
+}
+
 async fn generate(g: &Generators, model: &str, body: &Value, timeout: Duration) -> Result<Value> {
-    let key = g.keys.require(env::GOOGLE_CLOUD)?;
+    let auth = auth(g).await?;
     let url = g.cloud.model_url(model, "generateContent");
     let value: Value = g
         .send(Provider::GoogleCloud, || {
-            g.http
-                .post(&url)
-                .header("x-goog-api-key", key.expose())
-                .json(body)
-                .timeout(timeout)
+            with(g.http.post(&url), &auth).json(body).timeout(timeout)
         })
         .await?
         .json()
@@ -238,7 +268,7 @@ pub(super) async fn dictate(g: &Generators, wav: &[u8], model: &str) -> Result<S
 }
 
 pub(super) async fn music(g: &Generators, model: &str, prompt: &str) -> Result<Vec<u8>> {
-    let key = g.keys.require(env::GOOGLE_CLOUD)?;
+    let auth = auth(g).await?;
     let body = json!({
         "model": model,
         "input": [{"type": "user_input", "content": [{"type": "text", "text": prompt}]}],
@@ -247,7 +277,7 @@ pub(super) async fn music(g: &Generators, model: &str, prompt: &str) -> Result<V
         g,
         Provider::GoogleCloud,
         &g.cloud.interactions_url(),
-        key.expose(),
+        &auth,
         &body,
         Duration::from_secs(900),
     )
@@ -259,16 +289,16 @@ pub(super) async fn music(g: &Generators, model: &str, prompt: &str) -> Result<V
 /// billed: Google answers 400 to the empty request when key and model are fine, 404 for a
 /// model it does not have, and 401 or 403 (or 400 naming the key) for a key it does not take.
 pub async fn visible(g: &Generators, model: &str) -> Result<bool> {
-    let key = g.keys.require(env::GOOGLE_CLOUD)?;
-    let response = g
-        .http
-        .post(g.cloud.model_url(model, "generateContent"))
-        .header("x-goog-api-key", key.expose())
-        .json(&json!({"contents": []}))
-        .timeout(Duration::from_secs(20))
-        .send()
-        .await
-        .map_err(|e| g.transport(e))?;
+    let auth = auth(g).await?;
+    let response = with(
+        g.http.post(g.cloud.model_url(model, "generateContent")),
+        &auth,
+    )
+    .json(&json!({"contents": []}))
+    .timeout(Duration::from_secs(20))
+    .send()
+    .await
+    .map_err(|e| g.transport(e))?;
     match response.status().as_u16() {
         200..=299 | 429 => Ok(true),
         404 => Ok(false),
@@ -367,10 +397,23 @@ mod tests {
             google_cloud_location: Some("eu".into()),
             ..Settings::default()
         };
-        assert_eq!(Place::of(&keys, &settings), place(Some("from-env-1"), "eu"));
         assert_eq!(
-            Place::of(&Keys::default(), &Settings::default()),
+            Place::of(&keys, &settings, None),
+            place(Some("from-env-1"), "eu")
+        );
+        assert_eq!(
+            Place::of(&Keys::default(), &Settings::default(), None),
             place(None, "eu")
+        );
+        // A sign-in brings its quota project when none is chosen.
+        let sign_in = gauth::Adc {
+            file: "adc.json".into(),
+            kind: "authorized_user".into(),
+            quota_project: Some("from-sign-in-1".into()),
+        };
+        assert_eq!(
+            Place::of(&Keys::default(), &Settings::default(), Some(&sign_in)),
+            place(Some("from-sign-in-1"), "eu")
         );
     }
 

@@ -4,6 +4,7 @@
 pub mod aistudio;
 pub mod cache;
 pub mod cloud;
+pub mod gauth;
 pub mod openai;
 pub mod openrouter;
 
@@ -113,9 +114,10 @@ pub fn openai_for_film(model: &str) -> anyhow::Error {
     )
 }
 
-/// The dictation model when the user chose none: the first provider with a key.
-pub fn usual_dictation(keys: &Keys) -> &'static str {
-    if keys.any(&[env::GOOGLE_CLOUD, env::GEMINI]) {
+/// The dictation model when the user chose none: the first provider with a key (a Google
+/// sign-in with a project counts for Google Cloud).
+pub fn usual_dictation(keys: &Keys, signed_in: bool) -> &'static str {
+    if signed_in || keys.any(&[env::GOOGLE_CLOUD, env::GEMINI]) {
         DICTATION_GOOGLE
     } else if keys.any(&[env::OPENAI]) {
         DICTATION_OPENAI
@@ -197,6 +199,8 @@ pub struct Generators {
     cache: Cache,
     /// Where requests to Google Cloud go.
     pub cloud: cloud::Place,
+    /// The user's Google sign-in, used for Google Cloud when no key is saved.
+    pub google: Option<gauth::Adc>,
     /// OpenAI's address for the region chosen in Setup.
     pub openai: &'static str,
     /// Ways and models (`route model`) at their limit in this run: the next requests skip them.
@@ -210,12 +214,14 @@ impl Generators {
             .connect_timeout(Duration::from_secs(20))
             .build()?;
         let settings = crate::home::Settings::current();
-        let cloud = cloud::Place::of(&keys, &settings);
+        let google = gauth::find();
+        let cloud = cloud::Place::of(&keys, &settings, google.as_ref());
         Ok(Self {
             http,
             keys,
             cache: Cache::new(cache_dir),
             cloud,
+            google,
             openai: openai::base(settings.open_ai_region.as_deref()),
             limited: Mutex::new(BTreeSet::new()),
         })
@@ -227,6 +233,15 @@ impl Generators {
             .lock()
             .map(|set| set.iter().cloned().collect())
             .unwrap_or_default()
+    }
+
+    /// Whether a way can be asked: its key is there, or for Google Cloud a Google sign-in with
+    /// a project.
+    pub fn ready(&self, route: Provider) -> bool {
+        self.keys.get(route.key()).is_some()
+            || (route == Provider::GoogleCloud
+                && self.google.is_some()
+                && self.cloud.project.is_some())
     }
 
     fn is_limited(&self, route: Provider, model: &str) -> bool {
@@ -244,12 +259,11 @@ impl Generators {
         if !provider.google() {
             return vec![provider];
         }
-        let has = |name: &str| self.keys.get(name).is_some();
         let mut routes: Vec<Provider> = [Provider::GoogleCloud, Provider::AiStudio]
             .into_iter()
-            .filter(|route| has(route.key()))
+            .filter(|&route| self.ready(route))
             .collect();
-        if has(env::OPENROUTER) && openrouter_twin(model).is_some() {
+        if self.ready(Provider::OpenRouter) && openrouter_twin(model).is_some() {
             routes.push(Provider::OpenRouter);
         }
         let open: Vec<Provider> = routes
@@ -280,7 +294,9 @@ impl Generators {
             return Err(openai_for_film(model));
         }
         let route = self.routes(model)[0];
-        self.keys.require(route.key())?;
+        if !self.ready(route) {
+            self.keys.require(route.key())?;
+        }
         Ok(route)
     }
 
@@ -496,7 +512,7 @@ impl Generators {
         let mut tries: Vec<(Provider, String)> = self
             .routes(DICTATION_GOOGLE)
             .into_iter()
-            .filter(|route| route.google() && has(route.key()))
+            .filter(|&route| route.google() && self.ready(route))
             .map(|route| (route, Self::model_on(route, DICTATION_GOOGLE)))
             .collect();
         if has(env::OPENAI) {
@@ -716,7 +732,7 @@ pub async fn doctor(start: &Path, online: bool) -> Result<(Value, bool)> {
         ("openAi", Provider::OpenAi, vec![DICTATION_OPENAI], ""),
     ];
     for (name, provider, models, voice) in ways {
-        let present = generators.keys.get(provider.key()).is_some();
+        let present = generators.ready(provider);
         let mut entries = Vec::new();
         for model in models {
             let mut entry = json!({"model": model});
@@ -771,6 +787,13 @@ pub async fn doctor(start: &Path, online: bool) -> Result<(Value, bool)> {
             Provider::GoogleCloud => {
                 report["place"] = json!(generators.cloud);
                 report["servedIn"] = json!(generators.cloud.served_in());
+                report["auth"] = json!(if generators.keys.get(env::GOOGLE_CLOUD).is_some() {
+                    "apiKey"
+                } else if generators.google.is_some() {
+                    "googleSignIn"
+                } else {
+                    "none"
+                });
             }
             _ => {}
         }
@@ -815,7 +838,9 @@ pub async fn doctor(start: &Path, online: bool) -> Result<(Value, bool)> {
 /// one of this key's.
 pub async fn try_key(start: &Path, name: &str, dictation: Option<&str>) -> Result<Value> {
     let keys = Keys::load(start)?;
-    if keys.get(name).is_none() {
+    // Google Cloud is reached with the user's Google sign-in as well as with a key.
+    let signed_in = name == env::GOOGLE_CLOUD && gauth::find().is_some();
+    if keys.get(name).is_none() && !signed_in {
         return Ok(json!({"ok": false, "state": "none"}));
     }
     let generators = Generators::new(keys, std::env::temp_dir().join("superint-video-doctor"))?;
@@ -1083,7 +1108,10 @@ mod twin_tests {
                 store.set(name, "a-key-for-this-test-01").unwrap();
             }
             let keys = Keys::load_with(project.path(), Some(home.path())).unwrap();
-            Generators::new(keys, home.path().join("cache")).unwrap()
+            let mut generators = Generators::new(keys, home.path().join("cache")).unwrap();
+            // A Google sign-in on this machine would stand in for a key.
+            generators.google = None;
+            generators
         };
         // Variables on this machine would stand in for the store.
         if env::KNOWN
@@ -1156,7 +1184,8 @@ mod twin_tests {
             store.set(name, "a-key-for-this-test-02").unwrap();
         }
         let keys = Keys::load_with(project.path(), Some(home.path())).unwrap();
-        let all = Generators::new(keys, home.path().join("cache")).unwrap();
+        let mut all = Generators::new(keys, home.path().join("cache")).unwrap();
+        all.google = None;
         assert_eq!(
             all.routes(AI_STUDIO.music),
             [
@@ -1212,6 +1241,39 @@ mod twin_tests {
                 "google/lyria-3-pro-preview"
             ]
         );
+    }
+
+    #[test]
+    fn a_google_sign_in_with_a_project_reaches_google_cloud() {
+        let home = tempfile::TempDir::new().unwrap();
+        let project = tempfile::TempDir::new().unwrap();
+        std::fs::write(project.path().join(".env"), "").unwrap();
+        if env::KNOWN
+            .iter()
+            .any(|name| std::env::var_os(name).is_some())
+            || std::env::var_os("GOOGLE_API_KEY").is_some()
+            || std::env::var_os("SUPERINT_ENV").is_some()
+        {
+            return;
+        }
+        let keys = Keys::load_with(project.path(), Some(home.path())).unwrap();
+        let mut signed = Generators::new(keys, home.path().join("cache")).unwrap();
+        signed.google = Some(gauth::Adc {
+            file: home.path().join("adc.json"),
+            kind: "authorized_user".into(),
+            quota_project: None,
+        });
+        signed.cloud.project = None;
+        // Without a project the sign-in cannot be billed: the missing key is named.
+        assert!(!signed.ready(Provider::GoogleCloud));
+        assert!(signed.reachable(AI_STUDIO.speech).is_err());
+        signed.cloud.project = Some("my-films-123".into());
+        assert!(signed.ready(Provider::GoogleCloud));
+        assert_eq!(
+            signed.reachable(AI_STUDIO.speech).unwrap(),
+            Provider::GoogleCloud
+        );
+        assert_eq!(signed.dictation_tries(None)[0].0, Provider::GoogleCloud);
     }
 
     #[test]
