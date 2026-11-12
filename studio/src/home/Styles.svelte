@@ -44,13 +44,16 @@
   let section: HTMLElement;
   let opener: HTMLButtonElement | undefined;
 
-  /** The style without a look of its own: what a new style starts from. It comes last. */
+  /** The style without a look of its own: what a new style starts from. The card that creates
+   * a style takes its place, so it shows only while it is the default. */
   const NEUTRAL = 'blank';
 
   $: settings = overview.settings;
   // The user's own styles first, the one just made before the others, then the ones that come
   // with the app, the neutral one last.
-  $: ordered = [...overview.styles].sort((a, b) => rank(a, fresh) - rank(b, fresh));
+  $: ordered = overview.styles
+    .filter((style) => style.name !== NEUTRAL || settings.preset === NEUTRAL)
+    .sort((a, b) => rank(a, fresh) - rank(b, fresh));
   // A film chosen in the films' menu opens the form for it, once.
   $: if ($styleFilm) {
     const film = overview.films.find((entry) => entry.id === $styleFilm?.id && entry.exists);
@@ -223,7 +226,9 @@
           event.preventDefault();
           over = true;
         }}
-        ondragleave={() => (over = false)}
+        ondragleave={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) over = false;
+        }}
         ondrop={dropOnCard}
       >
         <button class="style-pictures" tabindex="-1" aria-hidden="true" onclick={() => openMaker()}

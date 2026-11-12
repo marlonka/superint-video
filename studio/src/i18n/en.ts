@@ -299,14 +299,14 @@ export const en = {
   'maker.namePlaceholder': 'Left empty, the model suggests one',
   'maker.create': 'Create style',
   'maker.who':
-    '{model} looks at your pictures and your description and writes the rules of the style. Both go to {provider}, with your API key.',
+    'The model {model} looks at your pictures and your description and writes the rules of the style. Both go to {provider}, with your API key.',
   'maker.filmWho':
-    "{model} reads the film's rules and looks at its stills. They go to {provider}, with your API key.",
+    "The model {model} reads the film's rules and looks at its stills. They go to {provider}, with your API key.",
   'maker.needsKey': 'Creating a style needs an API key under Setup.',
   'maker.working':
-    '{model} is looking at your pictures and writing the rules. This takes a minute or two.',
+    'The model {model} is looking at your pictures and writing the rules. This takes a minute or two.',
   'maker.filmWorking':
-    '{model} is looking at the film and writing the rules. This takes a minute or two.',
+    'The model {model} is looking at the film and writing the rules. This takes a minute or two.',
   'maker.stopped': 'Stopped. No style was created.',
   'maker.done': 'Style “{name}” created, written by {model}',
   'maker.tooMany': 'A style takes up to {count} pictures. Keep the ones that show the look best.',

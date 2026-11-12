@@ -139,9 +139,12 @@
     controller?.abort();
     announce($t('maker.stopped'));
   }
+  /** Escape in the form closes it. While the style is being made, Escape anywhere does
+   * nothing, so the page is not left and the work not lost by a stray key. */
   function onKey(event: KeyboardEvent) {
     // While the microphone listens, Escape belongs to it.
     if (event.key !== 'Escape' || dictating) return;
+    if (!working && !panel.contains(event.target as Node | null)) return;
     event.stopPropagation();
     if (!working) onclose();
   }

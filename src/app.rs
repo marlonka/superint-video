@@ -918,7 +918,10 @@ async fn create_style(
             Some("language") => wish.language = Some(field.text().await?),
             Some("reference") => {
                 if wish.references.len() >= style::MOST_PICTURES {
-                    return Err(ApiError::bad("A style is made from at most 12 pictures"));
+                    return Err(ApiError::bad(&format!(
+                        "A style is made from at most {} pictures",
+                        style::MOST_PICTURES
+                    )));
                 }
                 let name = field.file_name().unwrap_or("picture").to_string();
                 let bytes = field.bytes().await?.to_vec();

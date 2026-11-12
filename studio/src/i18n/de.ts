@@ -298,14 +298,14 @@ export const de: Catalog = {
   'maker.namePlaceholder': 'Bleibt das leer, schlägt das Modell einen vor',
   'maker.create': 'Stil erstellen',
   'maker.who':
-    '{model} sieht sich deine Bilder und deine Beschreibung an und schreibt die Regeln des Stils. Beides geht dafür mit deinem API-Schlüssel an {provider}.',
+    'Das Modell {model} sieht sich deine Bilder und deine Beschreibung an und schreibt die Regeln des Stils. Beides geht dafür mit deinem API-Schlüssel an {provider}.',
   'maker.filmWho':
-    '{model} liest die Regeln des Films und sieht sich seine Standbilder an. Sie gehen dafür mit deinem API-Schlüssel an {provider}.',
+    'Das Modell {model} liest die Regeln des Films und sieht sich seine Standbilder an. Sie gehen dafür mit deinem API-Schlüssel an {provider}.',
   'maker.needsKey': 'Zum Erstellen braucht es einen API-Schlüssel unter Einrichtung.',
   'maker.working':
-    '{model} sieht sich deine Bilder an und schreibt die Regeln. Das dauert ein bis zwei Minuten.',
+    'Das Modell {model} sieht sich deine Bilder an und schreibt die Regeln. Das dauert ein bis zwei Minuten.',
   'maker.filmWorking':
-    '{model} sieht sich den Film an und schreibt die Regeln. Das dauert ein bis zwei Minuten.',
+    'Das Modell {model} sieht sich den Film an und schreibt die Regeln. Das dauert ein bis zwei Minuten.',
   'maker.stopped': 'Abgebrochen. Es wurde kein Stil erstellt.',
   'maker.done': 'Stil „{name}“ erstellt, geschrieben von {model}',
   'maker.tooMany':

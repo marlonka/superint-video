@@ -483,10 +483,10 @@ fn contract_from_film(identity: &Identity, body: &str, code: &[String]) -> Strin
 fn seen(name: &str, bytes: &[u8]) -> Result<Picture> {
     use image::ImageFormat;
     match image::guess_format(bytes).ok() {
-        Some(ImageFormat::Png | ImageFormat::Jpeg) => {
+        Some(kind @ (ImageFormat::Png | ImageFormat::Jpeg)) => {
             let picture = image::load_from_memory(bytes)
                 .with_context(|| format!("{name} cannot be read as a picture"))?;
-            let jpeg = image::guess_format(bytes).ok() == Some(ImageFormat::Jpeg);
+            let jpeg = kind == ImageFormat::Jpeg;
             if jpeg && picture.width() <= SEEN_SIZE && picture.height() <= SEEN_SIZE {
                 return Ok(Picture {
                     mime: "image/jpeg",
@@ -1077,9 +1077,20 @@ async fn answer(
     }
 }
 
-/// Writes a finished style into the user's styles; nothing stays behind when that fails.
+/// Writes a finished style into the user's styles; nothing stays behind when that fails. The
+/// folder is made first, so a style that took the same name meanwhile is never touched.
 fn save(style: &Preset, written: &Written, styles: &Path) -> Result<Made> {
     let path = styles.join(&style.config.name);
+    fs::create_dir_all(styles)?;
+    if let Err(error) = fs::create_dir(&path) {
+        if error.kind() == std::io::ErrorKind::AlreadyExists {
+            bail!(
+                "A style named {} was added meanwhile; make this one again",
+                style.config.name
+            );
+        }
+        return Err(error.into());
+    }
     if let Err(error) = style.write_to(&path) {
         let _ = fs::remove_dir_all(&path);
         return Err(error);
@@ -1554,5 +1565,27 @@ mod tests {
         fs::write(bare.join("video.json"), "{}").unwrap();
         let error = Film::read(&bare).err().unwrap().to_string();
         assert!(error.contains("nothing a style"), "{error}");
+    }
+
+    #[test]
+    fn a_style_never_replaces_one_that_took_its_name_meanwhile() {
+        let styles = TempDir::new().unwrap();
+        let (sheet, body) = parse(&answer_text(SHEET)).unwrap();
+        let wish = Wish {
+            describe: "Cut paper".into(),
+            ..Wish::default()
+        };
+        let (style, _) = files_from_references(&sheet, &body, &wish, styles.path()).unwrap();
+        let taken = styles.path().join(&style.config.name);
+        fs::create_dir(&taken).unwrap();
+        fs::write(taken.join("STYLE.md"), "mine").unwrap();
+        let written = Written {
+            text: String::new(),
+            model: "gemini-4-hydrogen".into(),
+            route: Provider::AiStudio,
+        };
+        let error = save(&style, &written, styles.path()).unwrap_err();
+        assert!(error.to_string().contains("meanwhile"), "{error}");
+        assert_eq!(fs::read_to_string(taken.join("STYLE.md")).unwrap(), "mine");
     }
 }
