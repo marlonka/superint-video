@@ -518,6 +518,8 @@ enum PresetCommand {
 const STACK: usize = 32 * 1024 * 1024;
 
 fn main() {
+    #[cfg(windows)]
+    home::move_in();
     let result = std::thread::Builder::new()
         .stack_size(STACK)
         .spawn(|| {
