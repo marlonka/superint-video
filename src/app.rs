@@ -916,13 +916,9 @@ async fn create_style(
             Some("name") => wish.name = Some(field.text().await?),
             Some("describe") => wish.describe = field.text().await?,
             Some("language") => wish.language = Some(field.text().await?),
+            // Every part is read before anything is refused (the style checks the count): a
+            // connection closed on an unread upload reaches the page as a reset, not an answer.
             Some("reference") => {
-                if wish.references.len() >= style::MOST_PICTURES {
-                    return Err(ApiError::bad(&format!(
-                        "A style is made from at most {} pictures",
-                        style::MOST_PICTURES
-                    )));
-                }
                 let name = field.file_name().unwrap_or("picture").to_string();
                 let bytes = field.bytes().await?.to_vec();
                 wish.references.push(style::Reference { name, bytes });

@@ -632,15 +632,22 @@ try {
   );
   // A style of one's own: pictures and a description go in as a form, the model's answer (the
   // file above) becomes a style among the user's, with the pictures as its references.
-  const wish = (fields, pictures = [], token = project.token) => {
+  // The form goes out in one piece: a refusal before the body is read (no token) would
+  // otherwise race the upload and end as a reset on Windows.
+  const wish = async (fields, pictures = [], token = project.token) => {
     const form = new FormData();
     for (const [name, value] of Object.entries(fields)) form.set(name, value);
     for (const [name, bytes, type] of pictures)
       form.append('reference', new Blob([bytes], { type }), name);
+    const encoded = new Response(form);
     return fetch(origin + '/api/app/styles/create', {
       method: 'POST',
-      headers: { Origin: origin, 'X-Superint-Token': token },
-      body: form,
+      headers: {
+        Origin: origin,
+        'X-Superint-Token': token,
+        'Content-Type': encoded.headers.get('content-type'),
+      },
+      body: Buffer.from(await encoded.arrayBuffer()),
     });
   };
   const picture = png(48, 27, [228, 87, 46]);
