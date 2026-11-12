@@ -4,7 +4,7 @@ Alles, was in die [README](../README.md) nicht passt: Installation im Detail, St
 
 ## Schnellstart: fertiges Windows-Paket
 
-1. Lade unter [Releases](https://github.com/marlonka/superint-video/releases/latest) die Datei `superint-video-0.6.1-windows-x64.zip` herunter.
+1. Lade unter [Releases](https://github.com/marlonka/superint-video/releases/latest) die Datei `superint-video-0.7.0-windows-x64.zip` herunter.
 2. Entpacke das ZIP in einen beschreibbaren Ordner.
 3. Stelle die Laufzeit-Abhängigkeiten bereit:
 
@@ -42,7 +42,7 @@ $env:SUPERINT_FFPROBE = 'C:\Tools\ffmpeg\bin\ffprobe.exe'
 Das Release enthält `SHA256SUMS.txt` mit den Prüfsummen des ZIPs und der EXE. Vergleiche den ZIP-Hash mit der entsprechenden Zeile:
 
 ```powershell
-Get-FileHash .\superint-video-0.6.1-windows-x64.zip -Algorithm SHA256
+Get-FileHash .\superint-video-0.7.0-windows-x64.zip -Algorithm SHA256
 ```
 
 ## Die App: Startseite und Einrichtung
@@ -67,7 +67,7 @@ Oben links stehen Name und Version, oben rechts „Einrichtung“: Die Einrichtu
 Die Startseite hat drei Teile:
 
 - **Neuer Film** baut den Prompt für den Coding-Agenten: Thema eintippen oder über das Mikrofon einsprechen, „Prompt kopieren“, in Claude Code, ChatGPT Codex oder Google Antigravity einfügen. Ohne weitere Wahl sucht der Agent Stil und Länge passend zum Thema aus, das Bild ist 16:9, und der Film spricht die Sprache, in der das Thema geschrieben ist; die App erkennt sie und zeigt sie an („Deutsch (wie das Thema)“). Ist ein Standard-Stil gewählt, steht er vorne; „Frag mich vorher“ lässt den Agenten nach dem Stil fragen. Die Länge tippst du frei oder wählst einen Vorschlag von 15 Sekunden bis 60 Minuten: „3 min“, „90 s“, „2:30“ oder nur eine Zahl für Minuten; darunter steht, wie die App sie versteht. Zur Wahl stehen gut 40 Sprachen. Sobald der Agent den Film anlegt, wechselt die Startseite von selbst dorthin.
-- **Stile** zeigt, wie die Filme aussehen. Das Bild einer Karte wechselt langsam zwischen bis zu drei Standbildern (bei „Bewegung reduzieren“ im System bleibt es beim ersten); ein eigener Stil zeigt seine ersten Referenzbilder. Jede Stil-Karte hat „Als Standard“ und ein Menü „⋯“: „Referenzbilder hinzufügen“ (öffnet den Ordner für eigene Referenzbilder), „Kopie anlegen“ (eine eigene Fassung zum Verändern) und „Als Datei exportieren“. „Stil importieren“ nimmt eine solche Datei an, „Ordner deiner Stile“ zeigt, wo eigene Stile liegen. Vorne steht „Neuen Stil erstellen“, deine eigenen Stile folgen, dann die mitgelieferten.
+- **Stile** zeigt, wie die Filme aussehen. Das Bild einer Karte wechselt langsam zwischen bis zu drei Standbildern (sind im System die Animationseffekte aus, bleibt es beim ersten); ein eigener Stil zeigt seine ersten Referenzbilder. Jede Stil-Karte hat „Als Standard“ und ein Menü „⋯“: „Referenzbilder hinzufügen“ (öffnet den Ordner für eigene Referenzbilder), „Kopie anlegen“ (eine eigene Fassung zum Verändern) und „Als Datei exportieren“. „Stil importieren“ nimmt eine solche Datei an, „Ordner deiner Stile“ zeigt, wo eigene Stile liegen. Vorne steht „Neuen Stil erstellen“, deine eigenen Stile folgen, dann die mitgelieferten.
 - **Erstellte Filme** listet die Filme auf diesem Rechner mit ihrem Stand: der aktuelle Schritt, ein laufender Render, fertig. Dazu gehört jeder Film, den der Agent anlegt oder dessen Studio einmal offen war, und alles, was im Speicherort für Filme liegt. Das Menü „⋯“ eines Films hat „Als Vorlage nutzen“, „Duplizieren“, „Ordner anzeigen“ und „Von der Liste nehmen“ (nimmt den Film nur von der Liste; der Ordner bleibt).
 
 **Von einem Film ausgehen.** „Als Vorlage nutzen“ trägt den Film unter „Neuer Film“ ein („Ausgehend von …“, „Ohne Vorlage“ nimmt ihn wieder heraus). Du schreibst dann nur, worum es im neuen Film geht; der Prompt sagt dem Coding-Agenten, mit `superint-video duplicate` eine Kopie anzulegen und nur zu ändern, was das neue Thema braucht. Stil und Format bleiben wie in der Vorlage, solange du kein anderes Format wählst. „Duplizieren“ legt die Kopie sofort an, nennt sie „… (Kopie)“ und öffnet sie im Studio, etwa um Texte von Hand zu ändern. In beiden Fällen kommen Briefing, Szenen, Kit, Referenzen und Ton mit, sodass die Kopie sofort abspielt; fertige Videos, Bericht, Status und Prüfungen des alten Films bleiben zurück. Von der Kommandozeile: `superint-video duplicate <filmordner> --topic "…"`.
