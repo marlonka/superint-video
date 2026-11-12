@@ -71,6 +71,7 @@ Launch films are music-led: the track is chosen before the timeline and the pict
 - Every word, number, name and screen shows the real product. No fake metrics, no stand-in UI text, no invented customers or logos. Other products' marks only in their current official form, from the brand's own site.
 - No invented features. When the material does not say it, it is not in the film.
 - Length follows the content: a format's range is a guide, a film is delivered whole, never cut to hit a number.
+- The first frame is the thumbnail on GitHub, in players and in feeds: open on content (the first line, the product), never on an empty ground. When an entrance leaves frame 0 empty, trim whole beats off the start of picture and music together (`sourceOffsetFrames` on both clips, the SFX moved by as much), so every time stays on the grid.
 
 ## Example
 
