@@ -6,6 +6,11 @@
 - **Spätere Runden sehen mehr:** Der erste Durchgang einer neuen Runde geht über den ganzen Film, mit Standbildern zwischen denen der früheren Runden, Nahaufnahmen jedes Standbilds, schnellen Bewegungen, die noch keine Runde gezeigt hat, der Liste dessen, was frühere Runden behoben haben, und eigenen Fragen: Runde 2 nach dem, was die Korrekturen übrig ließen, und nach Details im Vergleich mit den Referenzen, Runde 3 nach Material, Licht, Bewegung und dem ganzen Film.
 - **Studio** zeigt neben dem Durchgang die Runde („Runde 2 von 3“) und sagt, wenn eine Runde sauber ist und die nächste folgt.
 
+## 0.6.1 — 2026-11-12
+
+- Studio-Build und CI aktualisiert auf Node.js 26.13.1 LTS, npm 12.2.2, Rust 1.100.0, Vite 8 und TypeScript 7. Die Rust- und npm-Abhängigkeiten wurden ebenfalls aktualisiert.
+- Der API-Test verwendet auch mit kurzen Windows-Pfaden einen isolierten Projektordner und prüft die Liste der erstellten Filme.
+
 ## 0.6.0 — 2026-11-12
 
 - **Chrome DevTools MCP unter „Freiwillig“:** Die Einrichtung zeigt, bei welchem Coding-Agenten [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp) eingerichtet ist und bei welchem es fehlt. Damit öffnet der Agent Websites und macht Screenshots, etwa für einen Launch-Film über eine Website. „Auftrag kopieren“ gibt ihm die Anleitung für Claude Code, ChatGPT Codex und Google Antigravity, mit `--no-usage-statistics`. Die App liest dafür nur die Einstellungen der Agenten. Der Skill `superint-launch` sagt dem Agenten, wie er damit Screenshots einer Website in `references/` legt.

@@ -19,7 +19,7 @@ Danke, dass du Superint Video besser machen willst. Fehlerberichte, Ideen, Stile
 
 ## Umgebung
 
-Geprüft auf Windows x64 mit Rust 1.99.0 und Node.js 26.11.0. Rust benötigt die MSVC-Buildtools. Chrome, Chromium oder Edge sowie FFmpeg und ffprobe werden für echte Frame- und Exportprüfungen separat installiert.
+Geprüft auf Windows x64 mit Rust 1.100.0, Node.js 26.13.1 LTS und npm 12.2.2. Rust benötigt die MSVC-Buildtools. Chrome, Chromium oder Edge sowie FFmpeg und ffprobe werden für echte Frame- und Exportprüfungen separat installiert.
 
 ```powershell
 .\scripts\build.ps1

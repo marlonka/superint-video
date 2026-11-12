@@ -167,7 +167,7 @@ Von der Kommandozeile prüfst du die Installation so:
 .\superint-video.exe doctor --json
 ```
 
-Aus dem Quellcode: `git clone`, dann `.\scripts\build.ps1`. Dafür brauchst du Rust 1.99 und Node.js 26. Details stehen im [Handbuch](docs/HANDBUCH.md#aus-dem-quellcode-bauen).
+Aus dem Quellcode: `git clone`, dann `.\scripts\build.ps1`. Dafür brauchst du Rust 1.100, Node.js 26.13.1 LTS und npm 12.2.2. Details stehen im [Handbuch](docs/HANDBUCH.md#aus-dem-quellcode-bauen).
 
 > [!IMPORTANT]
 > **Stand:** v0.7.0 ist veröffentlicht. Enthalten sind Presets, Ablauf-Skills, Ton und Produktionsbereich sowie die App mit Einrichtung, Feinschliff in ein bis drei Runden, Diktat, Speicherort für Filme, Stil-Dateien, eigenen Stilen aus Bildern oder fertigen Filmen und neuen Filmen auf Grundlage eines anderen. Geprüft ist nur Windows x64. App und Studio sprechen Deutsch und Englisch; Meldungen der Kommandozeile sind englisch. Kurze SDR-Filme funktionieren gut; lange Projekte, HDR und Ripple-Editing nicht. Die Grenzen stehen im [Handbuch](docs/HANDBUCH.md#grenzen).

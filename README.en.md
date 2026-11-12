@@ -102,7 +102,7 @@ Every command and option is in `superint-video <command> --help` and in the (Ger
    - [Earshot](https://github.com/Leonxlnx/earshot) for sound effects is optional.
 3. Describe your film under "New film", copy the prompt and paste it into your coding agent.
 
-Check the installation from the command line with `.\superint-video.exe doctor --json`. To build from source: `git clone`, then `.\scripts\build.ps1` (Rust 1.99 and Node.js 26).
+Check the installation from the command line with `.\superint-video.exe doctor --json`. To build from source: `git clone`, then `.\scripts\build.ps1` (Rust 1.100, Node.js 26.13.1 LTS and npm 12.2.2).
 
 > [!IMPORTANT]
 > **Status:** v0.7.0. Only Windows x64 is tested. Short SDR films work well; long projects, HDR and ripple editing do not. Reports from macOS and Linux are welcome.

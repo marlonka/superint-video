@@ -66,7 +66,7 @@ The player iframe runs on the separate read-only preview origin. Both sides chec
 
 UI acceptance requires the real Rust server and player; a mocked frontend response is not evidence for file persistence, media correctness, or render completion.
 
-Dependencies are pinned in `package.json` and `package-lock.json`. Tested development runtime: Node 26.11.0. Measure bundle sizes from the current production build; they are not fixed interface requirements.
+Dependencies are pinned in `package.json` and `package-lock.json`. CI uses Node.js 26.13.1 LTS and npm 12.2.2. Svelte Check uses the native TypeScript 7 compiler and still requires TypeScript 6 for its JavaScript API.
 
 Design source attribution, product decisions and redesign acceptance results are tracked in [docs/REDESIGN.md](../docs/REDESIGN.md).
 

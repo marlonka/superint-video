@@ -289,7 +289,7 @@ Fonts, Bilder und Abhängigkeiten werden lokal eingebunden. Zeitgesteuertes Vide
 
 ## Aus dem Quellcode bauen
 
-Zusätzlich zu den Laufzeit-Abhängigkeiten benötigst du Rust mit Windows-MSVC-Buildtools, PowerShell und Node.js mit npm. Lokal geprüft: **Rust 1.99.0, Node.js 26.11.0**. Abhängigkeiten sind in `Cargo.lock` und `studio/package-lock.json` festgehalten.
+Zusätzlich zu den Laufzeit-Abhängigkeiten benötigst du Rust mit Windows-MSVC-Buildtools, PowerShell und Node.js mit npm. Lokal geprüft: **Rust 1.100.0, Node.js 26.13.1 LTS, npm 12.2.2**. Abhängigkeiten sind in `Cargo.lock` und `studio/package-lock.json` festgehalten.
 
 ```powershell
 git clone https://github.com/marlonka/superint-video.git
