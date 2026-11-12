@@ -23,8 +23,11 @@
   /** Setup is the page: the first thing a new user sees. */
   export let first = false;
   export let onskip: () => void = () => {};
+  /** Leaves Setup once everything required is there: the first film is next. */
+  export let oncontinue: () => void = () => {};
 
   type Location = 'eu' | 'us' | 'global';
+  type Step = 'agent' | 'tools' | 'keys';
   type ModelSetting =
     'narrationModel' | 'narrationVoice' | 'transcriptionModel' | 'musicModel' | 'dictationModel';
 
@@ -69,12 +72,16 @@
   $: missing = needs(overview);
   $: required = setup.tools.filter((tool) => !tool.optional);
   $: optional = setup.tools.filter((tool) => tool.optional);
-  // The agent, each required tool, one key.
-  $: total = required.length + 2;
-  $: done =
-    Number(!missing.includes('agent')) +
-    required.filter((tool) => tool.ok).length +
-    Number(setup.can.voice);
+  // Three steps before the first film: an agent with the skills, the tools, a key. What comes
+  // after them is optional and has no number.
+  $: steps = {
+    agent: !missing.includes('agent'),
+    tools: required.every((tool) => tool.ok),
+    keys: setup.can.voice,
+  };
+  $: total = Object.keys(steps).length;
+  $: done = Object.values(steps).filter(Boolean).length;
+  $: current = (Object.keys(steps) as Step[]).find((step) => !steps[step]);
   $: shown = first || open;
   $: next = first ? nextItem(setup, missing) : '';
   $: readyParts = (['picture', 'voice', 'music', 'soundEffects'] as const)
@@ -128,8 +135,11 @@
       installing = { ...installing, [tool.id]: true };
     });
   }
-  async function copyCommand(command: string) {
-    if (!(await copyText(command, $t('common.copied')))) fail($t('common.copyBlocked'));
+  /** A task the coding agent can carry out instead of the user typing commands. */
+  async function copyTask(tool: Tool) {
+    // Earshot is the one tool that comes with a command of its own.
+    const task = $t('setup.tool.earshot.task', { command: tool.command || '', url: tool.get });
+    if (!(await copyText(task, $t('setup.tool.taskCopied')))) fail($t('common.copyBlocked'));
   }
 
   function saveKey(key: KeyRow) {
@@ -392,10 +402,37 @@
   </SetupItem>
 {/snippet}
 
+<!-- A group's title and what it is for. The three required steps carry their number, or a
+     check once done; optional groups keep the column free, so every title starts in one line. -->
+{#snippet heading(step: Step | null, id: string, title: string, why: string)}
+  <header class="setup-heading">
+    <span
+      class="setup-step"
+      class:numbered={step}
+      class:done={step && steps[step]}
+      class:current={step && current === step}
+      aria-hidden="true"
+      >{#if step && steps[step]}<Icon name="check" size={14} />{:else if step}{Object.keys(
+          steps,
+        ).indexOf(step) + 1}{/if}</span
+    >
+    <h3 {id}>
+      {title}{#if step}<span class="sr-only">: {$t(steps[step] ? 'setup.done' : 'setup.todo')}</span
+        >{/if}
+    </h3>
+    <p>{why}</p>
+  </header>
+{/snippet}
+
 <section class={first ? 'first-run' : 'home-section'} aria-labelledby="setup-title">
   {#if first}
     <h1 id="setup-title">{$t('setup.first.title')}</h1>
-    <p class="first-lead">{$t('setup.first.lead', { done, total })}</p>
+    <p class="first-lead">
+      {done === total ? $t('setup.first.ready') : $t('setup.first.lead', { done, total })}
+    </p>
+    <div class="setup-progress" aria-hidden="true">
+      {#each Object.values(steps) as step, index (index)}<span class:done={step}></span>{/each}
+    </div>
   {:else}
     <div class="home-heading">
       <h2 id="setup-title">{$t('setup.title')}</h2>
@@ -416,10 +453,7 @@
   {#if shown}
     <div class="setup" transition:unfold>
       <section class="setup-group" aria-labelledby="setup-agent">
-        <header>
-          <h3 id="setup-agent">{$t('setup.agent.title')}</h3>
-          <p>{$t('setup.agent.why')}</p>
-        </header>
+        {@render heading('agent', 'setup-agent', $t('setup.agent.title'), $t('setup.agent.why'))}
         <ul class="setup-list">
           {#each setup.agents as agent (agent.id)}
             {@const id = `agent-${agent.id}`}
@@ -452,10 +486,7 @@
       </section>
 
       <section class="setup-group" aria-labelledby="setup-tools">
-        <header>
-          <h3 id="setup-tools">{$t('setup.tools.title')}</h3>
-          <p>{$t('setup.tools.why')}</p>
-        </header>
+        {@render heading('tools', 'setup-tools', $t('setup.tools.title'), $t('setup.tools.why'))}
         <ul class="setup-list">
           {#each required as tool (tool.id)}
             {@const id = `tool-${tool.id}`}
@@ -488,10 +519,7 @@
       </section>
 
       <section class="setup-group" aria-labelledby="setup-keys">
-        <header>
-          <h3 id="setup-keys">{$t('setup.key.title')}</h3>
-          <p>{$t('setup.key.why')}</p>
-        </header>
+        {@render heading('keys', 'setup-keys', $t('setup.key.title'), $t('setup.key.why'))}
         <div class="setup-keys">
           <ul class="setup-list">
             {#each mainKeys as key (key.name)}{@render keyItem(key)}{/each}
@@ -515,10 +543,7 @@
 
       {#if !first}
         <section class="setup-group" aria-labelledby="setup-models">
-          <header>
-            <h3 id="setup-models">{$t('setup.models.title')}</h3>
-            <p>{$t('setup.models.why')}</p>
-          </header>
+          {@render heading(null, 'setup-models', $t('setup.models.title'), $t('setup.models.why'))}
           <ul class="setup-list">
             <li class="setup-item">
               <span class="setup-mark blank" aria-hidden="true"></span>
@@ -570,10 +595,10 @@
                       >
                     {/each}
                   </div>
+                  <p class="model-hint" id="models-hint">{$t('setup.models.hint')}</p>
                   <button class="button" type="submit" disabled={$busy === 'settings'}
                     >{$t('common.save')}</button
                   >
-                  <p class="model-hint" id="models-hint">{$t('setup.models.hint')}</p>
                   <span class="setup-links">
                     {#if chosenModels.length}<button
                         class="text-link"
@@ -594,7 +619,12 @@
 
       {#if optional.length}
         <section class="setup-group" aria-labelledby="setup-optional">
-          <header><h3 id="setup-optional">{$t('setup.optional.title')}</h3></header>
+          {@render heading(
+            null,
+            'setup-optional',
+            $t('setup.optional.title'),
+            $t('setup.optional.why'),
+          )}
           <ul class="setup-list">
             {#each optional as tool (tool.id)}
               <SetupItem title={tool.title} done={tool.ok}>
@@ -603,13 +633,23 @@
                     ? ` ${$t('setup.tool.sounds', { count: tool.sounds })}`
                     : ''}</span
                 >
-                {#if !tool.ok && tool.command}<button
-                    class="text-link"
-                    onclick={() => copyCommand(tool.command || '')}
-                    >{$t('setup.tool.copyCommand', { command: tool.command })}</button
+                {#if !tool.ok && installing[tool.id]}<span class="setup-note" role="status"
+                    >{$t('setup.tool.installing', { name: tool.title })}</span
                   >{/if}
+                {#if !tool.ok}<span class="setup-links">
+                    {#if tool.command}<button class="text-link" onclick={() => copyTask(tool)}
+                        >{$t('setup.tool.copyTask')}</button
+                      >{/if}
+                    <a class="text-link" href={tool.get} target="_blank" rel="noreferrer"
+                      >{$t('setup.tool.project')}</a
+                    >
+                  </span>{/if}
                 <svelte:fragment slot="action">
-                  {#if !tool.ok}{@render site(tool.get, $t('setup.tool.page'), false)}{/if}
+                  {#if !tool.ok && tool.install}<button
+                      class="button"
+                      disabled={$busy === `tool-${tool.id}`}
+                      onclick={() => installTool(tool)}>{$t('setup.tool.install')}</button
+                    >{:else if !tool.ok}{@render site(tool.get, $t('setup.tool.page'), false)}{/if}
                 </svelte:fragment>
               </SetupItem>
             {/each}
@@ -618,8 +658,15 @@
       {/if}
 
       <div class="setup-foot">
-        {#if first}<button class="text-link" onclick={onskip}>{$t('setup.skip')}</button>{/if}
-        <button class="button" onclick={() => refresh(true)}>{$t('setup.checkAgain')}</button>
+        {#if first && done < total}<button class="text-link" onclick={onskip}
+            >{$t('setup.skip')}</button
+          >{/if}
+        <span class="setup-foot-actions">
+          <button class="button" onclick={() => refresh(true)}>{$t('setup.checkAgain')}</button>
+          {#if first && done === total}<button class="button primary" onclick={oncontinue}
+              >{$t('setup.continue')}</button
+            >{/if}
+        </span>
       </div>
     </div>
   {/if}

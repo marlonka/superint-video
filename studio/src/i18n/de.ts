@@ -37,7 +37,10 @@ export const de: Catalog = {
   // Einrichtung
   'setup.title': 'Einrichtung',
   'setup.first.title': 'Superint Video einrichten',
-  'setup.first.lead': 'Das braucht der erste Film. Erledigt: {done} von {total}.',
+  'setup.first.lead':
+    'Drei Schritte, dann kann dein erster Film entstehen. Erledigt: {done} von {total}.',
+  'setup.first.ready': 'Alles bereit für deinen ersten Film. Freiwilliges geht jetzt oder später.',
+  'setup.continue': 'Weiter zum ersten Film',
   'setup.ready': 'Bereit für {parts}',
   'setup.incomplete': 'Es fehlt noch etwas.',
   'setup.part.picture': 'Bild',
@@ -93,7 +96,11 @@ export const de: Catalog = {
   'setup.tool.installing':
     'Ein Terminal-Fenster installiert {name}. Schließe es danach und wähle „Erneut prüfen“.',
   'setup.tool.page': 'Download-Seite',
-  'setup.tool.copyCommand': '„{command}“ kopieren',
+  'setup.tool.copyTask': 'Auftrag für Claude Code oder Codex kopieren',
+  'setup.tool.taskCopied': 'Kopiert. Füge den Auftrag in Claude Code oder Codex ein.',
+  'setup.tool.project': 'Projektseite',
+  'setup.tool.earshot.task':
+    'Installiere bitte Earshot für Superint Video: das Werkzeug für Soundeffekte von {url}, nicht das gleichnamige Paket auf PyPI. Laut Anleitung: {command}. Fehlt uv, installiere es vorher (unter Windows mit winget install --id astral-sh.uv). Prüfe danach mit earshot sfx list --json, dass es läuft.',
 
   'setup.key.title': 'Stimme und Musik',
   'setup.key.why':
@@ -163,6 +170,7 @@ export const de: Catalog = {
   'setup.key.removed': 'API-Schlüssel für {provider} von diesem Rechner entfernt',
 
   'setup.optional.title': 'Freiwillig',
+  'setup.optional.why': 'Nicht nötig für den ersten Film. Geht auch später.',
 
   // Neuer Film
   'compose.title': 'Neuer Film',

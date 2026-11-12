@@ -6,8 +6,11 @@ use serde_json::Value;
 use std::{ffi::OsStr, path::Path, time::Duration};
 use tokio_util::sync::CancellationToken;
 
-const MISSING: &str = "Earshot is not reachable. Install it (pip install earshot) or point \
-                       SUPERINT_EARSHOT at its executable; superint-video has no fallback synthesis";
+const MISSING: &str = "Earshot is not reachable. The user installs it from Setup in the app \
+                       (`superint-video app`), or: uv tool install \"earshot[mcp,llm] @ \
+                       git+https://github.com/Leonxlnx/earshot\" (not `pip install earshot`, a \
+                       different package of the same name). SUPERINT_EARSHOT may point at its \
+                       executable; superint-video has no fallback synthesis";
 
 /// Run earshot with `args` and parse its JSON output.
 pub async fn json<I, S>(args: I, timeout: Duration) -> Result<Value>

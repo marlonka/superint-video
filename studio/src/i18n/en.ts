@@ -41,7 +41,10 @@ export const en = {
   // Setup
   'setup.title': 'Setup',
   'setup.first.title': 'Set up Superint Video',
-  'setup.first.lead': 'What the first film needs. Done: {done} of {total}.',
+  'setup.first.lead': 'Three steps, then your first film can be made. Done: {done} of {total}.',
+  'setup.first.ready':
+    'Everything is ready for your first film. The optional parts can come now or later.',
+  'setup.continue': 'On to the first film',
   'setup.ready': 'Ready for {parts}',
   'setup.incomplete': 'Something is still missing.',
   'setup.part.picture': 'picture',
@@ -95,7 +98,11 @@ export const en = {
   'setup.tool.installing':
     'A terminal window is installing {name}. Close it when it is done, then choose "Check again".',
   'setup.tool.page': 'Download page',
-  'setup.tool.copyCommand': 'Copy "{command}"',
+  'setup.tool.copyTask': 'Copy a task for Claude Code or Codex',
+  'setup.tool.taskCopied': 'Copied. Paste the task into Claude Code or Codex.',
+  'setup.tool.project': 'Project page',
+  'setup.tool.earshot.task':
+    'Please install Earshot for Superint Video: the sound effects tool from {url}, not the PyPI package of the same name. Its README says: {command}. If uv is missing, install it first (on Windows: winget install --id astral-sh.uv). Then check with earshot sfx list --json that it runs.',
 
   'setup.key.title': 'Voice and music',
   'setup.key.why':
@@ -166,6 +173,7 @@ export const en = {
   'setup.key.removed': 'API key for {provider} removed from this computer',
 
   'setup.optional.title': 'Optional',
+  'setup.optional.why': 'Not needed for the first film. It can come later.',
 
   // New film
   'compose.title': 'New film',

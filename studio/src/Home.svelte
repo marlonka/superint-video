@@ -35,7 +35,11 @@
   let page: HTMLElement;
 
   $: missing = needs(overview);
-  $: gate = missing.length > 0 && !$setupSkipped;
+  // Setup is the page while something required is missing, and stays so after the last step
+  // until the user moves on: finishing it does not pull the page away.
+  let welcoming = false;
+  $: if (missing.length > 0 && !$setupSkipped) welcoming = true;
+  $: gate = welcoming && !$setupSkipped;
   $: if (!overview.project || onclose) document.title = 'Superint Video';
 
   /** Opens a film: the editor underneath when it is this one, its own Studio otherwise. */
@@ -64,6 +68,11 @@
   }
   function finishSetup() {
     skipSetup(false);
+    page?.scrollTo({ top: 0 });
+  }
+  /** From the finished Setup to the first film. */
+  function moveOn() {
+    welcoming = false;
     page?.scrollTo({ top: 0 });
   }
   function onKey(event: KeyboardEvent) {
@@ -129,7 +138,7 @@
       </div>{/if}
 
     {#if gate}
-      <Setup {overview} first onskip={() => skipSetup(true)} />
+      <Setup {overview} first onskip={() => skipSetup(true)} oncontinue={moveOn} />
     {:else}
       {#if missing.length}<SetupBanner {missing} onfinish={finishSetup} />{/if}
       <Setup {overview} />

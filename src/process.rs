@@ -74,11 +74,33 @@ pub fn binary(name: &str) -> PathBuf {
     }
     #[cfg(windows)]
     if !on_search_path(name)
-        && let Some(link) = winget_link(name)
+        && let Some(link) = winget_link(name).or_else(|| tool_link(name))
     {
         return link;
     }
     PathBuf::from(name)
+}
+
+/// Whether a command can be started: on the search path, or where winget, uv or pipx put it.
+#[cfg(windows)]
+pub fn installed(name: &str) -> bool {
+    on_search_path(name) || winget_link(name).is_some() || tool_link(name).is_some()
+}
+
+/// uv and pipx put the commands they install into one folder of the user. A program started
+/// before the installation does not have that folder on its PATH yet, so it is asked directly.
+#[cfg(windows)]
+fn tool_link(name: &str) -> Option<PathBuf> {
+    let folders = [
+        std::env::var_os("UV_TOOL_BIN_DIR").map(PathBuf::from),
+        std::env::var_os("XDG_BIN_HOME").map(PathBuf::from),
+        std::env::var_os("USERPROFILE").map(|home| PathBuf::from(home).join(".local/bin")),
+    ];
+    folders
+        .into_iter()
+        .flatten()
+        .map(|folder| folder.join(format!("{name}.exe")))
+        .find(|link| link.is_file())
 }
 
 /// Asks without following links: the aliases Windows keeps for Store apps, winget among them,

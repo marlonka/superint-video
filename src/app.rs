@@ -255,9 +255,37 @@ struct Tool {
     get: &'static str,
     /// What winget calls it, when winget can install it.
     winget: Option<&'static str>,
-    /// A command for a terminal that installs it, for tools the app cannot install itself.
+    /// The command that installs it outside winget, for the user or a coding agent to run.
     command: Option<&'static str>,
 }
+
+/// Earshot as its README installs it (checked 2026-11-12): from GitHub with uv, which brings
+/// its own Python. `pip install earshot` would fetch another project of the same name.
+const EARSHOT_INSTALL: &str =
+    r#"uv tool install "earshot[mcp,llm] @ git+https://github.com/Leonxlnx/earshot""#;
+/// The window that installs Earshot: uv first through winget when it is missing, then
+/// Earshot. Nothing is agreed to for the user; winget asks in the window.
+const EARSHOT_SCRIPT: &str = r#"@echo off
+echo Superint Video installs Earshot, the sound effects tool (github.com/Leonxlnx/earshot).
+echo.
+set "UV="
+where uv >nul 2>nul && set "UV=uv"
+if not defined UV if exist "%LOCALAPPDATA%\Microsoft\WinGet\Links\uv.exe" set "UV=%LOCALAPPDATA%\Microsoft\WinGet\Links\uv.exe"
+if not defined UV if exist "%USERPROFILE%\.local\bin\uv.exe" set "UV=%USERPROFILE%\.local\bin\uv.exe"
+if not defined UV (
+  echo First uv, which installs Python tools:
+  winget install --id astral-sh.uv --exact --source winget
+)
+if not defined UV if exist "%LOCALAPPDATA%\Microsoft\WinGet\Links\uv.exe" set "UV=%LOCALAPPDATA%\Microsoft\WinGet\Links\uv.exe"
+if not defined UV (
+  echo uv could not be installed. See https://docs.astral.sh/uv/
+  exit /b 1
+)
+"%UV%" tool install --force "earshot[mcp,llm] @ git+https://github.com/Leonxlnx/earshot"
+if errorlevel 1 exit /b 1
+echo.
+echo Done. Close this window and choose "Check again" in Superint Video.
+"#;
 
 const TOOLS: &[Tool] = &[
     Tool {
@@ -285,7 +313,7 @@ const TOOLS: &[Tool] = &[
         optional: true,
         get: "https://github.com/Leonxlnx/earshot",
         winget: None,
-        command: Some("pip install earshot"),
+        command: Some(EARSHOT_INSTALL),
     },
 ];
 
@@ -297,6 +325,11 @@ async fn tools(state: &AppState, fresh: bool) -> Value {
     let found = dependencies().await;
     let part = |name: &str| found.iter().find(|d| d["name"] == name);
     let winget = process::winget();
+    // Earshot comes through uv, which winget brings along when it is missing.
+    #[cfg(windows)]
+    let uv = winget || process::installed("uv");
+    #[cfg(not(windows))]
+    let uv = false;
     let tools: Vec<Value> = TOOLS
         .iter()
         .map(|tool| {
@@ -308,7 +341,7 @@ async fn tools(state: &AppState, fresh: bool) -> Value {
                 "optional": tool.optional,
                 "sounds": first.and_then(|d| d["sounds"].as_u64()),
                 "get": tool.get,
-                "install": winget && tool.winget.is_some(),
+                "install": if tool.id == "earshot" { uv } else { winget && tool.winget.is_some() },
                 "command": tool.command,
             })
         })
@@ -323,6 +356,15 @@ fn install_command(tool: &Tool) -> Option<String> {
         .map(|id| format!("winget install --id {id} --exact --source winget"))
 }
 
+/// Earshot's installer as a script in the app's folder, run in the window instead of a line:
+/// it decides whether uv has to come first.
+fn earshot_installer(home: &Path) -> Result<String> {
+    std::fs::create_dir_all(home)?;
+    let script = home.join("install-earshot.cmd");
+    std::fs::write(&script, EARSHOT_SCRIPT.replace('\n', "\r\n"))?;
+    Ok(script.display().to_string())
+}
+
 /// Starts the installation in a terminal window of its own, so the user sees what happens and
 /// answers winget's questions there.
 async fn install_tool(
@@ -333,9 +375,12 @@ async fn install_tool(
         .iter()
         .find(|tool| tool.id == id)
         .ok_or_else(|| ApiError::bad("Unknown tool"))?;
-    let command = install_command(tool)
-        .filter(|_| process::winget())
-        .ok_or_else(|| ApiError::bad("This tool cannot be installed from here"))?;
+    let command = if tool.id == "earshot" {
+        Some(earshot_installer(&state.home)?)
+    } else {
+        install_command(tool).filter(|_| process::winget())
+    }
+    .ok_or_else(|| ApiError::bad("This tool cannot be installed from here"))?;
     if ready(&tools(&state, true).await, tool.id) {
         return Err(ApiError::bad("This tool is already installed"));
     }
@@ -956,6 +1001,10 @@ mod tests {
                 .filter_map(install_command)
                 .all(|c| !c.contains("accept"))
         );
+        // Earshot comes from GitHub: the PyPI package of that name is another project.
+        let source = r#""earshot[mcp,llm] @ git+https://github.com/Leonxlnx/earshot""#;
+        assert!(EARSHOT_INSTALL.ends_with(source) && EARSHOT_SCRIPT.contains(source));
+        assert!(!EARSHOT_SCRIPT.contains("accept") && !EARSHOT_SCRIPT.contains("pip install"));
     }
 
     #[test]

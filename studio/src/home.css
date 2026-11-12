@@ -133,11 +133,28 @@
   line-height: 1.2;
 }
 .first-lead {
-  margin: 0 0 44px;
+  margin: 0;
   color: var(--secondary);
   font-size: 17px;
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
+}
+/* One bar per required step, filled once the step is done. */
+.setup-progress {
+  display: flex;
+  gap: 6px;
+  max-width: 360px;
+  margin: 16px 0 44px;
+}
+.setup-progress > span {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  transition: background-color 240ms ease-out;
+}
+.setup-progress > span.done {
+  background: var(--text);
 }
 /* Unfinished Setup, wherever Setup itself is not in front: the start page and Studio. It is the
    one inverted block of the app, so nobody takes it for part of the page. */
@@ -205,18 +222,51 @@
   grid-template-columns: 232px minmax(0, 1fr);
   column-gap: 56px;
 }
-.setup-group > header > h3 {
+/* A group's title with its step: a number, a check once done, an empty column when optional. */
+.setup-heading {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  column-gap: 10px;
+  align-content: start;
+}
+.setup-heading > h3 {
   margin: 0;
   padding-top: 8px;
   font-size: 17px;
   font-weight: 600;
   line-height: 24px;
 }
-.setup-group > header > p {
+.setup-heading > p {
+  grid-column: 2;
   margin: 2px 0 0;
   color: var(--secondary);
   font-size: 15px;
   line-height: 1.5;
+}
+.setup-step {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-top: 8px;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.setup-step.numbered {
+  border: 1.5px solid var(--border);
+  color: var(--secondary);
+}
+/* The step whose action comes next. */
+.setup-step.current {
+  border-color: var(--text);
+  color: var(--text);
+}
+.setup-step.done {
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--page);
 }
 .setup-list {
   display: grid;
@@ -277,9 +327,14 @@
 .setup-text > .setup-note.failed {
   color: var(--error);
 }
+/* Links in a row that wraps between links, never inside one. */
 .setup-links {
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+.setup-links > .text-link {
+  text-align: start;
 }
 /* The models a key is used with, as a small table: what for, which one. */
 .setup-models {
@@ -368,7 +423,7 @@
   font-size: 15px;
 }
 /* The models a pro chose: a row like the others, with no mark, as nothing is missing. The
-   form takes the text column for its fields and the button column for Save, as a key's does. */
+   fields take the whole width of the row; Save stands in the button column, next to the hint. */
 .setup-mark.blank {
   border-color: transparent;
 }
@@ -376,12 +431,13 @@
   display: grid;
   grid-column: 2 / -1;
   grid-template-columns: subgrid;
-  row-gap: 8px;
+  row-gap: 12px;
 }
 .models-fields {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 16px;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 14px;
   min-width: 0;
 }
 .models-fields > label {
@@ -401,9 +457,9 @@
 .models-fields input.model-id {
   font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
 }
-/* Save stands level with the last fields, under the other buttons. */
 .models-form > .button {
-  align-self: end;
+  grid-column: 2;
+  align-self: start;
   width: 100%;
 }
 .models-form > .model-hint,
@@ -418,9 +474,14 @@
   flex-wrap: wrap;
   gap: 12px 20px;
 }
-.setup-foot > .button {
-  width: 216px;
+.setup-foot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 14px;
   margin-left: auto;
+}
+.setup-foot-actions > .button {
+  width: 216px;
 }
 .loader.small {
   width: 14px;
@@ -842,8 +903,13 @@
     grid-template-columns: minmax(0, 1fr);
     row-gap: 12px;
   }
-  .setup-group > header > h3 {
+  .setup-heading > h3,
+  .setup-step {
     padding-top: 0;
+    margin-top: 0;
+  }
+  .models-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @container application (max-width: 760px) {
@@ -882,8 +948,12 @@
   .setup-more {
     margin-left: 0;
   }
-  .setup-foot > .button {
+  .setup-foot-actions,
+  .setup-foot-actions > .button {
     width: 100%;
+  }
+  .models-form > .button {
+    grid-column: 1;
   }
 }
 
