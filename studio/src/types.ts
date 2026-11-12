@@ -146,8 +146,16 @@ export interface KeyRow {
   present: boolean;
   source: 'app' | 'file' | 'environment' | null;
   get: string;
-  /** The models this provider's key is used with by default. */
-  models: { voice: string; timings: string; music: string };
+  /** The models this provider's key is used with by default; dictation as the user chose it. */
+  models: { voice: string; timings: string; music: string; dictation: string };
+  /** The dictation model: the usual one, the setting that changes it, and whether it did. */
+  dictation: { usual: string; setting: 'dictationAiStudio' | 'dictationOpenRouter'; own: boolean };
+}
+/** What a dictation came back as: the text, and the model and route that wrote it down. */
+export interface Dictation {
+  text: string;
+  model: string;
+  route: 'aiStudio' | 'openRouter';
 }
 /** What asking the provider about a saved key found. */
 export interface KeyCheck {
@@ -184,6 +192,9 @@ export interface Settings {
   follow: boolean;
   /** The language of the app itself; null follows the system. */
   uiLanguage: string | null;
+  /** Model IDs for dictation, per route; null uses the usual one. */
+  dictationAiStudio: string | null;
+  dictationOpenRouter: string | null;
 }
 export interface Style {
   name: string;

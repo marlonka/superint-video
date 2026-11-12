@@ -100,6 +100,30 @@ pub(super) async fn transcribe(
     })
 }
 
+/// A dictation: the text alone, no timings. The language is detected.
+pub(super) async fn dictate(g: &Generators, wav: &[u8], model: &str) -> Result<String> {
+    let key = g.keys.require(env::OPENROUTER)?;
+    let body = json!({
+        "model": model,
+        "input_audio": {"data": B64.encode(wav), "format": "wav"},
+    });
+    let value: Value = g
+        .send(Provider::OpenRouter, || {
+            post(g, "/audio/transcriptions", key)
+                .json(&body)
+                .timeout(Duration::from_secs(120))
+        })
+        .await?
+        .json()
+        .await
+        .map_err(|e| g.transport(e))?;
+    Ok(value["text"]
+        .as_str()
+        .unwrap_or_default()
+        .trim()
+        .to_string())
+}
+
 /// Lyria through chat completions: audio arrives as base64 pieces in the SSE deltas.
 pub(super) async fn music(g: &Generators, model: &str, prompt: &str) -> Result<Vec<u8>> {
     let key = g.keys.require(env::OPENROUTER)?;

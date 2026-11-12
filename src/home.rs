@@ -2,6 +2,7 @@
 //! saved in the app, the films this computer knows, and whether a start page is open.
 //! `SUPERINT_HOME`, else `%APPDATA%\superint-video` (`~/.config/superint-video` elsewhere).
 use crate::project::{atomic_write as write, millis, now_ms, without_verbatim};
+use crate::providers::Provider;
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -62,6 +63,10 @@ pub struct Settings {
     pub follow: bool,
     /// The language of the app itself; unset follows the system. Not the film's language.
     pub ui_language: Option<String>,
+    /// The model that writes down what the user says into the start page, on each route.
+    /// Unset uses the usual one; set, it is a model ID exactly as the provider writes it.
+    pub dictation_ai_studio: Option<String>,
+    pub dictation_open_router: Option<String>,
 }
 
 impl Default for Settings {
@@ -75,6 +80,8 @@ impl Default for Settings {
             window: Window::App,
             follow: true,
             ui_language: None,
+            dictation_ai_studio: None,
+            dictation_open_router: None,
         }
     }
 }
@@ -152,7 +159,28 @@ impl Settings {
         {
             bail!("The app speaks: {}", UI_LANGUAGES.join(", "));
         }
+        for (model, provider) in [
+            (&self.dictation_ai_studio, Provider::AiStudio),
+            (&self.dictation_open_router, Provider::OpenRouter),
+        ] {
+            if let Some(model) = model {
+                check_model(model, provider)?;
+            }
+        }
         Ok(())
+    }
+
+    /// The dictation model of each route: the user's choice, else the usual one.
+    pub fn dictation(&self) -> (String, String) {
+        let usual = crate::providers::DICTATION;
+        (
+            self.dictation_ai_studio
+                .clone()
+                .unwrap_or_else(|| usual.0.into()),
+            self.dictation_open_router
+                .clone()
+                .unwrap_or_else(|| usual.1.into()),
+        )
     }
 
     /// One value by its JSON name; an empty value clears it.
@@ -184,6 +212,8 @@ impl Settings {
                 }
             }
             "uiLanguage" => self.ui_language = text,
+            "dictationAiStudio" => self.dictation_ai_studio = text.map(|t| model_id(&t)),
+            "dictationOpenRouter" => self.dictation_open_router = text.map(|t| model_id(&t)),
             _ => bail!(
                 "Unknown setting {key}. Known: {}",
                 setting_keys().join(", ")
@@ -191,6 +221,35 @@ impl Settings {
         }
         self.validate()
     }
+}
+
+/// A model ID as it is pasted: without spaces, and without the `models/` Google puts in front.
+pub fn model_id(text: &str) -> String {
+    let text = text.trim().trim_matches(['"', '\'']).trim();
+    text.strip_prefix("models/").unwrap_or(text).to_string()
+}
+
+/// A model ID the provider could know: its own form (`vendor/model` on OpenRouter, a bare name
+/// on AI Studio) and no characters a request would have to escape.
+fn check_model(model: &str, provider: Provider) -> Result<()> {
+    let plain = (1..=120).contains(&model.len())
+        && model
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || "-._:/@".contains(c));
+    if !plain {
+        bail!("{model} is not a model ID: letters, digits and - . _ : / @ only");
+    }
+    if Provider::of(model) != provider {
+        match provider {
+            Provider::AiStudio => bail!(
+                "{model} is an OpenRouter ID. Google AI Studio IDs have no '/', such as gemini-3.5-transcribe"
+            ),
+            Provider::OpenRouter => {
+                bail!("{model} has no vendor. OpenRouter IDs look like microsoft/mai-transcribe-2")
+            }
+        }
+    }
+    Ok(())
 }
 
 // -------------------------------------------------------------------------------------- places
@@ -701,12 +760,29 @@ mod tests {
         settings.set("language", "de").unwrap();
         settings.set("follow", "off").unwrap();
         settings.set("uiLanguage", "de").unwrap();
+        settings
+            .set("dictationAiStudio", " models/gemini-4-transcribe ")
+            .unwrap();
+        settings
+            .set("dictationOpenRouter", "microsoft/mai-transcribe-3")
+            .unwrap();
         settings.save(home.path()).unwrap();
         let loaded = Settings::load(home.path()).unwrap();
         assert_eq!(loaded.preset.as_deref(), Some("flat-explainer"));
         assert_eq!(loaded.seconds, Some(90));
         assert!(!loaded.follow);
         assert_eq!(loaded.ui_language.as_deref(), Some("de"));
+        assert_eq!(
+            loaded.dictation(),
+            (
+                "gemini-4-transcribe".to_string(),
+                "microsoft/mai-transcribe-3".to_string()
+            )
+        );
+        assert_eq!(
+            Settings::default().dictation().0,
+            crate::providers::DICTATION.0
+        );
 
         assert!(settings.clone().set("seconds", "0").is_err());
         assert!(settings.clone().set("format", "wide").is_err());
@@ -714,11 +790,29 @@ mod tests {
         assert!(settings.clone().set("projectsDir", "films").is_err());
         assert!(settings.clone().set("colour", "red").is_err());
         assert!(settings.clone().set("uiLanguage", "tlh").is_err());
+        assert!(
+            settings
+                .clone()
+                .set("dictationAiStudio", "google/gemini-4-transcribe")
+                .is_err()
+        );
+        assert!(
+            settings
+                .clone()
+                .set("dictationOpenRouter", "mai-transcribe-2")
+                .is_err()
+        );
+        assert!(
+            settings
+                .clone()
+                .set("dictationAiStudio", "gemini 4")
+                .is_err()
+        );
         settings.set("seconds", "").unwrap();
         assert_eq!(settings.seconds, None);
         // Every field of the file is set by its name, so none can be left out of `set`.
         let keys = setting_keys();
-        assert_eq!(keys.len(), 8);
+        assert_eq!(keys.len(), 10);
         for key in keys {
             Settings::default().set(&key, "").unwrap();
         }

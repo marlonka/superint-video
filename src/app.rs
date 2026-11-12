@@ -40,6 +40,8 @@ const MOST_FILMS: usize = 60;
 const PICTURE_WIDTH: u32 = 640;
 /// The largest style file the start page may send.
 const MOST_STYLE_BYTES: usize = 256 * 1024 * 1024;
+/// The largest dictation: ten minutes of 16 kHz mono 16-bit WAV, and room for its header.
+const MOST_DICTATION_BYTES: usize = 20 * 1024 * 1024;
 /// Where the skills an update replaced are kept, below the user folder.
 const REPLACED_SKILLS: &str = "replaced-skills";
 
@@ -109,6 +111,10 @@ pub fn routes(state: AppState) -> Router {
         .route("/api/app/settings", put(save_settings))
         .route("/api/app/keys/{name}", post(save_key).delete(remove_key))
         .route("/api/app/keys/{name}/test", post(test_key))
+        .route(
+            "/api/app/dictate",
+            post(dictate).layer(DefaultBodyLimit::max(MOST_DICTATION_BYTES)),
+        )
         .route("/api/app/films/{id}/open", post(open_film))
         .route("/api/app/films/{id}/forget", post(forget_film))
         .route("/api/app/films/{id}/reveal", post(reveal_film))
@@ -182,7 +188,7 @@ async fn payload(state: &AppState, fresh: bool) -> Result<Value> {
                     "soundEffects": ready(&tools, "earshot"),
                 },
                 "tools": tools,
-                "keys": key_rows(&keys),
+                "keys": key_rows(&keys, &settings),
                 "agents": agents(&state, fresh),
             },
             "filmsFolder": home::films_dir(&settings),
@@ -355,20 +361,28 @@ fn open_terminal(_title: &str, _command: &str) -> Result<()> {
 
 /// One row per provider. Never a value: only whether a key is there, where it comes from and
 /// the models it is used with unless a style or a film names others. Those are the same three
-/// on both routes: with an OpenRouter key alone they are reached through OpenRouter.
-fn key_rows(keys: &Keys) -> Vec<Value> {
+/// on both routes: with an OpenRouter key alone they are reached through OpenRouter. Dictation
+/// is the exception: each route has a model of its own, which the user may change.
+fn key_rows(keys: &Keys, settings: &Settings) -> Vec<Value> {
     let status = keys.status();
     let usual = providers::AI_STUDIO;
-    let row = |name: &str, title: &str, get: &str, model: &dyn Fn(&'static str) -> String| {
+    let (ai_studio, open_router) = settings.dictation();
+    let row = |name: &str,
+               title: &str,
+               get: &str,
+               model: &dyn Fn(&'static str) -> String,
+               dictation: (&str, &str, &str)| {
         let found = status.iter().find(|s| s.name == name);
+        let (chosen, normal, setting) = dictation;
         json!({
             "name": name, "title": title, "recommended": name == env::GEMINI, "get": get,
             "present": found.is_some_and(|s| s.present),
             "source": found.and_then(|s| s.source.as_ref()).map(env::Source::kind),
             "models": {
                 "voice": model(usual.speech), "timings": model(usual.transcription),
-                "music": model(usual.music),
+                "music": model(usual.music), "dictation": chosen,
             },
+            "dictation": {"usual": normal, "setting": setting, "own": chosen != normal},
         })
     };
     vec![
@@ -377,12 +391,14 @@ fn key_rows(keys: &Keys) -> Vec<Value> {
             "Google AI Studio",
             "https://aistudio.google.com/apikey",
             &|model| model.into(),
+            (&ai_studio, providers::DICTATION.0, "dictationAiStudio"),
         ),
         row(
             env::OPENROUTER,
             "OpenRouter",
             "https://openrouter.ai/settings/keys",
             &|model| providers::openrouter_twin(model).unwrap_or_else(|| model.into()),
+            (&open_router, providers::DICTATION.1, "dictationOpenRouter"),
         ),
     ]
 }
@@ -409,7 +425,10 @@ async fn save_key(
 ) -> ApiResult<Json<Value>> {
     let name = known_key(&name)?;
     KeyStore::at(&state.home).set(name, &body.value)?;
-    Ok(Json(json!({"keys": key_rows(&Keys::load(state.start())?)})))
+    let settings = Settings::load(&state.home)?;
+    Ok(Json(
+        json!({"keys": key_rows(&Keys::load(state.start())?, &settings)}),
+    ))
 }
 
 async fn remove_key(
@@ -418,7 +437,10 @@ async fn remove_key(
 ) -> ApiResult<Json<Value>> {
     let name = known_key(&name)?;
     KeyStore::at(&state.home).remove(name)?;
-    Ok(Json(json!({"keys": key_rows(&Keys::load(state.start())?)})))
+    let settings = Settings::load(&state.home)?;
+    Ok(Json(
+        json!({"keys": key_rows(&Keys::load(state.start())?, &settings)}),
+    ))
 }
 
 async fn test_key(
@@ -426,15 +448,61 @@ async fn test_key(
     RoutePath(name): RoutePath<String>,
 ) -> ApiResult<Json<Value>> {
     let name = known_key(&name)?;
-    Ok(Json(providers::try_key(state.start(), name).await?))
+    let (ai_studio, open_router) = Settings::load(&state.home)?.dictation();
+    let dictation = if name == env::GEMINI {
+        ai_studio
+    } else {
+        open_router
+    };
+    Ok(Json(
+        providers::try_key(state.start(), name, &dictation).await?,
+    ))
+}
+
+// ----------------------------------------------------------------------------------- dictation
+
+/// Writes down what the user said into the start page. The page records and sends a WAV
+/// file; the answer is the text, the model and the route that wrote it. The recording is
+/// kept nowhere but in the request to the provider.
+async fn dictate(State(state): State<AppState>, body: Bytes) -> ApiResult<Json<Value>> {
+    let seconds = providers::wav_seconds(&body).map_err(|e| ApiError::bad(&e.to_string()))?;
+    if seconds < 0.2 {
+        return Err(ApiError::bad("The recording is too short"));
+    }
+    if seconds > providers::MOST_DICTATION_SECONDS {
+        return Err(ApiError::bad("The recording is longer than ten minutes"));
+    }
+    let keys = Keys::load(state.start())?;
+    if !env::KNOWN.iter().any(|name| keys.get(name).is_some()) {
+        return Err(ApiError::bad(
+            "Dictation needs an API key: add one under Setup",
+        ));
+    }
+    let (ai_studio, open_router) = Settings::load(&state.home)?.dictation();
+    let generators =
+        providers::Generators::new(keys, std::env::temp_dir().join("superint-video-dictation"))?;
+    let dictation = generators
+        .dictate(body.to_vec(), &ai_studio, &open_router)
+        .await?;
+    Ok(Json(json!(dictation)))
 }
 
 // ------------------------------------------------------------------------------------ settings
 
 async fn save_settings(
     State(state): State<AppState>,
-    Json(settings): Json<Settings>,
+    Json(mut settings): Json<Settings>,
 ) -> ApiResult<Json<Value>> {
+    // Model IDs are pasted from the provider's pages: `models/` in front and spaces come along.
+    for model in [
+        &mut settings.dictation_ai_studio,
+        &mut settings.dictation_open_router,
+    ] {
+        *model = model
+            .take()
+            .map(|m| home::model_id(&m))
+            .filter(|m| !m.is_empty());
+    }
     settings.save(&state.home)?;
     Ok(Json(json!({"settings": settings})))
 }
@@ -848,12 +916,20 @@ mod tests {
             .set(env::GEMINI, "value-that-must-not-leak-01")
             .unwrap();
         let keys = Keys::load_with(project.path(), Some(home.path())).unwrap();
-        let rows = json!(key_rows(&keys)).to_string();
+        let mut settings = Settings::default();
+        settings
+            .set("dictationOpenRouter", "google/gemini-3.5-transcribe")
+            .unwrap();
+        let rows = json!(key_rows(&keys, &settings)).to_string();
         assert!(!rows.contains("value-that-must-not-leak-01"));
         assert!(rows.contains("aistudio.google.com"));
         // Each provider names the models its key is used with by default.
         assert!(rows.contains(r#""voice":"gemini-3.8-flash-tts""#));
         assert!(rows.contains(r#""voice":"google/gemini-3.8-flash-tts""#));
         assert!(rows.contains(r#""music":"google/lyria-3-pro-preview""#));
+        // Dictation has a model per route, and the user's choice shows as their own.
+        assert!(rows.contains(r#""dictation":"gemini-3.5-transcribe""#));
+        assert!(rows.contains(r#""dictation":"google/gemini-3.5-transcribe""#));
+        assert!(rows.contains(r#""own":true"#) && rows.contains(r#""own":false"#));
     }
 }

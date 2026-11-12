@@ -40,6 +40,12 @@ pub const OPENROUTER: Route = Route {
     music: "google/lyria-3-pro-preview",
 };
 
+/// The models that write down what the user says into the start page, AI Studio's and
+/// OpenRouter's. The user may name others in Setup (`dictationAiStudio`, `dictationOpenRouter`).
+pub const DICTATION: (&str, &str) = (AI_STUDIO.transcription, OPENROUTER.transcription);
+/// The longest dictation the start page sends.
+pub const MOST_DICTATION_SECONDS: f64 = 600.0;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Provider {
@@ -100,6 +106,15 @@ pub struct TranscribeRequest<'a> {
     pub model: &'a str,
     pub language: Option<&'a str>,
     pub terms: &'a [String],
+}
+
+/// What the user said, written out to be read: no fillers, no false starts.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Dictation {
+    pub text: String,
+    pub model: String,
+    pub route: Provider,
 }
 
 pub struct Generated {
@@ -335,6 +350,39 @@ impl Generators {
         Err(failure)
     }
 
+    /// Writes down a recording of the user, a WAV file. AI Studio takes it when its key is
+    /// there, else OpenRouter; AI Studio at its limit hands over to OpenRouter, as for a film.
+    /// Each route has its own model, because a dictation is only text and any transcription
+    /// model of the provider will do. Nothing is cached: no two dictations are the same.
+    pub async fn dictate(
+        &self,
+        wav: Vec<u8>,
+        ai_studio: &str,
+        open_router: &str,
+    ) -> Result<Dictation> {
+        let openrouter = self.keys.get(env::OPENROUTER).is_some();
+        if self.keys.get(env::GEMINI).is_some() || !openrouter {
+            match aistudio::dictate(self, wav.clone(), ai_studio).await {
+                Ok(text) => {
+                    return Ok(Dictation {
+                        text,
+                        model: ai_studio.into(),
+                        route: Provider::AiStudio,
+                    });
+                }
+                Err(error) if !(openrouter && is_rate_limit(&error)) => return Err(error),
+                Err(_) => eprintln!(
+                    "Google AI Studio: {ai_studio} is at its limit, dictating with {open_router} through OpenRouter"
+                ),
+            }
+        }
+        Ok(Dictation {
+            text: openrouter::dictate(self, &wav, open_router).await?,
+            model: open_router.into(),
+            route: Provider::OpenRouter,
+        })
+    }
+
     pub fn music_key(model: &str, prompt: &str, variant: u32) -> String {
         Cache::key(&json!({"job": "music", "model": model, "prompt": prompt, "variant": variant}))
     }
@@ -554,7 +602,8 @@ pub async fn doctor(start: &Path, online: bool) -> Result<(Value, bool)> {
 /// is facts, not a sentence: the page words it in its own language.
 /// `state`: `none` (no key), `works`, `partial` (works, but the `missing` models are out of
 /// reach) or `refused` (with the provider's answer as `detail`).
-pub async fn try_key(start: &Path, name: &str) -> Result<Value> {
+/// `dictation` is the model this key writes down dictations with; it is checked too.
+pub async fn try_key(start: &Path, name: &str, dictation: &str) -> Result<Value> {
     let keys = Keys::load(start)?;
     if keys.get(name).is_none() {
         return Ok(json!({"ok": false, "state": "none"}));
@@ -563,7 +612,11 @@ pub async fn try_key(start: &Path, name: &str) -> Result<Value> {
     let refused = |error: anyhow::Error| json!({"ok": false, "state": "refused", "detail": error.to_string()});
     if name == env::GEMINI {
         let mut missing = Vec::new();
-        for model in [AI_STUDIO.speech, AI_STUDIO.transcription, AI_STUDIO.music] {
+        let mut models = vec![AI_STUDIO.speech, AI_STUDIO.transcription, AI_STUDIO.music];
+        if !models.contains(&dictation) {
+            models.push(dictation);
+        }
+        for model in models {
             match aistudio::visible(&generators, model).await {
                 Ok(true) => {}
                 Ok(false) => missing.push(model),
@@ -576,14 +629,36 @@ pub async fn try_key(start: &Path, name: &str) -> Result<Value> {
             json!({"ok": true, "state": "partial", "missing": missing})
         });
     }
-    Ok(match openrouter::credits(&generators).await {
-        Ok(credits) => json!({
-            "ok": true,
-            "state": "works",
-            "creditLeft": credits["limitRemaining"].as_f64(),
-        }),
-        Err(error) => refused(error),
-    })
+    let credits = match openrouter::credits(&generators).await {
+        Ok(credits) => credits,
+        Err(error) => return Ok(refused(error)),
+    };
+    // The catalog is public: a model it does not list cannot be reached with any key. When the
+    // catalog cannot be read, the key still works and the model is not judged.
+    let listed = match openrouter::catalog(&generators).await {
+        Ok(catalog) => catalog.iter().any(|m| m["id"] == dictation),
+        Err(_) => true,
+    };
+    let mut answer = json!({
+        "ok": true,
+        "state": if listed { "works" } else { "partial" },
+        "creditLeft": credits["limitRemaining"].as_f64(),
+    });
+    if !listed {
+        answer["missing"] = json!([dictation]);
+    }
+    Ok(answer)
+}
+
+/// How long a WAV file plays, or why it is not one the start page could have recorded.
+pub fn wav_seconds(bytes: &[u8]) -> Result<f64> {
+    let reader = hound::WavReader::new(std::io::Cursor::new(bytes))
+        .map_err(|_| anyhow!("The recording is not a WAV file"))?;
+    let spec = reader.spec();
+    if spec.sample_rate == 0 || spec.channels == 0 {
+        return Err(anyhow!("The recording has no sound"));
+    }
+    Ok(f64::from(reader.duration()) / f64::from(spec.sample_rate))
 }
 
 /// File type from the first bytes; generators do not always say what they return.
@@ -704,6 +779,15 @@ mod tests {
         assert_eq!(sniff(b"ID3\x04"), "mp3");
         assert_eq!(sniff(&[0xFF, 0xFB, 0x90]), "mp3");
         assert_eq!(sniff(b"{\"error\""), "bin");
+    }
+
+    #[test]
+    fn a_dictation_is_a_wav_file_of_some_length() {
+        let wav = pcm_wav(&vec![0; 32_000], 16_000, 1);
+        assert_eq!(wav_seconds(&wav).unwrap(), 1.0);
+        assert!(wav_seconds(b"OggS not a wav").is_err());
+        assert_eq!(Provider::of(DICTATION.0), Provider::AiStudio);
+        assert_eq!(Provider::of(DICTATION.1), Provider::OpenRouter);
     }
 }
 

@@ -324,6 +324,20 @@
 .key-form > .text-link {
   justify-self: start;
 }
+/* A dictation model: the field and Save in line with the key's, what to type and the ways out
+   under the field. */
+.model-form > .model-hint,
+.model-form > .setup-links {
+  grid-column: 1;
+}
+.model-hint {
+  color: var(--secondary);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.model-form > input {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+}
 .setup-foot {
   display: flex;
   align-items: center;
@@ -355,10 +369,90 @@
   display: grid;
   gap: 12px;
 }
-.composer > textarea {
+/* The field and its microphone are one box. The bar under the text holds the microphone, and
+   while the user speaks the waveform, the time and the two ways out, at the same height. */
+.composer-field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.composer-field:has(> textarea:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+.composer-field > textarea {
   width: 100%;
   min-height: 92px;
+  border: 0;
+  border-radius: 8px 8px 0 0;
+  background: transparent;
   font-size: 17px;
+}
+.composer-field > textarea:focus-visible {
+  outline: none;
+}
+/* The text waits while a recording is running; dictated words go where the cursor was. */
+.composer-field.dictating > textarea {
+  color: var(--secondary);
+}
+.dictate {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 4px 4px 12px;
+}
+.dictate.active {
+  padding-left: 4px;
+}
+.dictate.active > :not(.sr-only) {
+  animation: dictate-in 200ms ease-out;
+}
+@keyframes dictate-in {
+  from {
+    opacity: 0;
+  }
+}
+.dictate-hint {
+  margin-right: auto;
+  color: var(--secondary);
+  font-size: 14px;
+  line-height: 1.4;
+}
+.dictate-start > svg {
+  color: var(--secondary);
+}
+.dictate-wave {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  color: var(--text);
+}
+.dictate-wave.writing {
+  color: var(--secondary);
+}
+.dictate-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 4px;
+  color: var(--secondary);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.icon-button.dictate-done {
+  border-radius: 50%;
+  background: var(--action);
+  color: var(--action-text);
+}
+.icon-button.dictate-done:hover:not(:disabled) {
+  background: var(--text);
+  color: var(--action-text);
 }
 .composer-options,
 .default-fields {

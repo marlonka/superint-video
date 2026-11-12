@@ -4,7 +4,9 @@
   import Icon from '../Icon.svelte';
   import { format, lengthLabel, locale, t, type Formats, type Translate } from '../i18n';
   import type { Overview } from '../types';
+  import { tick } from 'svelte';
   import { FILM_LANGUAGES, FORMATS, LENGTHS, styleText } from './choices';
+  import Dictate from './Dictate.svelte';
   import { copyText, fail } from './session';
 
   export let overview: Overview;
@@ -12,6 +14,25 @@
   let topic = '';
   let pick = { preset: '', seconds: '', format: '', language: '' };
   let copied = false;
+  let field: HTMLTextAreaElement;
+  /** Where the cursor was when the field was left: dictated text goes there. */
+  let caret: [number, number] | null = null;
+  let dictating = false;
+
+  /** Puts dictated text where the cursor was, else at the end, with a space where one is due. */
+  async function insert(text: string) {
+    const [from, to] = caret ?? [topic.length, topic.length];
+    const before = topic.slice(0, from);
+    const after = topic.slice(to);
+    const lead = before && !/\s$/.test(before) ? ' ' : '';
+    const tail = after && !/^\s/.test(after) ? ' ' : '';
+    topic = `${before}${lead}${text}${tail}${after}`;
+    const at = before.length + lead.length + text.length;
+    caret = [at, at];
+    await tick();
+    field.focus();
+    field.setSelectionRange(at, at);
+  }
 
   $: settings = overview.settings;
   $: styles = overview.styles;
@@ -74,11 +95,17 @@
     <p class="home-summary">{$t('compose.lead', { agents })}</p>
   </div>
   <div class="composer">
-    <textarea
-      rows="3"
-      placeholder={$t('compose.placeholder')}
-      aria-label={$t('compose.topicLabel')}
-      bind:value={topic}></textarea>
+    <div class="composer-field" class:dictating>
+      <textarea
+        rows="3"
+        placeholder={$t('compose.placeholder')}
+        aria-label={$t('compose.topicLabel')}
+        readonly={dictating}
+        bind:this={field}
+        bind:value={topic}
+        onblur={() => (caret = [field.selectionStart, field.selectionEnd])}></textarea>
+      <Dictate available={overview.setup.can.voice} oninsert={insert} bind:active={dictating} />
+    </div>
     <div class="composer-options">
       <label
         ><span>{$t('field.style')}</span>

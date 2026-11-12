@@ -373,6 +373,52 @@ try {
     (await send('/api/app/settings', 'PUT', { ...app.settings, uiLanguage: 'xx' })).status,
     400,
   );
+  // Dictation has a model per route, given as the provider writes it; `models/` is dropped.
+  const dictationModel = await send('/api/app/settings', 'PUT', {
+    ...app.settings,
+    dictationAiStudio: ' models/gemini-4-transcribe ',
+  });
+  assert.equal(dictationModel.status, 200, await dictationModel.clone().text());
+  const withModel = await get('/api/app');
+  assert.equal(withModel.settings.dictationAiStudio, 'gemini-4-transcribe');
+  assert.equal(withModel.setup.keys[0].models.dictation, 'gemini-4-transcribe');
+  assert.equal(withModel.setup.keys[0].dictation.own, true);
+  assert.equal(withModel.setup.keys[1].models.dictation, 'microsoft/mai-transcribe-2');
+  assert.equal(
+    (await send('/api/app/settings', 'PUT', { ...app.settings, dictationOpenRouter: 'no-vendor' }))
+      .status,
+    400,
+  );
+  // A dictation is a WAV recording, and without a key it never leaves the computer.
+  const dictate = (bytes, headers = {}) =>
+    fetch(`${origin}/api/app/dictate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        Origin: origin,
+        'X-Superint-Token': project.token,
+        ...headers,
+      },
+      body: bytes,
+    });
+  const silence = Buffer.alloc(44 + 32_000);
+  silence.write('RIFF', 0);
+  silence.writeUInt32LE(36 + 32_000, 4);
+  silence.write('WAVEfmt ', 8);
+  silence.writeUInt32LE(16, 16);
+  silence.writeUInt16LE(1, 20);
+  silence.writeUInt16LE(1, 22);
+  silence.writeUInt32LE(16_000, 24);
+  silence.writeUInt32LE(32_000, 28);
+  silence.writeUInt16LE(2, 32);
+  silence.writeUInt16LE(16, 34);
+  silence.write('data', 36);
+  silence.writeUInt32LE(32_000, 40);
+  assert.equal((await dictate(silence, { 'X-Superint-Token': 'no' })).status, 403);
+  assert.equal((await dictate(Buffer.from('not a recording'))).status, 400);
+  const keyless = await dictate(silence);
+  assert.equal(keyless.status, 400);
+  assert.match((await keyless.json()).message, /API key/);
   // Setup names the coding agents and the tools. Installing is asked for with an unknown tool
   // only, so this check can never start an installation.
   assert.deepEqual(

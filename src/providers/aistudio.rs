@@ -87,6 +87,19 @@ pub(super) async fn transcribe(
     })
 }
 
+/// A dictation in `smart` mode: the text as it is meant to be read, without fillers, stutters
+/// and false starts, with the speaker's own corrections applied. The language is detected,
+/// so a German sentence with English terms comes out as spoken.
+pub(super) async fn dictate(g: &Generators, wav: Vec<u8>, model: &str) -> Result<String> {
+    let uri = upload(g, wav, "audio/wav").await?;
+    let body = json!({
+        "model": model,
+        "input": [{"type": "audio", "uri": uri, "mime_type": "audio/wav"}],
+        "generation_config": {"transcription_config": {"mode": "smart"}},
+    });
+    Ok(transcript(&interact(g, &body, Duration::from_secs(120)).await?).0)
+}
+
 pub(super) async fn music(g: &Generators, model: &str, prompt: &str) -> Result<Vec<u8>> {
     let mut body = json!({"model": model, "input": prompt});
     // The 30-second clip model only returns MP3.

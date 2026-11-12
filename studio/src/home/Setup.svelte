@@ -21,8 +21,12 @@
   /** Tools whose installation window was opened from here. */
   let installing: Record<string, boolean> = {};
 
+  // Dictation models: for people who know a newer model ID than the usual one.
+  let modelOpen: Record<string, boolean> = {};
+  let modelDrafts: Record<string, string> = {};
+
   /** What a key is used for, in the order Setup lists the models. */
-  const ROLES = ['voice', 'timings', 'music'] as const;
+  const ROLES = ['voice', 'timings', 'music', 'dictation'] as const;
 
   $: setup = overview.setup;
   $: missing = needs(overview);
@@ -124,6 +128,33 @@
       void refresh();
     });
   }
+  function openModel(key: KeyRow) {
+    modelDrafts = { ...modelDrafts, [key.name]: overview.settings[key.dictation.setting] ?? '' };
+    modelOpen = { ...modelOpen, [key.name]: true };
+  }
+  /** A model ID as it is pasted: without spaces, quotes or the `models/` Google puts in front. */
+  function modelId(text: string) {
+    const plain = text
+      .trim()
+      .replace(/^["']|["']$/g, '')
+      .trim();
+    return plain.startsWith('models/') ? plain.slice('models/'.length) : plain;
+  }
+  /** Saves the model, or the usual one for an empty field, and asks the provider about it. */
+  function saveModel(key: KeyRow, typed: string) {
+    const model = modelId(typed) || null;
+    void run(`model-${key.name}`, async () => {
+      await call('/api/app/settings', 'PUT', {
+        ...overview.settings,
+        [key.dictation.setting]: model,
+      });
+      modelOpen = { ...modelOpen, [key.name]: false };
+      announce($t('setup.dictation.saved', { model: model ?? key.dictation.usual }));
+      await refresh();
+      if (key.present) await checkKey(key);
+    });
+  }
+
   /** What a check of a key found, in the app's language. */
   function checkText(check: KeyCheck): string {
     if (check.state === 'none') return $t('setup.key.check.none');
@@ -260,9 +291,18 @@
               <dl class="setup-models">
                 {#each ROLES as role (role)}
                   <dt>{$t(`setup.models.${role}`)}</dt>
-                  <dd>{key.models[role]}</dd>
+                  <dd>
+                    {role === 'dictation' && key.dictation.own
+                      ? $t('setup.dictation.own', { model: key.models[role] })
+                      : key.models[role]}
+                  </dd>
                 {/each}
               </dl>
+              {#if !modelOpen[key.name]}<button
+                  class="text-link"
+                  aria-label={$t('setup.dictation.changeFor', { provider: key.title })}
+                  onclick={() => openModel(key)}>{$t('setup.dictation.change')}</button
+                >{/if}
               {#if key.present && key.source}<span>{$t(`setup.key.source.${key.source}`)}</span
                 >{/if}
               {#if check === 'checking'}<span class="setup-note" role="status"
@@ -319,6 +359,50 @@
                         onclick={() => (replacing = { ...replacing, [key.name]: false })}
                         >{$t('common.cancel')}</button
                       >{/if}
+                  </form>
+                {/if}
+                {#if modelOpen[key.name]}
+                  {@const modelBusy = $busy === `model-${key.name}`}
+                  <form
+                    class="key-form model-form"
+                    transition:unfold
+                    onsubmit={(event) => {
+                      event.preventDefault();
+                      saveModel(key, modelDrafts[key.name] || '');
+                    }}
+                  >
+                    <input
+                      type="text"
+                      name={`model-${key.name}`}
+                      autocomplete="off"
+                      spellcheck="false"
+                      placeholder={key.dictation.usual}
+                      aria-label={$t('setup.dictation.label', { provider: key.title })}
+                      aria-describedby={`model-hint-${key.name}`}
+                      bind:value={modelDrafts[key.name]}
+                    />
+                    <button class="button" type="submit" disabled={modelBusy}
+                      >{$t('common.save')}</button
+                    >
+                    <span class="model-hint" id={`model-hint-${key.name}`}
+                      >{$t(`setup.dictation.hint.${key.name}`, {
+                        model: key.dictation.usual,
+                      })}</span
+                    >
+                    <span class="setup-links">
+                      {#if key.dictation.own}<button
+                          class="text-link"
+                          type="button"
+                          disabled={modelBusy}
+                          onclick={() => saveModel(key, '')}>{$t('setup.dictation.usual')}</button
+                        >{/if}
+                      <button
+                        class="text-link"
+                        type="button"
+                        onclick={() => (modelOpen = { ...modelOpen, [key.name]: false })}
+                        >{$t('common.cancel')}</button
+                      >
+                    </span>
                   </form>
                 {/if}
               </svelte:fragment>

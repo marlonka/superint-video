@@ -2,6 +2,9 @@
 
 ## Unveröffentlicht
 
+- **Sprechen statt tippen:** Unter „Neuer Film“ nimmt „Sprechen“ das Thema über das Mikrofon auf. Während du sprichst, zeigt eine Wellenform, dass das Mikrofon dich hört, daneben laufen die Zeit, „✕“ (verwerfen, auch mit Escape) und „✓“ (aufschreiben). Das Modell deines API-Schlüssels schreibt es auf und setzt den Text dort ein, wo der Cursor stand: mit Google AI Studio `gemini-3.5-transcribe` im Modus `smart` (ohne „äh“, Versprecher und Neuanfänge, mit deinen eigenen Korrekturen), mit nur einem OpenRouter-Schlüssel `microsoft/mai-transcribe-2`. Die Aufnahme bleibt bis zum Senden im Fenster und wird nirgends gespeichert (`POST /api/app/dictate`).
+- **Diktiermodell wählen:** In der Einrichtung steht unter jedem Anbieter das Diktiermodell, und „Diktiermodell ändern“ nimmt jede Modell-ID, wie der Anbieter sie schreibt, etwa ein neueres Transcribe-Modell. „Prüfen“ fragt den Anbieter auch nach diesem Modell. Einstellungen `dictationAiStudio` und `dictationOpenRouter` (`settings set`).
+
 - Bereit für Open Source: SECURITY.md, Vorlagen für Issues und Pull Requests, eine englische README (`README.en.md`) und ein überarbeitetes CONTRIBUTING.
 - Handbuch und README sagen, was deinen Rechner verlässt (Stimme, Transkription und Musik beim gewählten Anbieter, sonst nichts) und wie du KI-Inhalte kennzeichnest.
 - Jedes exportierte MP4 trägt in seinen Metadaten (`comment`, `description`), dass es mit Superint Video und KI-Hilfe entstanden ist.
