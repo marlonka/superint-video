@@ -581,10 +581,11 @@ pub fn adopt(home: &Path, folder: &Path) {
 /// system's temporary folder are test runs and stay off it.
 pub fn remember(home: &Path, root: &Path, name: &str, created: bool) {
     let root = without_verbatim(root);
-    let temporary = std::env::temp_dir();
-    let temporary = folder_key(&temporary.canonicalize().unwrap_or(temporary));
+    // Compared resolved: the same folder can be spelled short (C:\Users\RUNNER~1) or long.
+    let resolved = |path: &Path| folder_key(&path.canonicalize().unwrap_or(path.to_path_buf()));
+    let temporary = resolved(&std::env::temp_dir());
     let key = folder_key(&root);
-    if key.starts_with(&temporary) && !folder_key(home).starts_with(&temporary) {
+    if resolved(&root).starts_with(&temporary) && !resolved(home).starts_with(&temporary) {
         return;
     }
     let now = now_ms();

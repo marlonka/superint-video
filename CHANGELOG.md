@@ -8,6 +8,7 @@
 - Das Windows-ZIP hat Pfade mit `/`, wie es das ZIP-Format verlangt; vorher entstanden beim Entpacken auf macOS und Linux Dateinamen mit `\` statt Ordnern. Die Gestaltungsnotizen für Studio liegen nur noch im Repository.
 - Die Demo-Medien in `examples/demo/assets` liegen nicht mehr im Repository; `scripts/generate-demo-assets.ps1` erzeugt sie.
 - Die Windows-CI läuft bei jedem Pull Request und jedem Push auf `main`.
+- Die Filmliste behandelt einen Ordner gleich, ob sein Pfad lang oder in der Windows-Kurzform (`RUNNER~1`) geschrieben ist; vorher konnte ein wieder geöffneter Film versteckt bleiben, und der Test dazu scheiterte auf GitHubs Windows-Runnern.
 - Die Skills nennen keine fremden Kanäle mehr als Stilvorbild.
 
 ## 0.3.0 — 2026-11-12
