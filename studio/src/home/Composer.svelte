@@ -7,7 +7,14 @@
   import { format, locale, t, type Formats, type Translate } from '../i18n';
   import type { Film, Overview } from '../types';
   import { onMount, tick } from 'svelte';
-  import { FILM_LANGUAGES, FORMATS, USUAL_FORMAT, styleText, topicLanguage } from './choices';
+  import {
+    FILM_LANGUAGES,
+    FORMATS,
+    USUAL_FORMAT,
+    spliceSpoken,
+    styleText,
+    topicLanguage,
+  } from './choices';
   import Dictate from './Dictate.svelte';
   import LengthField from './LengthField.svelte';
   import { baseFilm, copyText, fail } from './session';
@@ -32,13 +39,9 @@
 
   /** Puts dictated text where the cursor was, else at the end, with a space where one is due. */
   async function insert(text: string) {
-    const [from, to] = caret ?? [topic.length, topic.length];
-    const before = topic.slice(0, from);
-    const after = topic.slice(to);
-    const lead = before && !/\s$/.test(before) ? ' ' : '';
-    const tail = after && !/^\s/.test(after) ? ' ' : '';
-    topic = `${before}${lead}${text}${tail}${after}`;
-    const at = before.length + lead.length + text.length;
+    const spoken = spliceSpoken(topic, caret, text);
+    topic = spoken.text;
+    const at = spoken.at;
     caret = [at, at];
     await tick();
     field.focus();

@@ -35,10 +35,15 @@
   type Location = 'eu' | 'us' | 'global';
   type Step = 'agent' | 'tools' | 'keys';
   type ModelSetting =
-    'narrationModel' | 'narrationVoice' | 'transcriptionModel' | 'musicModel' | 'dictationModel';
+    | 'narrationModel'
+    | 'narrationVoice'
+    | 'transcriptionModel'
+    | 'musicModel'
+    | 'dictationModel'
+    | 'styleModel';
 
   /** What a key is used for, in the order Setup lists the models. */
-  const ROLES = ['voice', 'timings', 'music', 'dictation'] as const;
+  const ROLES = ['voice', 'timings', 'music', 'dictation', 'style'] as const;
   /** Google Cloud's regions; the EU is the default. */
   const LOCATIONS: Location[] = ['eu', 'us', 'global'];
   /** The fields of the models form: the setting, its label and the usual value it shows. */
@@ -48,6 +53,7 @@
     { setting: 'transcriptionModel', label: 'setup.models.timings', usual: 'transcription' },
     { setting: 'musicModel', label: 'setup.models.music', usual: 'music' },
     { setting: 'dictationModel', label: 'setup.models.dictation', usual: 'dictation' },
+    { setting: 'styleModel', label: 'setup.models.style', usual: 'style' },
   ];
 
   // Keys: what is typed stays in this page until Save sends it once. It is never read back.
@@ -74,6 +80,7 @@
     transcriptionModel: '',
     musicModel: '',
     dictationModel: '',
+    styleModel: '',
   };
 
   $: setup = overview.setup;

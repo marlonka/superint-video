@@ -928,6 +928,139 @@
 .style-actions .button.quiet {
   padding-inline: 10px;
 }
+/* The first place among the styles: a style of one's own. Its picture is the way in, and
+   pictures can be dropped on it. */
+.style-new > .style-pictures {
+  width: 100%;
+  cursor: pointer;
+}
+.style-new > .style-pictures:hover,
+.style-new.over > .style-pictures {
+  background: var(--hover);
+  color: var(--text);
+}
+.style-new.over > .style-pictures {
+  outline-color: var(--text);
+}
+/* A style being made: pictures, words, a name, on the lines of the composer above. Pictures
+   dragged over it ring it, as the default style's picture is ringed. */
+.style-maker {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 40px;
+  border-radius: 8px;
+  outline: 2px solid transparent;
+  outline-offset: 10px;
+  transition: outline-color 140ms ease-out;
+}
+.style-maker.over {
+  outline-color: var(--text);
+}
+.maker-heading > h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 24px;
+}
+.maker-heading > p {
+  margin: 2px 0 0;
+  color: var(--secondary);
+  font-size: 15px;
+  line-height: 1.45;
+}
+/* The pictures in a row of one height, each as wide as it is, then the place for more. */
+.maker-pictures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.maker-pictures > li,
+.maker-picture {
+  position: relative;
+  display: block;
+  height: 104px;
+}
+.maker-picture > img {
+  display: block;
+  width: auto;
+  max-width: min(100%, 260px);
+  height: 100%;
+  border-radius: 6px;
+  background: var(--surface);
+  object-fit: cover;
+}
+/* Taking a picture out again: on the picture's corner, on the page's own colour so it reads
+   on any picture. */
+.maker-picture > .icon-button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--page);
+  color: var(--text);
+}
+.maker-picture > .icon-button:hover:not(:disabled) {
+  background: var(--hover);
+}
+.maker-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--secondary);
+  font-size: 14px;
+}
+.maker-add:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--text);
+}
+/* The name on the left under its label, the two buttons on the right on the field's line. */
+.maker-foot {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+}
+.maker-foot > .composer-choice {
+  flex: 1;
+  min-width: min(100%, 240px);
+  max-width: 360px;
+}
+.maker-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+/* Who looks at the pictures and where they go; while the model works, that it does and for
+   how long. */
+.maker-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 22px;
+  margin: 0;
+  color: var(--secondary);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.maker-note.working {
+  color: var(--text);
+}
+.maker-clock {
+  color: var(--secondary);
+  font-variant-numeric: tabular-nums;
+}
 /* A style file waits here until the user says yes. */
 .style-import {
   display: grid;

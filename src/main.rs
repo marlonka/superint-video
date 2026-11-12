@@ -14,7 +14,7 @@ use superint_video::{
     music, polish,
     preset::{self, Brief, Preset},
     project::{self, ProjectStore, display_path},
-    providers, renderer, review, server, sfx,
+    providers, renderer, review, server, sfx, style,
     voice::{self, TakesOptions, TranscribeOptions},
 };
 use tokio_util::sync::CancellationToken;
@@ -470,6 +470,40 @@ enum PresetCommand {
     },
     /// Add the preset in a style file to the user's presets. A taken name gets a number.
     Import { file: PathBuf },
+    /// A style of the user's own from pictures they like and a description of the look: a
+    /// vision model, asked with the user's API key, writes STYLE.md, the kit's colours and
+    /// type and preset.json; the pictures become the style's references. Based on `blank`.
+    Create {
+        /// The style's name as the user says it ("Warm paper"); the model proposes one otherwise.
+        #[arg(long)]
+        name: Option<String>,
+        /// Pictures that show the look (PNG, JPEG, WebP), comma-separated or repeated; up to 12.
+        #[arg(long = "reference", value_delimiter = ',')]
+        references: Vec<PathBuf>,
+        /// The look in the user's words: colours, shapes, light, mood, what it must not be.
+        #[arg(long)]
+        describe: Option<String>,
+        /// The language films in this style speak unless a film says otherwise, e.g. de.
+        #[arg(long)]
+        language: Option<String>,
+        /// The model for this one call (else `models set style`, else the usual one).
+        #[arg(long)]
+        model: Option<String>,
+    },
+    /// A style from a finished film: its STYLE.md, direction, kit, drawing libraries, blocks,
+    /// references and stills, generalised by the vision model so nothing of the film's topic
+    /// stays. The film is not changed.
+    FromFilm {
+        /// The film (its folder or its video.json).
+        film: PathBuf,
+        #[arg(long)]
+        name: Option<String>,
+        /// What to keep or leave, in the user's words.
+        #[arg(long)]
+        describe: Option<String>,
+        #[arg(long)]
+        model: Option<String>,
+    },
 }
 
 /// Generator jobs keep large async state on the stack, and Windows gives the main thread
@@ -500,6 +534,34 @@ fn main() {
         std::process::exit(1);
     }
 }
+/// What a style is written with from the command line: the user's keys, the model named for
+/// this call or chosen in Setup, and the folder the user's styles live in.
+fn style_maker(model: Option<String>) -> Result<(providers::Generators, Option<String>, PathBuf)> {
+    let generators = providers::Generators::new(
+        superint_video::env::Keys::load(&std::env::current_dir()?)?,
+        std::env::temp_dir().join("superint-video-style"),
+    )?;
+    let model = model
+        .map(|model| home::model_id(&model))
+        .filter(|model| !model.is_empty())
+        .or(Settings::current().style_model);
+    let styles = preset::user_dir().context("No user preset directory; set SUPERINT_PRESETS")?;
+    std::fs::create_dir_all(&styles)?;
+    Ok((generators, model, styles))
+}
+
+/// A made style as the command prints it, with what to do next.
+fn made_style(made: style::Made) -> Result<Value> {
+    let mut printed = serde_json::to_value(&made)?;
+    printed["preset"] = json!(made.name);
+    printed["styleMd"] = json!(made.path.join("STYLE.md"));
+    printed["next"] = json!(format!(
+        "Read STYLE.md and look at kit/theme.css next to the pictures in references/; correct by hand what the model missed. The style is in the app under Styles and starts a film with: superint-video new --preset {} --topic \"…\"",
+        made.name
+    ));
+    Ok(printed)
+}
+
 /// What a long command tells Studio while it runs.
 fn running(command: &Commands) -> Option<live::Running> {
     let (project, label) = match command {
@@ -517,6 +579,9 @@ fn running(command: &Commands) -> Option<live::Running> {
         Commands::Voice {
             command: VoiceCommand::Takes { project, .. },
         } => (project, "Recording voice takes"),
+        Commands::Preset {
+            command: PresetCommand::FromFilm { film, .. },
+        } => (film, "Making a style from this film"),
         Commands::Voice {
             command: VoiceCommand::Assemble { project, .. },
         } => (project, "Assembling the voice"),
@@ -833,6 +898,53 @@ async fn run() -> Result<()> {
                 let bytes =
                     std::fs::read(&file).with_context(|| format!("Reading {}", file.display()))?;
                 print_json(serde_json::to_value(preset::import(&bytes)?)?);
+            }
+            PresetCommand::Create {
+                name,
+                references,
+                describe,
+                language,
+                model,
+            } => {
+                let mut wish = style::Wish {
+                    name,
+                    describe: describe.unwrap_or_default(),
+                    references: Vec::new(),
+                    language,
+                };
+                for path in references {
+                    wish.references.push(style::Reference {
+                        name: path
+                            .file_name()
+                            .map(|name| name.to_string_lossy().to_string())
+                            .unwrap_or_default(),
+                        bytes: std::fs::read(&path)
+                            .with_context(|| format!("Reading reference {}", path.display()))?,
+                    });
+                }
+                let (generators, model, styles) = style_maker(model)?;
+                let made =
+                    style::from_references(&generators, model.as_deref(), wish, &styles).await?;
+                print_json(made_style(made)?);
+            }
+            PresetCommand::FromFilm {
+                film,
+                name,
+                describe,
+                model,
+            } => {
+                let root = ProjectStore::open(&film)?.root;
+                let (generators, model, styles) = style_maker(model)?;
+                let made = style::from_film(
+                    &generators,
+                    model.as_deref(),
+                    &root,
+                    name.as_deref(),
+                    describe.as_deref().unwrap_or_default(),
+                    &styles,
+                )
+                .await?;
+                print_json(made_style(made)?);
             }
         },
         Commands::Studio {

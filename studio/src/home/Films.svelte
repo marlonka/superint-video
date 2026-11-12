@@ -4,7 +4,7 @@
   import MoreMenu from '../MoreMenu.svelte';
   import { format, t } from '../i18n';
   import type { Film, Overview } from '../types';
-  import { announce, baseFilm, busy, call, patch, reveal, run } from './session';
+  import { announce, baseFilm, busy, call, patch, reveal, run, styleFilm } from './session';
 
   export let overview: Overview;
   /** The time, kept by the page, so "5 minutes ago" moves on. */
@@ -26,6 +26,10 @@
       announce($t('films.copied', { name: copy?.name ?? film.name }));
     });
     if (done && copy) onopen(copy);
+  }
+  /** Names the film as what a style is made from; the form opens under "Styles". */
+  function makeStyle(film: Film) {
+    styleFilm.set(film);
   }
   function forget(film: Film) {
     void run(`film-${film.id}`, async () => {
@@ -87,6 +91,8 @@
                 disabled={$busy === `film-${film.id}`}
                 onclick={() => duplicate(film)}
                 ><Icon name="duplicate" />{$t('films.duplicate')}</button
+              ><button role="menuitem" onclick={() => makeStyle(film)}
+                ><Icon name="image" />{$t('films.makeStyle')}</button
               ><button
                 role="menuitem"
                 onclick={() => void reveal(`/api/app/films/${film.id}/reveal`)}

@@ -170,8 +170,9 @@ export interface KeyRow {
   get: string;
   /** For few users: folded away in Setup until it holds a key. */
   more: boolean;
-  /** The models this provider's key is used with by default; OpenAI's only dictates. */
-  models: { voice?: string; timings?: string; music?: string; dictation: string };
+  /** The models this provider's key is used with by default; OpenAI's dictates and writes
+   * styles, and makes no part of a film. */
+  models: { voice?: string; timings?: string; music?: string; dictation: string; style: string };
   /** Google Cloud: where requests go. `fixed` when the environment or a .env file sets it. */
   place?: { project: string | null; location: string; servedIn: string; fixed: boolean };
   /** OpenAI: the region of its address. */
@@ -186,6 +187,15 @@ export interface UsualModels {
   transcription: string;
   music: string;
   dictation: string;
+  /** What looks at reference pictures and writes a new style. */
+  style: string;
+}
+/** A style that was made: its name among the styles, its title, and who wrote it. */
+export interface MadeStyle {
+  name: string;
+  title: string;
+  model: string;
+  styles: Style[];
 }
 /** What a dictation came back as: the text, and the model and route that wrote it down. */
 export interface Dictation {
@@ -231,6 +241,7 @@ export interface Settings {
   transcriptionModel: string | null;
   musicModel: string | null;
   dictationModel: string | null;
+  styleModel: string | null;
   /** Google Cloud: the project (null: express mode) and its region (null: eu). */
   googleCloudProject: string | null;
   googleCloudLocation: 'eu' | 'us' | 'global' | null;
@@ -284,8 +295,12 @@ export interface Overview {
       soundEffects: boolean;
       /** Any key, OpenAI's too: the start page can write down what is said. */
       dictate: boolean;
+      /** Any key: a model can look at pictures and write a style. */
+      style: boolean;
     };
     models: UsualModels;
+    /** The model a style would be written with now, and whose it is. */
+    style: { model: string; provider: string } | null;
     agents: Agent[];
   };
   settings: Settings;

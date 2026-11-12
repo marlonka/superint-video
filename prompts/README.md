@@ -11,6 +11,8 @@ Kopierfertige Aufträge für Claude Code oder Codex. Ersetze die Teile in `<spit
 | [eigenes-skript.md](eigenes-skript.md) | Video zu einem Sprechertext, den du schon hast |
 | [bearbeiten.md](bearbeiten.md) | Bestehendes Projekt ändern, ohne den Rest anzufassen |
 
+Eine Datei hier ist kein Auftrag für dich, sondern für ein Modell: [style.md](style.md) ist die Anweisung, mit der Superint Video aus Referenzbildern oder einem fertigen Film einen eigenen Stil schreiben lässt („Neuen Stil erstellen“, `preset create`, `preset from-film`). Sie ist ins Programm eingebaut; wer sie ändert, baut neu.
+
 ## Aufteilung
 
 Die Prompts sind absichtlich kurz. Was bei jedem Video gleich ist, steht an einer Stelle und wird nicht in jeden Prompt kopiert:

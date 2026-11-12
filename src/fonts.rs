@@ -113,6 +113,11 @@ impl Choices {
     }
 }
 
+/// The families of the tool's library, which every scene can set text in by name.
+pub fn library() -> Vec<String> {
+    declared(LIBRARY)
+}
+
 /// The families `@font-face` rules declare, in order, each once.
 pub fn declared(text: &str) -> Vec<String> {
     let lower = text.to_ascii_lowercase();

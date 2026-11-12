@@ -1,4 +1,5 @@
-//! OpenAI: speech to text for dictations (`gpt-transcribe`). Films do not use OpenAI: its speech
+//! OpenAI: speech to text for dictations (`gpt-transcribe`) and a vision model that writes
+//! styles (`gpt-6.1-sol`). Films do not use OpenAI: its speech
 //! models end on 2027-01-06, their successor is a conversation model that does not promise to
 //! read a text word for word, and only whisper-1 (ending 2027-02-26) gives word timings
 //! (checked 2026-11-12).
@@ -48,6 +49,31 @@ pub(super) async fn dictate(g: &Generators, wav: &[u8], model: &str) -> Result<S
         .await
         .map_err(|e| g.transport(e))?;
     Ok(text_of(&value))
+}
+
+/// A style: the model looks at the pictures and writes (`POST /chat/completions`).
+pub(super) async fn write(
+    g: &Generators,
+    model: &str,
+    request: &super::StyleRequest<'_>,
+) -> Result<String> {
+    let key = g.keys.require(env::OPENAI)?;
+    let url = format!("{}/chat/completions", g.openai);
+    let mut body = super::chat_style_body(model, request);
+    body["max_completion_tokens"] = super::STYLE_MOST_TOKENS.into();
+    let value: Value = g
+        .send(Provider::OpenAi, || {
+            g.http
+                .post(&url)
+                .bearer_auth(key.expose())
+                .json(&body)
+                .timeout(super::STYLE_TIMEOUT)
+        })
+        .await?
+        .json()
+        .await
+        .map_err(|e| g.transport(e))?;
+    super::chat_text(Provider::OpenAi, &value)
 }
 
 /// Whether this key sees a model (`GET /models/{model}`).

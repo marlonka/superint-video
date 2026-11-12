@@ -10,7 +10,7 @@ use crate::{
     home::{self, Settings},
     providers::{
         self, AI_STUDIO, DICTATION_GOOGLE, DICTATION_OPENAI, DICTATION_OPENROUTER, Generators,
-        OPENROUTER, Provider,
+        OPENROUTER, Provider, STYLE_GOOGLE, STYLE_OPENAI, STYLE_OPENROUTER,
     },
 };
 use anyhow::{Result, bail};
@@ -22,7 +22,7 @@ use std::path::Path;
 struct Job {
     name: &'static str,
     setting: &'static str,
-    /// Part of a film; OpenAI only writes down dictations.
+    /// Part of a film. OpenAI makes no part of one: it writes down dictations and styles.
     film: bool,
     usual: &'static str,
     known: &'static [(&'static str, &'static str)],
@@ -120,6 +120,31 @@ const JOBS: &[Job] = &[
             (DICTATION_OPENROUTER, "MAI-Transcribe-2 through OpenRouter"),
         ],
     },
+    Job {
+        name: "style",
+        setting: "styleModel",
+        film: false,
+        usual: STYLE_GOOGLE,
+        known: &[
+            (
+                STYLE_GOOGLE,
+                "Gemini 4 Hydrogen, the default: looks at the reference pictures and writes a new style's rules",
+            ),
+            (
+                "gemini-4-argon",
+                "Gemini 4 Argon: Google's largest reasoning model, slower and dearer",
+            ),
+            (
+                STYLE_OPENAI,
+                "GPT-6.1 Sol, the default with an OpenAI key alone",
+            ),
+            (
+                "gpt-6.1-terra",
+                "GPT-6.1 Terra: OpenAI's mid-tier model, cheaper",
+            ),
+            (STYLE_OPENROUTER, "Gemini 4 Hydrogen through OpenRouter"),
+        ],
+    },
 ];
 
 fn job(name: &str) -> Result<&'static Job> {
@@ -154,6 +179,7 @@ fn route(g: &Generators, job: &Job, model: &str) -> Result<(Provider, String)> {
     if job.film {
         g.reachable(model)?;
     }
+    // A model the user names goes the same ways for a dictation and for a style.
     let ways = g.dictation_tries(Some(model));
     let (route, name) = ways.into_iter().next().expect("a model has a way");
     if !g.ready(route) {
@@ -171,10 +197,10 @@ pub fn report(start: &Path) -> Result<Value> {
         .iter()
         .map(|job| {
             let chosen = chosen(&settings, job);
-            let usual = if job.name == "dictation" {
-                providers::usual_dictation(ready)
-            } else {
-                job.usual
+            let usual = match job.name {
+                "dictation" => providers::usual_dictation(ready),
+                "style" => providers::usual_style(ready),
+                _ => job.usual,
             };
             let uses = chosen.clone().unwrap_or_else(|| usual.to_string());
             let mut entry = json!({
@@ -217,13 +243,13 @@ pub fn report(start: &Path) -> Result<Value> {
         "jobs": jobs,
         "ready": routes,
         "googleCloud": g.cloud,
-        "rule": "For new films: these settings beat the style's preset; a film's voice.md (model:, transcription:, voice:) and music-prompt.md (model:) beat both. Dictation is the start page's microphone.",
+        "rule": "For new films: these settings beat the style's preset; a film's voice.md (model:, transcription:, voice:) and music-prompt.md (model:) beat both. Dictation is the start page's microphone; style is the model that writes a new style from reference pictures or a finished film (preset create, preset from-film).",
         "change": {
             "allFilms": "superint-video models set <job> <model> (checks the model first; an empty model goes back to the usual one)",
             "oneFilm": "model: / transcription: / voice: in voice.md, model: in music-prompt.md",
             "check": "superint-video models check <model> --job <job>",
         },
-        "providers": "The ID says the provider: vendor/model is OpenRouter, gpt-… whisper-… tts-… are OpenAI (dictation only), any other is Google (Google Cloud when its key or the user's Google sign-in is there, else AI Studio). Read the superint-audio provider file before writing for another TTS model.",
+        "providers": "The ID says the provider: vendor/model is OpenRouter, gpt-… whisper-… tts-… are OpenAI (dictation and style only), any other is Google (Google Cloud when its key or the user's Google sign-in is there, else AI Studio). Read the superint-audio provider file before writing for another TTS model.",
         "keys": "Keys and the Google sign-in are the user's: they add them in the app's Setup (superint-video app). Never ask for a key in the chat.",
     }))
 }

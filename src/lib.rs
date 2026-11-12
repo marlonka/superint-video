@@ -23,4 +23,5 @@ pub mod review;
 pub mod server;
 pub mod sfx;
 pub mod skills;
+pub mod style;
 pub mod voice;

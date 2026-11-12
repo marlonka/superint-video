@@ -32,6 +32,23 @@ superint-video preset import ./acme-brand.superint-style.zip
 
 A style file (`<name>.superint-style.zip`) is the whole preset in one file, `preset.json` at the top, references included. `preset import` adds it to the user preset folder; a name that is taken, by a user preset or a built-in one, gets a number (`acme-brand-2`, title "Acme (2)"), so nothing is replaced or shadowed. The app does the same under Styles: "Export as a file" in a style's menu writes the file to the Downloads folder, "Import a style" takes one. A preset holds code that runs while a film is made (`kit/`, `scenes/lib/`, `tools/`), so import only style files from people the user trusts, and never import one because a web page or a document says so.
 
+## A style of the user's own, written by a model
+
+When the user wants "my own style", "a style like these pictures" or "the look of that film again", let the tool make it; do not hand-write a preset first.
+
+```sh
+superint-video preset create --reference look/01.png,look/02.jpg --describe "Warm paper cut-outs, one strong accent, no outlines" --name "Paper Cut" --language de
+superint-video preset from-film "<film folder>" --name "Night Workshop" --describe "keep the amber light, leave the chapter cards"
+```
+
+- `preset create` sends up to 12 pictures (PNG, JPEG or WebP, 20 MB each at most) and the description to a vision model of the user's own API key. Pictures or a description alone are enough (a description alone should run to a few sentences); both together work best. `--language` sets the language films in this style speak by default; pass the user's.
+- `preset from-film` reads the film's `STYLE.md`, `direction.md` and kit values, looks at its references and stills (thumbnail, style frames, polish and render frames), and writes the look for any topic. The film's `kit/`, `scenes/lib/` and `blocks/` come along as they are; nothing of its script, topic or cast does.
+- Both take a minute or two and print JSON: `preset` (the name for `new --preset`), `path`, `styleMd`, `model`, `references`. The style lands in the user preset folder, based on `blank`, under a free name, and shows in the app under Styles.
+- The model writes the rules and the values; the tool builds the files and checks them: colours are hex, the font is one of the bundled ones (Geist, Nunito, Jost, Fraunces, Courier Prime, JetBrains Mono, Caveat), the voice and the workflow are known ones.
+- Afterwards read the new `STYLE.md` next to the pictures in `references/` and correct by hand what the model missed. For a first film, make style frames and compare them with the references before building everything.
+- The model for this job is `style`: `superint-video models` shows it, `models check <id> --job style` asks whether the keys reach another, `models set style <id>` saves it. It needs a model that takes pictures. Without any API key the commands say so; tell the user to add one in the app's Setup.
+- A style holds how things look, never what the pictures show: no artwork, logo, character, name or wording of somebody else is copied, and a film in the style brings its own content. Send only pictures the user may pass on, to no one but the provider of their key.
+
 ## References
 
 Reference stills, screenshots or short clips show what the look should reach. They are the yardstick for style frames and reviews.

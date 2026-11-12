@@ -117,6 +117,33 @@ pub(super) async fn dictate(g: &Generators, wav: &[u8], model: &str) -> Result<S
     Ok(text_of(&value))
 }
 
+/// A style: the model looks at the pictures and writes (chat completions).
+pub(super) async fn write(
+    g: &Generators,
+    model: &str,
+    request: &super::StyleRequest<'_>,
+) -> Result<String> {
+    let key = g.keys.require(env::OPENROUTER)?;
+    let mut body = super::chat_style_body(model, request);
+    body["max_tokens"] = super::STYLE_MOST_TOKENS.into();
+    let value: Value = g
+        .send(Provider::OpenRouter, || {
+            post(g, "/chat/completions", key)
+                .json(&body)
+                .timeout(super::STYLE_TIMEOUT)
+        })
+        .await?
+        .json()
+        .await
+        .map_err(|e| g.transport(e))?;
+    // OpenRouter answers 200 with an error inside when the model behind it failed.
+    if let Some(error) = value.get("error") {
+        let message = error["message"].as_str().unwrap_or("no details");
+        bail!("OpenRouter: {}", g.keys.redact(message));
+    }
+    super::chat_text(Provider::OpenRouter, &value)
+}
+
 /// Lyria through chat completions: audio arrives as base64 pieces in the SSE deltas.
 pub(super) async fn music(g: &Generators, model: &str, prompt: &str) -> Result<Vec<u8>> {
     let key = g.keys.require(env::OPENROUTER)?;

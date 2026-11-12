@@ -15,6 +15,12 @@
   export let oninsert: (text: string) => void;
   /** A recording is running or being written down; the field waits meanwhile. */
   export let active = false;
+  /** What the microphone is for here, and what it says while it listens; a film's topic
+   * unless the field is for something else. */
+  export let hint: string | undefined = undefined;
+  /** The field is busy with something else: the microphone waits, without a word about keys. */
+  export let paused = false;
+  export let listening: string | undefined = undefined;
 
   /** The longest recording. It is written down when it gets there. The server takes up to ten
    * minutes, so a recording that arrives a little late still fits. */
@@ -48,13 +54,13 @@
   $: active = phase !== 'idle';
   $: spoken =
     phase === 'recording'
-      ? $t('dictate.listening')
+      ? (listening ?? $t('dictate.listening'))
       : phase === 'writing'
         ? $t('dictate.writing')
         : said;
 
   async function begin() {
-    if (phase !== 'idle' || !available) return;
+    if (phase !== 'idle' || !available || paused) return;
     phase = 'starting';
     levels = [];
     seconds = 0;
@@ -254,9 +260,9 @@
       title={phase === 'recording'
         ? $t('dictate.done')
         : available && phase === 'idle'
-          ? $t('dictate.startHint')
+          ? (hint ?? $t('dictate.startHint'))
           : undefined}
-      disabled={!available || phase === 'starting' || phase === 'writing'}
+      disabled={!available || paused || phase === 'starting' || phase === 'writing'}
       onclick={phase === 'recording' ? finish : begin}
       >{#if phase === 'writing'}<span class="loader small"></span>{:else}<Icon
           name="mic"

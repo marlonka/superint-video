@@ -15,6 +15,8 @@ export const problem = writable('');
 export const toast = writable('');
 /** The film a new one starts from, chosen in a film's menu; the composer names it in the prompt. */
 export const baseFilm = writable<Film | null>(null);
+/** The film a style is to be made from, chosen in a film's menu; the styles show the form. */
+export const styleFilm = writable<Film | null>(null);
 
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
 /** The app's language as the settings last had it; `undefined` before the first overview. */
@@ -53,7 +55,8 @@ export function patch(changes: Partial<Overview>) {
 }
 
 /**
- * Calls the server. A value is sent as JSON, a file as it is. A failure carries its status.
+ * Calls the server. A value is sent as JSON, a file as it is, a form as a form. A failure
+ * carries its status.
  * `signal` lets the caller give up on the answer, as when a dictation is discarded.
  */
 export async function call<T>(
@@ -63,16 +66,18 @@ export async function call<T>(
   signal?: AbortSignal,
 ): Promise<T> {
   const file = body instanceof Blob;
+  // A form names its own type, with the boundary between its parts.
+  const form = body instanceof FormData;
   const response = await fetch(path, {
     method,
     signal,
     headers: {
       'X-Superint-Token': token,
-      ...(body === undefined
+      ...(body === undefined || form
         ? {}
         : { 'Content-Type': file ? 'application/octet-stream' : 'application/json' }),
     },
-    body: body === undefined ? undefined : file ? body : JSON.stringify(body),
+    body: body === undefined ? undefined : file || form ? body : JSON.stringify(body),
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) {
