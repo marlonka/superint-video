@@ -507,6 +507,7 @@ async fn project_payload(State(state): State<StudioState>) -> ApiResult<Json<Val
 #[derive(Deserialize)]
 struct EditBody {
     revision: String,
+    /// One operation, or a list applied as one step (`superint-video edit`).
     operation: Value,
 }
 async fn edit(
@@ -514,11 +515,11 @@ async fn edit(
     Json(body): Json<EditBody>,
 ) -> ApiResult<Json<Value>> {
     {
-        state
-            .store
-            .lock()
-            .unwrap()
-            .edit(&body.revision, &body.operation)?;
+        let mut store = state.store.lock().unwrap();
+        match &body.operation {
+            Value::Array(operations) => store.edit_many(&body.revision, operations)?,
+            operation => store.edit(&body.revision, operation)?,
+        }
     }
     let result = payload(&state)?;
     let _ = state

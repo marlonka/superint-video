@@ -225,6 +225,7 @@ export const de: Catalog = {
   'prompt.minutes': { one: '{count} Minute', other: '{count} Minuten' },
   'prompt.language': 'auf {language}',
   'prompt.askStyle': 'Frag mich vor dem Start, welchen Stil ich möchte.',
+  'prompt.program': 'Das Programm superint-video liegt hier: {path}',
 
   // Filme
   'films.title': 'Filme',

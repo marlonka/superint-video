@@ -278,6 +278,8 @@ export interface Overview {
     agents: Agent[];
   };
   settings: Settings;
+  /** This program, and whether an agent's shell finds it as `superint-video`. */
+  cli: { path: string | null; onPath: boolean };
   /** Where a new film goes: the folder the user chose, else the usual one. */
   filmsFolder: string | null;
   styles: Style[];

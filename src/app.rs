@@ -6,7 +6,7 @@ use crate::{
     env::{self, Keys},
     home::{self, KeyStore, Settings},
     live, polish, preset, process, production,
-    project::modified_ms,
+    project::{modified_ms, without_verbatim},
     providers::{self, Provider},
     server::{ApiError, ApiResult, bytes_response},
     skills::{self, Agent},
@@ -206,6 +206,7 @@ async fn payload(state: &AppState, fresh: bool) -> Result<Value> {
                 "models": usual_models(reaches),
                 "agents": agents(&state, fresh),
             },
+            "cli": cli(),
             "filmsFolder": home::films_dir(&settings),
             "films": films(&state, &settings),
             "settings": settings,
@@ -213,6 +214,24 @@ async fn payload(state: &AppState, fresh: bool) -> Result<Value> {
         }))
     })
     .await?
+}
+
+/// Where this program is, and whether a coding agent's shell finds this very one by its name.
+/// When it does not, the prompt says where it is.
+fn cli() -> Value {
+    let exe = std::env::current_exe()
+        .and_then(|exe| exe.canonicalize())
+        .ok();
+    let name = if cfg!(windows) {
+        "superint-video.exe"
+    } else {
+        "superint-video"
+    };
+    let found = process::find_command(name).and_then(|found| found.canonicalize().ok());
+    json!({
+        "path": exe.as_deref().map(without_verbatim),
+        "onPath": exe.is_some() && found == exe,
+    })
 }
 
 fn ready(tools: &Value, id: &str) -> bool {

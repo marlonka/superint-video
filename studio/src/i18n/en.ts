@@ -227,6 +227,7 @@ export const en = {
   'prompt.minutes': { one: '{count} minute', other: '{count} minutes' },
   'prompt.language': 'in {language}',
   'prompt.askStyle': 'Ask me which style I want before you start.',
+  'prompt.program': 'The superint-video program is here: {path}',
 
   // Films
   'films.title': 'Films',

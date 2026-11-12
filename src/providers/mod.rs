@@ -734,6 +734,22 @@ impl Generators {
     }
 }
 
+/// Whether the keys reach a model on a way, asked as cheaply as each provider allows: AI Studio
+/// and OpenAI look it up, Google Cloud gets an empty request, OpenRouter's public catalog is
+/// read. None where nothing free can be asked: Lyria on Google Cloud answers only when it makes
+/// music.
+pub async fn probe(g: &Generators, route: Provider, model: &str) -> Option<Result<bool>> {
+    Some(match route {
+        Provider::AiStudio => aistudio::visible(g, model).await,
+        Provider::GoogleCloud if model.starts_with("lyria") => return None,
+        Provider::GoogleCloud => cloud::visible(g, model).await,
+        Provider::OpenAi => openai::visible(g, model).await,
+        Provider::OpenRouter => openrouter::catalog(g)
+            .await
+            .map(|catalog| catalog.iter().any(|entry| entry["id"] == model)),
+    })
+}
+
 /// Keys (names only) and, with `online`, which models each key can reach, with live
 /// OpenRouter prices, and the models the user chose in Setup. Returns the report and whether
 /// every check that ran passed.

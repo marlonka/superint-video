@@ -341,7 +341,7 @@ pub fn model_id(text: &str) -> String {
 
 /// A model ID a provider could know, with no characters a request would have to escape. A film
 /// cannot use OpenAI (see `providers::openai_for_film`); a dictation can use any provider.
-fn check_model(model: &str, film: bool) -> Result<()> {
+pub fn check_model(model: &str, film: bool) -> Result<()> {
     let plain = (1..=120).contains(&model.len())
         && model
             .chars()

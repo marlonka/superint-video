@@ -2,6 +2,10 @@
 
 ## Unveröffentlicht
 
+- **Der Agent bedient alles selbst:** `superint-video edit` macht von der Kommandozeile, was die Knöpfe im Studio machen: Texte und andere Eigenschaften einer Szene (`--prop title="…"`), Start, Dauer, Position, Deckkraft, Blenden, Lautstärke, Ausblenden und Stummschalten (`--set`), dazu Teilen, Duplizieren, Löschen, Hinzufügen und die Einstellungen des Films als JSON-Operationen (einzeln, als Liste, aus einer Datei oder von stdin). Geprüft wird wie im Studio; ist das Studio des Films offen, geht die Änderung durch das Studio, du siehst sie sofort und nimmst sie mit Strg+Z zurück. `POST /api/edit` nimmt dafür auch eine Liste als einen Schritt.
+- **Modelle von der Kommandozeile:** `superint-video models` zeigt für Stimme, Sprecher, Wort-Zeitpunkte, Musik und Diktat das gewählte und das übliche Modell, den Anbieter, über den es gerade läuft, und die bekannten Alternativen. `models check <id> --job <aufgabe>` fragt kostenlos, ob die Schlüssel ein Modell erreichen; `models set <aufgabe> <id>` prüft und speichert es für neue Filme. Wünscht du dir ein anderes Modell, kann der Coding-Agent es so prüfen und umstellen.
+- **Prompt nennt das Programm:** Liegt `superint-video` nicht im PATH, schreibt die Startseite seinen Pfad in den Prompt, damit der Coding-Agent es in einer neuen Sitzung sofort findet.
+
 - **Länge frei eingeben:** Unter „Neuer Film“ ist die Länge ein Feld mit Vorschlägen bis 20 Minuten statt einer festen Liste bis 5 Minuten. Es versteht „3 min“, „90 s“, „1 min 30 s“, „2:30“, „1,5 min“ und eine bloße Zahl als Minuten, bis 60 Minuten, und sagt darunter, wie es die Eingabe versteht.
 - **Musik über Google Cloud:** Lyria 3 Pro antwortet nur über die `v1beta1`-Adresse der Interactions API mit dem Audio; unter `v1` kam eine abgeschlossene Antwort ohne Ton. Live getestet mit Google-Anmeldung (ADC): Prüfung, Diktat, Stimme mit Stil, Wort-Zeitpunkte und Musik.
 

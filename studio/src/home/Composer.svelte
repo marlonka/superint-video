@@ -47,7 +47,9 @@
   $: agents = $format.or(
     (ready.length ? ready : overview.setup.agents).map((agent) => agent.title),
   );
-  $: prompt = buildPrompt(topic, pick, !settings.preset, $t, $format);
+  // Off the search path the agent learns where the program is; on it, the prompt stays short.
+  $: program = overview.cli.onPath ? null : overview.cli.path;
+  $: prompt = buildPrompt(topic, pick, !settings.preset, program, $t, $format);
 
   // Everything the prompt depends on is an argument, so it is rebuilt when any of it changes,
   // the language of the app included.
@@ -55,6 +57,7 @@
     about: string,
     chosen: typeof pick,
     noDefaultStyle: boolean,
+    program: string | null,
     say: Translate,
     write: Formats,
   ) {
@@ -78,6 +81,7 @@
       lines.push(`${sentence[0].toUpperCase()}${sentence.slice(1)}.`);
     }
     if (!chosen.preset && noDefaultStyle) lines.push(say('prompt.askStyle'));
+    if (program) lines.push(say('prompt.program', { path: program }));
     return lines.join('\n');
   }
   /** The first, empty choice of a select: the user's default, else what the style brings. */
