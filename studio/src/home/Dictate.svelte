@@ -6,7 +6,8 @@
   import Icon from '../Icon.svelte';
   import { filmClock, t } from '../i18n';
   import type { Dictation } from '../types';
-  import { MicrophoneError, canRecord, record, type Recording } from './recorder';
+  import { microphoneProblem } from '../voice/capture';
+  import { canRecord, record, type Recording } from './recorder';
   import { announce, call, fail } from './session';
 
   /** An API key is there to write the recording down with. */
@@ -73,7 +74,7 @@
       started = await record();
     } catch (cause) {
       phase = 'idle';
-      fail(problem(cause));
+      fail(microphoneProblem(cause, $t));
       return;
     }
     // Thrown away while the browser was still asking for the microphone.
@@ -160,15 +161,6 @@
     phase = 'idle';
     said = $t('dictate.discarded');
     void tick().then(() => mic?.focus());
-  }
-
-  function problem(cause: unknown): string {
-    if (cause instanceof MicrophoneError) {
-      return cause.problem === 'other'
-        ? $t('dictate.problem.other', { detail: cause.message })
-        : $t(`dictate.problem.${cause.problem}`);
-    }
-    return cause instanceof Error ? cause.message : String(cause);
   }
 
   /** The waveform: the newest bar on the right, older ones moving left, dots before the start. */

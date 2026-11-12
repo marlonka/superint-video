@@ -32,7 +32,7 @@ The look contract is the project's `STYLE.md`, the yardstick is `references/`.
 
 1. **One place, one journey.** Rooms of one building (or ship, or machine) that the camera travels through. Each room is a real trade or step of the topic, with its own colour. That gives the film a map the viewer learns.
 2. **The opening holds up as a photograph.** Viewers decide in the first seconds. Build the first close-up against a real photo of such an object, at full size, and work down the differences. If the user sends a reference image, it is the measure. The recipe is in `craft.md`.
-3. **Everything happens on a word.** The voice comes first; every camera key and every mechanical action is `cue(paragraph, 'word')`, never a typed second. A wrong word time shows immediately, so fix it there, not in the scene.
+3. **Everything happens on a word.** The voice comes first; every camera key and every mechanical action is `cue(paragraph, 'word')`, never a typed second. A wrong word time shows immediately, so fix it there, not in the scene. With the user's own voice and no transcription route the word times are estimated: cue camera keys and mechanisms on paragraph starts and on words next to a pause, and letter-exact effects (the typewriter) need measured times.
 4. **The world acts, nobody is in it.** No people drawn in code. Typewriters, valves, stamps, lamps and rails do the work, and they are built so a viewer can see how they would work.
 5. **Real things in real units.** Metres. A desk top at .76. A cup 8 cm high. If the numbers are real, the light and the depth of field behave.
 6. **Detail with a reason.** A room earns wow through what stands in it and why: every prop belongs to that trade. Dim and calm behind, sharp where the voice points.

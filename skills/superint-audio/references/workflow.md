@@ -1,11 +1,11 @@
 # Narration, timing and sound: the workflow
 
-Superint Video generates narration and music, places sound effects from Earshot, and mixes and masters the result with the commands below.
+Superint Video generates narration and music, places sound effects from Earshot, and mixes and masters the result with the commands below. This file is the route with an AI voice. The user's own voice, a film without a voice and a film without any key are in [own-voice.md](own-voice.md); everything after `voice assemble` is the same for all of them.
 
 - Claude writes every text a generator gets: `voice.md` and `music-prompt.md`. The tool checks it against the model's rules, sends it unchanged, then measures and cuts the result. It never rewrites a word.
 - Keys: `GEMINI_API_KEY` (Google AI Studio, the default) and `OPENROUTER_API_KEY`. The user adds them under Setup in the app (`superint-video app`), which keeps them encrypted on their computer; a `.env` at the project or repository root works too and wins over the app, and `SUPERINT_ENV` names another file. Only the tool reads them. Never ask for a key in the chat, and never print, log, commit or paste one, not even in an error message. `doctor --online --json` shows which keys exist (names only), which models they reach, live OpenRouter prices and the remaining credit.
 - Every generator call is cached under `.superint/cache` by its exact request, so unchanged text costs nothing twice. `--dry-run` counts requests, cached takes and the live price before anything is paid.
-- Without a key and without user-supplied audio, render silent and say so in `report.md`. User-supplied audio goes into `assets/` and onto the audio tracks.
+- Keys are optional. Without one that reaches a TTS model (`doctor --json` → `capabilities.aiVoice`) the voice is the user's own or the film has none; without a music route it has no generated music. Take that route ([own-voice.md](own-voice.md)); never wait for a key. A licensed track the user supplies goes into `assets/` and onto the `music` track.
 
 Model IDs and the default voice are in `preset.json` (`narration`, `transcription`, `music`); `voice.md` and `music-prompt.md` override them per project. Prompting rules per model are in the provider file of its route: [google-ai-studio.md](google-ai-studio.md) for IDs without a `/`, [openrouter.md](openrouter.md) for IDs with one. Read it before writing either file.
 
@@ -66,11 +66,11 @@ Model IDs and the default voice are in `preset.json` (`narration`, `transcriptio
    [{"word": "Stell", "start": 0.12, "end": 0.31, "startFrame": 4, "endFrame": 9, "paragraph": 1, "scene": "hook", "timing": "final"}]
    ```
 
-   `timing` is `final` (from the last transcription), `take` (from the take's transcript, moved through the cuts) or `interpolated` (no transcript matched; spread between neighbours). Frames use the fps in `video.json`.
+   `timing` is `final` (from the last transcription), `take` (from the take's transcript, moved through the cuts), `interpolated` (no transcript matched; spread between neighbours) or `estimated` (the user's own voice without a transcription route: [own-voice.md](own-voice.md#estimated-word-times)). Frames use the fps in `video.json`.
    **Acceptance:** WER ≤ 2 %, no `interpolated` term or number, and every outlier checked. An outlier that a cue depends on gets a look at the level curve or a snapshot at that frame.
 6. If `voice.wav` runs longer than the target length + 3 s, cut script words and regenerate. Typical pace: German about 140 words/min, English about 165.
 
-`superint-video transcribe <file> [--reference voice.md] [--terms a,b] [--output t.json]` transcribes any file, for example user-supplied narration, and compares it with the reference in the same way.
+`superint-video transcribe <file> [--reference voice.md] [--terms a,b] [--output t.json]` transcribes any file and compares it with the reference in the same way. Narration the user speaks or brings as a file goes through `voice own`, not onto the track by hand.
 
 ## Timing from words
 
@@ -126,14 +126,14 @@ Sound effects come from Earshot (local, MIT, no models for these commands); neve
 
 Targets for the delivered file: **−14 LUFS integrated, true peak ≤ −2.2 dBTP measured on the final MP4.**
 
-1. **`superint-video mix <dir>`** decodes every audible clip of `video.json`, applies gain and fades, ducks the `music` track under the words of `audio/words.json` (mapped through the `audio/voice.wav` clip), sets the music its distance under the voice while words play, sums everything and masters it: gain to −14 LUFS (BS.1770), then a lookahead limiter on a 4× oversampled peak estimate to −3.4 dBTP, repeated until both hold. It writes `audio/master.wav` (48 kHz, stereo, 24-bit) and `audio/master.json` with every measurement.
+1. **`superint-video mix <dir>`** decodes every audible clip of `video.json`, applies gain and fades, ducks the `music` track under the words of `audio/words.json` (mapped through the `audio/voice.wav` clip) and under any other clip on the `voice` track (a take spoken over the film: where it speaks is measured from the audio), sets the music its distance under the voice while words play, sums everything and masters it: gain to −14 LUFS (BS.1770), then a lookahead limiter on a 4× oversampled peak estimate to −3.4 dBTP, repeated until both hold. It writes `audio/master.wav` (48 kHz, stereo, 24-bit) and `audio/master.json` with every measurement. It takes what is there: without a voice nothing is ducked and `musicUnder` does not apply; with no audible clip at all it writes a silent master and reports `"silent": true`.
 2. Optional `mix.json` tunes it:
    ```json
    {"loudness": -14, "ceiling": -3.4, "musicUnder": 22, "duckDb": 3,
     "rides": [{"from": 990, "to": 1110, "db": 5, "rampFrames": 15, "note": "title swell"}]}
    ```
    `musicUnder: null` keeps the music clip's own gain.
-3. **`superint-video render <dir> --output renders/<slug>.mp4 --audio audio/master.wav`** muxes the master as AAC 256k instead of summing the clips and reports the loudness and true peak measured on the finished MP4 (`audio`). Without `--audio`, `render` sums the clips without a limiter, which is fine for drafts.
+3. **`superint-video render <dir> --output renders/<slug>.mp4 --audio audio/master.wav`** muxes the master as AAC 256k instead of summing the clips and reports the loudness and true peak measured on the finished MP4 (`audio`). Without `--audio`, `render` sums the clips without a limiter, which is fine for drafts. Every MP4 has an audio stream: a film with nothing to hear gets a silent stereo track, because some upload forms, editors and television sets refuse or flag a file without one.
 4. Report integrated loudness and true peak from the render output.
 
 Listen-check rounds on a draft render, before the polish pass and the final render: `superint-video render <dir> --quality draft --audio audio/master.wav --output renders/draft.mp4`, then `superint-video listen renders/draft.mp4 --question "…"` (it gets the picture-cut times too), `--start/--end` for a passage, plus the loudness numbers from `mix` and `render`. Check voice clarity, SFX too loud or too sparse, music masking words, does the title moment hit.

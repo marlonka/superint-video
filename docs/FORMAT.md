@@ -80,7 +80,7 @@ Hidden tracks contribute neither imagery nor audio. Muted tracks silence audio w
 | `hidden`, `muted` | Default `false`. Hidden suppresses imagery and audio; muted suppresses audio only. |
 | `includeAudio` | Default `false`; video audio contributes only when enabled. Audio clips do not need this flag. |
 
-Media must contain the entire requested source interval; sources are not silently looped, stretched or frozen. Video frames are selected by presentation timestamps. Export audio is resampled to 48 kHz, placed at the nearest sample, faded, summed without normalization, and padded/trimmed to the composition duration.
+Media must contain the entire requested source interval; sources are not silently looped, stretched or frozen. Video frames are selected by presentation timestamps. Export audio is resampled to 48 kHz, placed at the nearest sample, faded, summed without normalization, and padded/trimmed to the composition duration. A composition with no audible clip is exported with a silent stereo track rather than none, because some upload forms, editors and television sets refuse a file without an audio stream.
 
 ## Frame contract
 

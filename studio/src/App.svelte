@@ -5,6 +5,7 @@
   import MoreMenu from './MoreMenu.svelte';
   import RenderLive from './RenderLive.svelte';
   import SetupBanner from './home/SetupBanner.svelte';
+  import VoiceView from './voice/VoiceView.svelte';
   import { announce, call, setLanguage, trust, type SetupNeed } from './home/session';
   import { LOCALES, filmClock, format, locale, t, type MessageKey, type Translate } from './i18n';
   import { theme, toggleTheme } from './theme';
@@ -86,6 +87,10 @@
   let rightWidth = 320;
   let timelineHeight = 280;
   let moreOpen = false;
+  /** The user's own voice: the recording view over the editor. */
+  let voiceOpen = location.hash === '#record';
+  /** The command that last asked for a recording, so one asking opens the view once. */
+  let voiceAsked = 0;
   let lastCheckFrames: number | null = null;
   let snapFrame: number | null = null;
   let draftClip: Clip | null = null;
@@ -211,6 +216,22 @@
     } catch (openError) {
       error = openError instanceof Error ? openError.message : String(openError);
     }
+  }
+  // A coding agent that waits for the user's voice (`voice own --wait`) brings the recording
+  // view to the front, once per asking; the user may close it and come back.
+  $: asking = live.running.find((command) => command.asks === 'recording')?.startedAt ?? 0;
+  $: if (asking && asking !== voiceAsked) {
+    voiceAsked = asking;
+    openVoice();
+  }
+  function openVoice() {
+    if (playing) togglePlayback();
+    voiceOpen = true;
+  }
+  function closeVoice() {
+    voiceOpen = false;
+    if (location.hash === '#record') window.history.replaceState(null, '', location.pathname);
+    void loadProject();
   }
   // A project made with `new` opens on the production panel once, so you can watch it being built.
   $: if (project && !productionShown) {
@@ -478,7 +499,8 @@
       if (oldRevision && oldRevision !== next.revision) {
         sendPlayer('reload');
         saveState = external ? 'updated' : 'saved';
-        if (external) announce($t('studio.updated'));
+        // Recordings land in the project while the voice view is open: no news to the user.
+        if (external && !voiceOpen) announce($t('studio.updated'));
       }
     } catch (cause) {
       error = message(cause);
@@ -1003,7 +1025,7 @@
       timelineHeight = Math.max(180, Math.min(window.innerHeight * 0.65, timelineHeight - delta));
   }
   function onKey(event: KeyboardEvent) {
-    if (inactive) return;
+    if (inactive || voiceOpen) return;
     if (event.defaultPrevented) return;
     if (event.key === 'Escape') {
       if (polishOpen) polishOpen = false;
@@ -1392,6 +1414,17 @@
         aria-expanded={inspectorVisible && inspectorMode === 'project'}
         onclick={toggleProjectSettings}
         disabled={!project}><Icon name="settings" /><span>{$t('studio.film')}</span></button
+      >
+      <button
+        class="button quiet labelled voice-toggle"
+        aria-label={$t('voice.title')}
+        title={$t('voice.hint')}
+        onclick={openVoice}
+        disabled={!project}
+        ><Icon name="mic" /><span>{$t('voice.short')}</span>{#if asking}<span
+            class="production-indicator"
+            aria-hidden="true"
+          ></span>{/if}</button
       >
       <MoreMenu
         place="more-wrapper"
@@ -2518,6 +2551,7 @@
   />
 </div>
 
+{#if voiceOpen && project}<VoiceView {project} {frame} onclose={closeVoice} />{/if}
 {#if diagnosticsOpen}<div class="modal-backdrop">
     <div
       class="modal diagnostics-panel"

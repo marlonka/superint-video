@@ -300,23 +300,20 @@ pub async fn render_watched(
         )
         .await?;
         progress("Mixing audio", total, total);
-        let has_audio = match &master {
+        match &master {
             Some(master) => mux(manifest, &video, master, &final_path, &cancel).await?,
             None => mix(&snapshot, &video, &final_path, &cancel).await?,
-        };
+        }
         progress("Verifying output", total, total);
         let verified = verify(&final_path, manifest).await?;
-        let loudness = if has_audio {
-            Some(crate::mix::measure(&final_path).await?)
-        } else {
-            None
-        };
-        let actual_audio = verified["streams"]
+        // Every film has a soundtrack, a silent one when nothing is to be heard (see `mix`).
+        let has_audio = verified["streams"]
             .as_array()
             .is_some_and(|s| s.iter().any(|s| s["codec_type"] == "audio"));
-        if actual_audio != has_audio {
-            bail!("Export audio stream does not match the enabled audio clips");
+        if !has_audio {
+            bail!("The export has no audio stream");
         }
+        let loudness = crate::mix::measure(&final_path).await?;
         if cancel.is_cancelled() {
             bail!("cancelled");
         }
@@ -348,6 +345,7 @@ pub async fn render_watched(
             "browser": browser_version,
             "bytes": byte_count,
             "audio": loudness,
+            "silent": loudness.integrated_lufs <= crate::mix::SILENCE_LUFS,
         }))
     }
     .await;
@@ -519,12 +517,16 @@ async fn encode(
     result.with_context(|| format!("FFmpeg: {}", String::from_utf8_lossy(&err)))
 }
 
+/// Mixes the audible clips into the film's soundtrack. A film with nothing to hear (no voice,
+/// no music, no sound effects) gets a silent stereo track instead of none: a file without an
+/// audio stream is refused or flagged by some upload forms, editors and television sets, while
+/// a silent track plays everywhere and costs about two kilobits a second.
 async fn mix(
     snapshot: &ProjectSnapshot,
     video: &Path,
     output: &Path,
     cancel: &CancellationToken,
-) -> Result<bool> {
+) -> Result<()> {
     let manifest = &snapshot.manifest;
     let mut clips = Vec::new();
     for clip in &manifest.clips {
@@ -551,16 +553,18 @@ async fn mix(
             clips.push((clip, path, stream["channels"].as_u64() == Some(1)));
         }
     }
-    if clips.is_empty() {
-        tokio::fs::copy(video, output).await?;
-        return Ok(false);
-    }
+    let duration = manifest.fps.seconds(manifest.duration_frames);
     let mut cmd = process::command(process::binary("ffmpeg"));
     cmd.args(["-v", "error", "-nostdin", "-y", "-i"]).arg(video);
     for (_, path, _) in &clips {
         cmd.arg("-i").arg(path);
     }
     let mut filters = Vec::new();
+    if clips.is_empty() {
+        filters.push(format!(
+            "anullsrc=r=48000:cl=stereo,atrim=duration={duration:.9}[mix]"
+        ));
+    }
     for (i, (clip, _, mono)) in clips.iter().enumerate() {
         let start = manifest.fps.seconds(clip.source_offset_frames);
         let duration = manifest.fps.seconds(clip.duration_frames);
@@ -591,14 +595,15 @@ async fn mix(
         filter += &format!(",adelay={delay}S:all=1[a{i}]");
         filters.push(filter);
     }
-    let duration = manifest.fps.seconds(manifest.duration_frames);
-    let labels = (0..clips.len())
-        .map(|i| format!("[a{i}]"))
-        .collect::<String>();
-    let inputs = clips.len();
-    filters.push(format!(
-        "{labels}amix=inputs={inputs}:normalize=0:duration=longest,apad,atrim=duration={duration:.9}[mix]"
-    ));
+    if !clips.is_empty() {
+        let labels = (0..clips.len())
+            .map(|i| format!("[a{i}]"))
+            .collect::<String>();
+        let inputs = clips.len();
+        filters.push(format!(
+            "{labels}amix=inputs={inputs}:normalize=0:duration=longest,apad,atrim=duration={duration:.9}[mix]"
+        ));
+    }
     cmd.args([
         "-filter_complex",
         &filters.join(";"),
@@ -620,7 +625,7 @@ async fn mix(
     .args(PROVENANCE)
     .arg(output);
     process::output(cmd, cancel, Duration::from_secs(120)).await?;
-    Ok(true)
+    Ok(())
 }
 
 /// Mux a finished master instead of mixing the clips; padded or cut to the film's length.
@@ -630,7 +635,7 @@ async fn mux(
     master: &Path,
     output: &Path,
     cancel: &CancellationToken,
-) -> Result<bool> {
+) -> Result<()> {
     if !master.is_file() {
         bail!(
             "Audio master {} does not exist; run superint-video mix",
@@ -664,7 +669,7 @@ async fn mux(
         .args(PROVENANCE)
         .arg(output);
     process::output(cmd, cancel, Duration::from_secs(120)).await?;
-    Ok(true)
+    Ok(())
 }
 
 pub async fn verify(path: &Path, manifest: &Manifest) -> Result<Value> {

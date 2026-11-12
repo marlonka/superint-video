@@ -19,7 +19,8 @@ ZIELGRUPPE:  neugierige Erwachsene ohne Vorwissen
 MUSS:        <optional: was unbedingt vorkommen muss>
 VERMEIDEN:   <optional: was nicht vorkommen darf>
 STOPPS:      keine                # keine = ganz autonom | concept, script, frames, contact
-TON:         <keiner | Stimme+Musik+SFX, wenn GEMINI_API_KEY (oder OPENROUTER_API_KEY) und earshot verfügbar>
+STIMME:      <KI-Stimme | ich spreche selbst | ohne Stimme>   # ohne API-Schlüssel: selbst sprechen oder ohne Stimme
+TON:         <Musik und SFX, soweit eingerichtet (doctor --json → capabilities) | nur SFX | keiner>
 ORDNER:      ./<ordnername>
 
 ## Anspruch

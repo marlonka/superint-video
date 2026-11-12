@@ -186,15 +186,7 @@ async fn payload(state: &AppState, fresh: bool) -> Result<Value> {
             place,
         } = Access::load(&state)?;
         let reaches = |route| providers::ready(&keys, sign_in.as_ref(), &place, route);
-        // OpenAI writes down dictations and styles; a film needs one of the others.
-        let film_key = [
-            Provider::AiStudio,
-            Provider::GoogleCloud,
-            Provider::OpenRouter,
-        ]
-        .into_iter()
-        .any(reaches);
-        let any_key = film_key || reaches(Provider::OpenAi);
+        let can = providers::capabilities(reaches);
         let setup_keys = key_rows(&keys, &settings, sign_in.as_ref(), &place);
         let models = usual_models(reaches);
         // The model a style would be written with now, and the provider it would go to.
@@ -219,12 +211,15 @@ async fn payload(state: &AppState, fresh: bool) -> Result<Value> {
             "project": project,
             "token": state.token,
             "setup": {
+                // What works now. Only `picture` is needed for a film; a key adds the rest,
+                // and the user's own voice needs nothing but a microphone or a file.
                 "can": {
                     "picture": ready(&tools, "chrome") && ready(&tools, "ffmpeg"),
-                    "voice": film_key,
-                    "music": film_key,
+                    "voice": can.ai_voice,
+                    "timings": can.transcription,
+                    "music": can.music,
                     "soundEffects": ready(&tools, "earshot"),
-                    "dictate": any_key,
+                    "dictate": can.dictation,
                     "style": writes.as_ref().is_some_and(|(route, _)| generators.ready(*route)),
                 },
                 "tools": tools,

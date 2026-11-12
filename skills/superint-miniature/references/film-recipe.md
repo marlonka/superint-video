@@ -28,13 +28,13 @@ Write the house plan first: rooms as boxes in `house.js` with their section wall
 
 1. House plan and shell, every room as a `placeholder()`.
 2. The opening hero to photo quality, because it sets the bar. Then the first full room.
-3. Rough voice with one take per paragraph (`takes: 1`), so `cue()` works and the camera can be timed. Replace takes later and word times follow.
+3. Rough voice with one take per paragraph (`takes: 1`), so `cue()` works and the camera can be timed. Replace takes later and word times follow. With the user's own voice there is no rough pass: the script is final before `voice own --wait`, because every re-recording costs their time and moves the cues.
 4. Room after room, each as a module: geometry, lights, then `frame` and `sub`. Rooms can talk through `ctx`.
 5. Full camera path, then sound, then the bakes.
 
 ## Word sync
 
-`voice takes` and `voice assemble` give `audio/words.json`; `tools/pauses.py` adds silences after chosen phrases and writes `scenes/cues.js` plus the film's length into `video.json`. In code:
+`voice takes` (or `voice own --wait` for the user's own voice) and `voice assemble` give `audio/words.json`; `tools/pauses.py` adds silences after chosen phrases and writes `scenes/cues.js` plus the film's length into `video.json`. In code:
 
 ```js
 K(cue(4, 'Trotzdem'), eye, at, .44, .0004);   // a camera key on a word
@@ -46,8 +46,8 @@ for (const l of lettersOf(4)) ...             // a typewriter types the spoken l
 
 ## Sound
 
-- Voice: `gemini-3.8-flash-tts`, one voice for the whole film, one route (AI Studio or OpenRouter, not mixed). Keep takes at 3 or fewer, and listen with `listen`.
-- Music: Lyria writes about 3 minutes per piece and no pure ambience. Plan 3–4 pieces whose breaks carry meaning: the music stops dead on the word that matters and returns after the aha. Prompt with key, tempo, instruments and a timeline. `tools/place_audio.py` places them from word times.
+- Voice: `gemini-3.8-flash-tts`, one voice for the whole film, one route (AI Studio or OpenRouter, not mixed). Keep takes at 3 or fewer, and listen with `listen`. Or the user's own voice (`source: own`), recorded in one sitting so the room and the distance to the microphone stay the same.
+- Music: only with a music route (`doctor --json` → `capabilities.music`); without one the film runs on mechanics, room tone and rain. Lyria writes about 3 minutes per piece and no pure ambience. Plan 3–4 pieces whose breaks carry meaning: the music stops dead on the word that matters and returns after the aha. Prompt with key, tempo, instruments and a timeline. `tools/place_audio.py` places them from word times.
 - SFX: everything is mechanics, so paper, keys, relays, valves, wood. `audio/kit.json` for roles, `tools/make_sfx.py` writes `sfx.json` from word times (never typed seconds), typing sound from the same `lettersOf` timing as the picture.
 - Room tone and rain: filtered noise (`tools/make_ambience.py`), since neither Earshot nor Lyria has them. Meant to be missed rather than heard.
 - Levels: music 22 dB under the voice with 3 dB ducking; SFX big hits 14–18 dB under, accents 20–26, textures 27–37. Master -14 LUFS, ceiling -3.4 dBTP. `mix.json` rides in the piano-alone stretches and the end credits.
@@ -58,7 +58,7 @@ for (const l of lettersOf(4)) ...             // a typewriter types the spoken l
 
 Some picture content depends on the voice and on earlier renders of this film. This order avoids chasing your own tail, and it matters after any script change:
 
-1. `voice takes`, `listen`, pick
+1. `voice takes`, `listen`, pick (the user's own voice: `voice own --wait`)
 2. `voice assemble --pick … --no-verify`
 3. `python tools/pauses.py --fresh`, then check the word times
 4. `python tools/bake_env.py` (voice envelope)

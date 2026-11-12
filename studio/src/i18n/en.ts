@@ -25,6 +25,7 @@ export const en = {
   'field.length': 'Length',
   'field.format': 'Format',
   'field.language': 'Language',
+  'field.voice': 'Voice',
   'format.wide': '16:9, wide (YouTube)',
   'format.upright': '9:16, upright (Shorts, Reels)',
   'format.square': '1:1, square',
@@ -39,9 +40,9 @@ export const en = {
   // Setup
   'setup.title': 'Setup',
   'setup.first.title': 'Set up Superint Video',
-  'setup.first.lead': 'Three steps, then your first film can be made. Done: {done} of {total}.',
+  'setup.first.lead': 'Two steps, then your first film can be made. Done: {done} of {total}.',
   'setup.first.ready':
-    'Everything is ready for your first film. The optional parts can come now or later.',
+    'Everything is ready for your first film. An API key is optional: it adds the AI voice and music.',
   'setup.close': 'Done',
   'setup.settingsFolder': 'Show the settings folder',
   'setup.films.title': 'Saving and opening films',
@@ -71,7 +72,8 @@ export const en = {
   'setup.ready': 'Ready for {parts}',
   'setup.incomplete': 'Something is still missing.',
   'setup.part.picture': 'picture',
-  'setup.part.voice': 'voice',
+  'setup.part.ownVoice': 'your own voice',
+  'setup.part.voice': 'AI voice',
   'setup.part.music': 'music',
   'setup.part.soundEffects': 'sound effects',
   'setup.skip': 'Continue without finishing',
@@ -83,7 +85,6 @@ export const en = {
   'setup.banner.later': 'Not now',
   'setup.effect.agent': 'The coding agent does not have the skills yet.',
   'setup.effect.picture': 'Without Chrome and FFmpeg no film can be rendered.',
-  'setup.effect.key': 'Without an API key every film stays silent.',
 
   'setup.agent.title': 'Coding agent',
   'setup.agent.why': 'Makes the film: writes, draws, checks and renders it. One is enough.',
@@ -127,9 +128,15 @@ export const en = {
   'setup.tool.earshot.task':
     'Please install Earshot for Superint Video: the sound effects tool from {url}, not the PyPI package of the same name. Its README says: {command}. If uv is missing, install it first (on Windows: winget install --id astral-sh.uv). Then check with earshot sfx list --json that it runs.',
 
-  'setup.key.title': 'Voice and music',
+  'setup.key.title': 'API key (optional)',
   'setup.key.why':
-    'One API key from your own account is enough. It stays on this computer, encrypted.',
+    'Not needed for a film. One API key from your own account is enough. It stays on this computer, encrypted.',
+  'setup.without.title': 'Without an API key',
+  'setup.without.what':
+    'Picture, on-screen text, sound effects and your own voice: you record yourself in the app or bring an audio file. A film can also go without a voice.',
+  'setup.with.title': 'An API key adds',
+  'setup.with.what':
+    'The AI voice with exact word timing, generated music, dictation on the start page and styles made from pictures.',
   'setup.key.GEMINI_API_KEY.why': 'Recommended. The styles are tuned for these models.',
   'setup.key.OPENROUTER_API_KEY.why':
     'The same models through one account for many providers, ElevenLabs voices among them.',
@@ -141,7 +148,7 @@ export const en = {
   'setup.key.GOOGLE_CLOUD_API_KEY.why':
     'The same Google models through your Google Cloud project (Gemini Enterprise Agent Platform), billed there and under its terms. Once it is set up, it takes the place of AI Studio.',
   'setup.key.OPENAI_API_KEY.why':
-    'For speaking instead of typing (gpt-transcribe) and for creating styles (gpt-6.1-sol). A film needs one of the other keys.',
+    'For speaking instead of typing (gpt-transcribe) and for creating styles (gpt-6.1-sol). The AI voice and music need one of the other keys.',
   'setup.more.toggle': 'More providers: {providers}',
   'setup.cloud.signIn': 'Sign in with Google (ADC)',
   'setup.cloud.signInWhy':
@@ -171,20 +178,20 @@ export const en = {
   'setup.openai.euRefused':
     'If your OpenAI project says "Project Residency: Global", eu.api.openai.com does not take it: turn "Process in the EU" off.',
   'setup.openai.saved': 'OpenAI now goes to {address}',
-  'setup.models.title': 'Models',
+  'setup.models.title': 'AI models',
   'setup.models.why':
     'For pros: which model does which job. Empty fields keep the usual models, chosen by your keys.',
   'setup.models.usual': 'The usual models',
   'setup.models.usualWhy': 'The usual models of the providers you have an API key for.',
   'setup.models.usualVoice': '{voice} (usual)',
   'setup.models.own': 'Your choice',
-  'setup.models.change': 'Choose models',
+  'setup.models.change': 'Choose AI models',
   'setup.models.field.narration': 'Voice: model',
   'setup.models.field.voice': 'Voice: name',
   'setup.models.hint':
     "IDs as the provider writes them. gemini-… and lyria-… are Google's, through Google Cloud while its key is here, else AI Studio. vendor/model goes through OpenRouter. gpt-… is OpenAI's, for dictation and new styles only. They apply to new films; a film can still name others.",
   'setup.models.reset': 'Back to the usual models',
-  'setup.models.saved': 'Models saved',
+  'setup.models.saved': 'AI models saved',
   'setup.key.source.app': 'Saved on this computer.',
   'setup.key.source.google':
     'Signed in with your Google account (Application Default Credentials). To sign out: gcloud auth application-default revoke',
@@ -217,7 +224,7 @@ export const en = {
   'setup.browser.lacks': 'Missing in {agents}.',
   'setup.browser.copy': 'Copy the task',
   'setup.browser.task':
-    'Please set up Chrome DevTools MCP for yourself ({url}), so you can open websites and take screenshots for Superint Video. It needs Node.js LTS with npx; install it if it is missing (on Windows: winget install --id OpenJS.NodeJS.LTS). Add the server for all projects, with --no-usage-statistics so no usage data goes to Google. Claude Code: claude mcp add chrome-devtools --scope user -- npx -y chrome-devtools-mcp@latest --no-usage-statistics. ChatGPT Codex: codex mcp add chrome-devtools -- npx -y chrome-devtools-mcp@latest --no-usage-statistics. Google Antigravity: in ~/.gemini/config/mcp_config.json under mcpServers an entry chrome-devtools with command npx and the args -y, chrome-devtools-mcp@latest, --no-usage-statistics. On Windows npx runs through cmd /c (command cmd, the args start with /c and npx); Codex also needs, in ~/.codex/config.toml, env with SystemRoot = C:\\Windows and PROGRAMFILES = C:\\Program Files, and startup_timeout_ms = 20000. Then check that the tools navigate_page and take_screenshot are there, and tell me whether you need a restart for them.',
+    'Please set up Chrome DevTools MCP for yourself ({url}), so you can open websites and take screenshots for Superint Video. It needs Node.js LTS with npx; install it if it is missing (on Windows: winget install --id OpenJS.NodeJS.LTS). Add the server for all projects, with --no-usage-statistics and --no-performance-crux so neither usage data nor trace URLs go to Google. Claude Code: claude mcp add chrome-devtools --scope user -- npx -y chrome-devtools-mcp@latest --no-usage-statistics --no-performance-crux. ChatGPT Codex: codex mcp add chrome-devtools -- npx -y chrome-devtools-mcp@latest --no-usage-statistics --no-performance-crux. Google Antigravity: in ~/.gemini/config/mcp_config.json under mcpServers an entry chrome-devtools with command npx and the args -y, chrome-devtools-mcp@latest, --no-usage-statistics, --no-performance-crux. On Windows npx runs through cmd /c (command cmd, the args start with /c and npx); Codex also needs, in ~/.codex/config.toml, env with SystemRoot = C:\\Windows and PROGRAMFILES = C:\\Program Files, and startup_timeout_ms = 20000. Then check that the tools navigate_page and take_screenshot are there, and tell me whether you need a restart for them.',
   'voice.sound.bright': 'bright',
   'voice.sound.upbeat': 'upbeat',
   'voice.sound.informative': 'informative',
@@ -243,6 +250,70 @@ export const en = {
 
   'setup.optional.title': 'Optional',
   'setup.optional.why': 'Not needed for the first film. It can come later.',
+
+  // Your own voice
+  'voice.title': 'Your own voice',
+  'voice.short': 'Voice',
+  'voice.hint': 'Your own voice: read the voice text aloud or speak over the film',
+  'voice.backToFilm': 'Back to the film',
+  'voice.mode.read': 'Read the text aloud',
+  'voice.mode.over': 'Speak over the film',
+  'voice.paragraphs': 'Paragraphs',
+  'voice.step.empty': 'Paragraph {number}: not recorded yet',
+  'voice.step.draft': 'Paragraph {number}: recorded, not accepted yet',
+  'voice.step.accepted': 'Paragraph {number}: recorded',
+  'voice.step.stale': 'Paragraph {number}: the text changed, record it again',
+  'voice.progress': '{recorded} of {total} recorded',
+  'voice.stale': 'This text changed after you recorded it. Please read it once more.',
+  'voice.note.clipped':
+    'Too loud in places: the recording distorts. Speak a little further from the microphone.',
+  'voice.note.quiet': 'Very quiet. Move closer to the microphone or raise its level.',
+  'voice.note.noisy': 'The room can be heard. A quieter place or a closer microphone helps.',
+  'voice.tooLoud': 'Too loud',
+  'voice.recording': 'Recording.',
+  'voice.cancelled': 'Stopped. Nothing was kept.',
+  'voice.recorded': 'Recorded. Listen, then accept or do it again.',
+  'voice.wholeDone': 'The file was split into {count} paragraphs. Listen to each one.',
+  'voice.accepted': 'Accepted.',
+  'voice.stop': 'Stop',
+  'voice.cancel': 'Cancel',
+  'voice.getReady': 'Get ready …',
+  'voice.saving': 'Saving the recording …',
+  'voice.listen': 'Listen',
+  'voice.listenStop': 'Stop',
+  'voice.redo': 'Again',
+  'voice.accept': 'Accept',
+  'voice.again': 'Record again',
+  'voice.record': 'Record',
+  'voice.keys.idle': 'Space records · arrow keys change the paragraph · L listens · Esc goes back',
+  'voice.keys.counting': 'Esc cancels',
+  'voice.keys.recording': 'Space stops · Esc cancels',
+  'voice.keys.review': 'Enter accepts · R again · Space listens',
+  'voice.complete': 'Every paragraph is recorded. Your coding agent takes it from here.',
+  'voice.noMicrophone': 'This window cannot use a microphone. Bring an audio file instead.',
+  'voice.privacy.estimated':
+    'Your recordings stay on this computer. Without an API key the times of the words are estimated from the pauses.',
+  'voice.privacy.measured':
+    'For exact word times your recordings are sent to {model}. Nothing else leaves this computer.',
+  'voice.notOwn': 'This film is set to the AI voice. Tell your coding agent to use your own voice.',
+  'voice.fileParagraph': 'Audio file for this paragraph',
+  'voice.fileWhole': 'One audio file for the whole text',
+  'voice.noScript.title': 'No voice text yet',
+  'voice.noScript.why':
+    'Your coding agent writes the text you read here. Ask it for a film with your own voice, or speak freely over the film.',
+  'over.record': 'Speak from {time}',
+  'over.speaking': 'Recording. The film plays without sound.',
+  'over.listen': 'Listen with the film',
+  'over.keep': 'Keep as voice',
+  'over.kept': 'Your take is the voice from {time}.',
+  'over.place': 'Where your take begins',
+  'over.cues': 'Voice text',
+  'over.cueJump': 'Begin here',
+  'over.filmStuck': 'The film did not start. Try again.',
+  'over.keys.idle': 'Space records · arrow keys move a second · Esc goes back',
+  'over.keys.review': 'Enter keeps · R again · Space listens',
+  'over.how':
+    'Your take replaces the voice from the chosen point to the end of the film; what comes before stays. Headphones keep other sound out of the microphone.',
 
   // New film
   'compose.title': 'New film',
@@ -280,6 +351,10 @@ export const en = {
   'choice.ask': 'Ask me first',
   'choice.likeBase': 'As in the base film',
   'choice.topicLanguage': '{language} (as the topic)',
+  'choice.voice.ai': 'AI voice',
+  'choice.voice.aiNeedsKey': 'AI voice (needs an API key)',
+  'choice.voice.own': 'Your own voice',
+  'choice.voice.none': 'No voice',
   'choice.topicLanguageOpen': 'Same as the topic',
   'prompt.about': 'Make a video with Superint Video about: {topic}',
   'prompt.style': 'style {name}',
@@ -295,6 +370,11 @@ export const en = {
   'prompt.base':
     'Start from my film "{name}" ({path}): make a copy for the new topic with superint-video duplicate and change only what it needs.',
   'prompt.askStyle': 'Ask me which style I want before you start.',
+  'prompt.voice.ai': 'An AI voice narrates it.',
+  'prompt.voice.own':
+    'I narrate it myself, no AI voice: write the voice text, then I record it in Studio or bring an audio file.',
+  'prompt.voice.none':
+    'No narration: picture, on-screen text and sound carry the film. Music only if a model for it can be reached.',
   'prompt.program': 'The superint-video program is here: {path}',
 
   // Films

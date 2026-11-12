@@ -6,6 +6,7 @@ use crate::{
     process, production,
     project::{ProjectStore, safe_path},
     renderer::{self, Progress},
+    voice::{self, own},
 };
 use anyhow::{Context, Result};
 use axum::{
@@ -15,7 +16,7 @@ use axum::{
     http::{HeaderMap, HeaderValue, StatusCode, header},
     middleware::{self, Next},
     response::{IntoResponse, Response, Sse, sse::Event},
-    routing::{get, post},
+    routing::{delete, get, post},
 };
 use futures::StreamExt;
 use include_dir::{Dir, include_dir};
@@ -280,6 +281,18 @@ pub async fn studio(root: PathBuf, port: u16, options: StudioOptions) -> Result<
         .route("/api/live/strip/{frame}", get(live_strip))
         .route("/api/live/video", get(live_video))
         .route("/api/live/open", post(live_open))
+        .route("/api/voice", get(voice_state))
+        .route("/api/voice/whole", post(voice_whole))
+        .route(
+            "/api/voice/paragraph/{number}",
+            post(voice_record).delete(voice_discard),
+        )
+        .route("/api/voice/paragraph/{number}/accept", post(voice_accept))
+        .route("/api/voice/paragraph/{number}/audio", get(voice_audio))
+        .route("/api/voice/over", post(over_record))
+        .route("/api/voice/over", delete(over_discard))
+        .route("/api/voice/over/audio", get(over_audio))
+        .route("/api/voice/over/keep", post(over_keep))
         .fallback(get(studio_file))
         .with_state(state.clone());
     // The start page (setup, defaults, styles, films) is the same in every Studio.
@@ -312,6 +325,7 @@ pub async fn studio(root: PathBuf, port: u16, options: StudioOptions) -> Result<
         let mut last_live = String::new();
         let mut last_production = String::new();
         let mut last_render_start = live::read(&watcher.root)["render"]["startedAt"].as_u64();
+        let mut last_asked = None;
         let mut last_viewer = std::time::Instant::now();
         let mut tick = 0u32;
         loop {
@@ -322,16 +336,24 @@ pub async fn studio(root: PathBuf, port: u16, options: StudioOptions) -> Result<
             tick = tick.wrapping_add(1);
             let current = live::read(&watcher.root);
             let rendering = current["render"]["status"] == "running";
-            // A render that starts while nobody watches brings the view back.
+            // A render that starts while nobody watches brings the view back, and so does a
+            // command that waits for the user to record their voice.
             let start = current["render"]["startedAt"].as_u64();
-            if rendering
-                && start != last_render_start
+            let asked = current["running"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .find(|command| !command["asks"].is_null())
+                .and_then(|command| command["startedAt"].as_u64());
+            if ((rendering && start != last_render_start)
+                || (asked.is_some() && asked != last_asked))
                 && watcher.events.receiver_count() == 0
                 && !live::studio_disabled()
             {
                 live::open_browser(&watcher.origin);
             }
             last_render_start = start;
+            last_asked = asked;
             if rendering || watcher.events.receiver_count() > 0 {
                 last_viewer = std::time::Instant::now();
             } else if detached && last_viewer.elapsed() > IDLE_LIMIT {
@@ -871,6 +893,115 @@ async fn live_open(State(state): State<StudioState>) -> ApiResult<Json<Value>> {
         .ok_or_else(|| ApiError(StatusCode::NOT_FOUND, "No finished film".into()))?;
     process::open_path(&path)?;
     Ok(Json(json!({"ok":true})))
+}
+/// The user's own voice: what the recording view shows. `script` is every paragraph of
+/// `voice.md` with its recordings (null without a `voice.md`, with `problem` when it cannot be
+/// read), `over` the take spoken over the picture that waits to be kept, `cues` the script's
+/// paragraphs with the second of the film they begin at, where the narration places them.
+async fn voice_payload(state: &StudioState) -> ApiResult<Json<Value>> {
+    let root = state.root.clone();
+    let manifest = state.store.lock().unwrap().manifest.clone();
+    let payload = tokio::task::spawn_blocking(move || {
+        let (script, problem) = match root.join(voice::FILE).is_file().then(|| own::status(&root)) {
+            Some(Ok(status)) => (Some(status), None),
+            Some(Err(error)) => (None, Some(format!("{error:#}"))),
+            None => (None, None),
+        };
+        json!({
+            "script": script,
+            "problem": problem,
+            "over": own::over_draft(&root),
+            "cues": own::cues(&root, &manifest),
+        })
+    })
+    .await?;
+    Ok(Json(payload))
+}
+async fn voice_state(State(state): State<StudioState>) -> ApiResult<Json<Value>> {
+    voice_payload(&state).await
+}
+async fn voice_record(
+    State(state): State<StudioState>,
+    RoutePath(number): RoutePath<usize>,
+    bytes: Bytes,
+) -> ApiResult<Json<Value>> {
+    own::record(&state.root, number, &bytes, false).await?;
+    voice_payload(&state).await
+}
+async fn voice_accept(
+    State(state): State<StudioState>,
+    RoutePath(number): RoutePath<usize>,
+) -> ApiResult<Json<Value>> {
+    own::accept(&state.root, number)?;
+    voice_payload(&state).await
+}
+async fn voice_discard(
+    State(state): State<StudioState>,
+    RoutePath(number): RoutePath<usize>,
+) -> ApiResult<Json<Value>> {
+    own::discard(&state.root, number)?;
+    voice_payload(&state).await
+}
+async fn voice_whole(State(state): State<StudioState>, bytes: Bytes) -> ApiResult<Json<Value>> {
+    own::whole(&state.root, &bytes).await?;
+    voice_payload(&state).await
+}
+#[derive(Deserialize)]
+struct TakeQuery {
+    /// The recording that waits to be accepted, not the accepted one.
+    #[serde(default)]
+    draft: Option<u8>,
+}
+fn wav_response(path: Option<PathBuf>) -> ApiResult<Response> {
+    let path = path.ok_or_else(|| ApiError(StatusCode::NOT_FOUND, "No recording".into()))?;
+    Ok(bytes_response(std::fs::read(path)?, "audio/wav"))
+}
+async fn voice_audio(
+    State(state): State<StudioState>,
+    RoutePath(number): RoutePath<usize>,
+    Query(query): Query<TakeQuery>,
+) -> ApiResult<Response> {
+    wav_response(own::audio_file(&state.root, number, query.draft == Some(1)))
+}
+#[derive(Deserialize)]
+struct OverQuery {
+    /// The frame of the film the recording began on.
+    frame: u64,
+}
+async fn over_record(
+    State(state): State<StudioState>,
+    Query(query): Query<OverQuery>,
+    bytes: Bytes,
+) -> ApiResult<Json<Value>> {
+    own::over_record(&state.root, query.frame, &bytes).await?;
+    voice_payload(&state).await
+}
+async fn over_audio(State(state): State<StudioState>) -> ApiResult<Response> {
+    wav_response(own::over_draft(&state.root).map(|over| state.root.join(over.take.file)))
+}
+async fn over_discard(State(state): State<StudioState>) -> ApiResult<Json<Value>> {
+    own::over_discard(&state.root)?;
+    voice_payload(&state).await
+}
+/// The take becomes the voice from its frame on, as one edit the user can undo.
+async fn over_keep(State(state): State<StudioState>) -> ApiResult<Json<Value>> {
+    let revision = {
+        let mut store = state.store.lock().unwrap();
+        // Checked before the file is moved, so a take that cannot be placed stays a draft.
+        let draft = own::over_draft(&state.root).context("There is no recording to keep")?;
+        own::over_operations(&store.manifest, &draft)?;
+        let kept = own::over_keep(&state.root)?;
+        // The kept file is new on disk: the edit starts from the project as it is now.
+        store.reload()?;
+        let operations = own::over_operations(&store.manifest, &kept)?;
+        let revision = store.revision.clone();
+        store.edit_many(&revision, &operations)?;
+        store.revision.clone()
+    };
+    let _ = state
+        .events
+        .send(json!({"type":"changed","revision":revision}));
+    voice_payload(&state).await
 }
 async fn studio_file(req: Request) -> Response {
     let path = req.uri().path().trim_start_matches('/');

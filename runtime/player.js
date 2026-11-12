@@ -77,7 +77,8 @@ addEventListener('message', event => {
     await readyPromise;
     switch (message.action) {
       case 'seek': pause(); await seek(message.frame); break;
-      case 'play': await play(); break;
+      // Silent: the picture alone, while the user speaks over it into a microphone.
+      case 'play': await play(message.silent === true); break;
       // Paused, the picture is drawn once more with the places of its texts (see evaluate).
       case 'pause': pause(); await seek(frame); break;
     }
@@ -205,11 +206,11 @@ async function audioBuffer(src) {
 function audibleClips() {
   return manifest.clips.filter(clip => (clip.type === 'audio' || clip.type === 'video' && clip.includeAudio) && !clip.muted && !clip.hidden && !trackFor(clip)?.muted && !trackFor(clip)?.hidden && clip.startFrame + clip.durationFrames > frame);
 }
-async function play() {
+async function play(silent = false) {
   if (playing) return;
   if (captureMode) throw new Error('Playback is disabled during frame capture; use seek(frame).');
   const epoch = ++playEpoch;
-  const clips = audibleClips();
+  const clips = silent ? [] : audibleClips();
   if (!audioContext) audioContext = new AudioContext();
   await timeout(audioContext.resume(), 'Audio playback permission', 5000);
   const buffers = await Promise.all(clips.map(clip => timeout(audioBuffer(clip.src), `Audio ${clip.src}`, 30000)));
