@@ -27,13 +27,6 @@
     });
     if (done && copy) onopen(copy);
   }
-  /** Names the film as the start of the next one, in the prompt under "New film". */
-  function startFrom(film: Film) {
-    baseFilm.set(film);
-    document
-      .querySelector('[aria-labelledby="new-title"]')
-      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
   function forget(film: Film) {
     void run(`film-${film.id}`, async () => {
       const result = await call<{ films: Film[] }>(`/api/app/films/${film.id}/forget`);
@@ -87,7 +80,7 @@
             >
           </button>
           <MoreMenu place="film-more" label={$t('menu.moreFor', { name: film.name })}>
-            {#if film.exists}<button role="menuitem" onclick={() => startFrom(film)}
+            {#if film.exists}<button role="menuitem" onclick={() => baseFilm.set(film)}
                 ><Icon name="film" />{$t('films.startFrom')}</button
               ><button
                 role="menuitem"
