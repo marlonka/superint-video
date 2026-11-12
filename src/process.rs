@@ -66,25 +66,156 @@ pub fn reveal_file(path: &Path) -> Result<()> {
 }
 
 /// Where a tool such as `ffmpeg` is started from: `SUPERINT_<NAME>`, else the search path.
-/// On Windows a tool that winget installed is found right away, although a program that was
-/// already running does not see the new search path yet.
+/// On Windows a tool installed while this program runs is found right away, although this
+/// process still has the search path it started with: through winget's links, the folder of
+/// uv and pipx, and the search path as Windows has saved it since.
 pub fn binary(name: &str) -> PathBuf {
     if let Some(path) = std::env::var_os(format!("SUPERINT_{}", name.to_uppercase())) {
         return PathBuf::from(path);
     }
     #[cfg(windows)]
     if !on_search_path(name)
-        && let Some(link) = winget_link(name).or_else(|| tool_link(name))
+        && let Some(found) = elsewhere(name)
     {
-        return link;
+        return found;
     }
     PathBuf::from(name)
 }
 
-/// Whether a command can be started: on the search path, or where winget, uv or pipx put it.
+/// Whether a command can be started now, wherever it was installed.
 #[cfg(windows)]
 pub fn installed(name: &str) -> bool {
-    on_search_path(name) || winget_link(name).is_some() || tool_link(name).is_some()
+    on_search_path(name) || elsewhere(name).is_some()
+}
+
+#[cfg(windows)]
+fn elsewhere(name: &str) -> Option<PathBuf> {
+    winget_link(name)
+        .or_else(|| tool_link(name))
+        .or_else(|| on_saved_path(name))
+}
+
+/// The search path a program started now would get: the machine's and the user's, as Windows
+/// keeps them. winget adds a tool's folder there when it cannot make a link, and installers
+/// add theirs; this process, started before, still has the old one.
+#[cfg(windows)]
+fn on_saved_path(name: &str) -> Option<PathBuf> {
+    [
+        (
+            registry::MACHINE,
+            r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment",
+        ),
+        (registry::USER, "Environment"),
+    ]
+    .into_iter()
+    .filter_map(|(root, key)| registry::string(root, key, "Path"))
+    .flat_map(|value| {
+        expand(&value)
+            .split(';')
+            .map(|folder| PathBuf::from(folder.trim()))
+            .collect::<Vec<_>>()
+    })
+    .filter(|folder| !folder.as_os_str().is_empty())
+    .map(|folder| folder.join(format!("{name}.exe")))
+    .find(|file| file.is_file())
+}
+
+/// `%NAME%` replaced by the variable's value, as Windows does for a saved search path.
+#[cfg(windows)]
+fn expand(text: &str) -> String {
+    let mut out = String::new();
+    let mut rest = text;
+    while let Some(start) = rest.find('%') {
+        out.push_str(&rest[..start]);
+        let after = &rest[start + 1..];
+        match after.find('%') {
+            Some(end) => {
+                let name = &after[..end];
+                match std::env::var(name) {
+                    Ok(value) if !name.is_empty() => out.push_str(&value),
+                    _ => {
+                        out.push('%');
+                        out.push_str(name);
+                        out.push('%');
+                    }
+                }
+                rest = &after[end + 1..];
+            }
+            None => {
+                out.push_str(&rest[start..]);
+                rest = "";
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
+/// Reads one text value from the registry.
+#[cfg(windows)]
+mod registry {
+    use std::ffi::c_void;
+
+    pub const USER: isize = 0x8000_0001_u32 as i32 as isize;
+    pub const MACHINE: isize = 0x8000_0002_u32 as i32 as isize;
+    /// REG_SZ or REG_EXPAND_SZ, as stored: the variables are expanded by the caller.
+    const TEXT: u32 = 0x0000_0002 | 0x0000_0004 | 0x1000_0000;
+
+    #[link(name = "advapi32")]
+    unsafe extern "system" {
+        fn RegGetValueW(
+            key: isize,
+            sub_key: *const u16,
+            value: *const u16,
+            flags: u32,
+            kind: *mut u32,
+            data: *mut c_void,
+            size: *mut u32,
+        ) -> i32;
+    }
+
+    fn wide(text: &str) -> Vec<u16> {
+        text.encode_utf16().chain(std::iter::once(0)).collect()
+    }
+
+    pub fn string(root: isize, key: &str, value: &str) -> Option<String> {
+        let (key, value) = (wide(key), wide(value));
+        let mut size = 0u32;
+        // SAFETY: the names are NUL-terminated and outlive the call; a null buffer asks for
+        // the size only.
+        let found = unsafe {
+            RegGetValueW(
+                root,
+                key.as_ptr(),
+                value.as_ptr(),
+                TEXT,
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+                &mut size,
+            )
+        };
+        if found != 0 || size == 0 {
+            return None;
+        }
+        let mut buffer = vec![0u16; (size as usize).div_ceil(2)];
+        // SAFETY: `buffer` holds `size` bytes, as the call above asked for.
+        let read = unsafe {
+            RegGetValueW(
+                root,
+                key.as_ptr(),
+                value.as_ptr(),
+                TEXT,
+                std::ptr::null_mut(),
+                buffer.as_mut_ptr().cast(),
+                &mut size,
+            )
+        };
+        if read != 0 {
+            return None;
+        }
+        let text = String::from_utf16_lossy(&buffer);
+        Some(text.trim_end_matches('\0').to_string())
+    }
 }
 
 /// uv and pipx put the commands they install into one folder of the user. A program started
@@ -283,6 +414,20 @@ pub async fn output(
 
 #[cfg(test)]
 mod tests {
+    #[cfg(windows)]
+    #[test]
+    fn a_saved_search_path_is_read_and_expanded() {
+        // SAFETY: no other test reads this variable.
+        unsafe { std::env::set_var("SUPERINT_TEST_FOLDER", r"C:\tools") };
+        assert_eq!(
+            super::expand(r"%SUPERINT_TEST_FOLDER%\bin;%NOT_SET_9%;x"),
+            r"C:\tools\bin;%NOT_SET_9%;x"
+        );
+        assert_eq!(super::expand("50%"), "50%");
+        // The machine's search path holds Windows' own folder, and cmd with it.
+        assert!(super::on_saved_path("cmd").is_some());
+    }
+
     #[cfg(windows)]
     #[test]
     fn the_file_manager_gets_one_kind_of_slash() {

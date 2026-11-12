@@ -272,11 +272,14 @@ set "UV="
 where uv >nul 2>nul && set "UV=uv"
 if not defined UV if exist "%LOCALAPPDATA%\Microsoft\WinGet\Links\uv.exe" set "UV=%LOCALAPPDATA%\Microsoft\WinGet\Links\uv.exe"
 if not defined UV if exist "%USERPROFILE%\.local\bin\uv.exe" set "UV=%USERPROFILE%\.local\bin\uv.exe"
+if not defined UV for /d %%D in ("%LOCALAPPDATA%\Microsoft\WinGet\Packages\astral-sh.uv_*") do if exist "%%D\uv.exe" set "UV=%%D\uv.exe"
 if not defined UV (
   echo First uv, which installs Python tools:
   winget install --id astral-sh.uv --exact --source winget
 )
+rem winget makes a link to uv when Windows lets it, else it leaves uv in its package folder.
 if not defined UV if exist "%LOCALAPPDATA%\Microsoft\WinGet\Links\uv.exe" set "UV=%LOCALAPPDATA%\Microsoft\WinGet\Links\uv.exe"
+if not defined UV for /d %%D in ("%LOCALAPPDATA%\Microsoft\WinGet\Packages\astral-sh.uv_*") do if exist "%%D\uv.exe" set "UV=%%D\uv.exe"
 if not defined UV (
   echo uv could not be installed. See https://docs.astral.sh/uv/
   exit /b 1
