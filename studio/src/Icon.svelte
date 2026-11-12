@@ -9,6 +9,7 @@
     play: 'm8 5 11 7-11 7Z',
     pause: 'M8 5v14M16 5v14',
     back: 'm14 6-6 6 6 6',
+    chevron: 'm6 9 6 6 6-6',
     next: 'm10 6 6 6-6 6',
     plus: 'M12 5v14M5 12h14',
     minus: 'M5 12h14',

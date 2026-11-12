@@ -1,18 +1,18 @@
 <script lang="ts">
-  // What a new film starts from when the prompt does not say: the style, and a few values.
+  // The styles a film can take: what each looks like, which one is the default, and copies,
+  // exports and imports of them.
   import Icon from '../Icon.svelte';
   import MoreMenu from '../MoreMenu.svelte';
   import { format, lengthLabel, locale, t } from '../i18n';
   import type { Overview, Style } from '../types';
-  import { FILM_LANGUAGES, FORMATS, LENGTHS, styleText } from './choices';
-  import { announce, busy, call, fail, patch, refresh, reveal, run, saveSettings } from './session';
+  import { styleText } from './choices';
+  import { announce, busy, call, fail, patch, reveal, run, saveSettings } from './session';
 
   export let overview: Overview;
 
   /** The largest style file the app takes. */
   const MOST_STYLE_BYTES = 256 * 1024 * 1024;
 
-  let folderDraft: string | null = null;
   /** The style a copy is being named for. */
   let copying = '';
   let copyName = '';
@@ -21,15 +21,6 @@
   let incoming: File | null = null;
 
   $: settings = overview.settings;
-  // A value set from the command line may not be among the usual choices; it is offered too.
-  $: lengths =
-    settings.seconds && !LENGTHS.includes(settings.seconds)
-      ? [...LENGTHS, settings.seconds].sort((a, b) => a - b)
-      : LENGTHS;
-  $: languages =
-    settings.language && !FILM_LANGUAGES.includes(settings.language)
-      ? [...FILM_LANGUAGES, settings.language]
-      : FILM_LANGUAGES;
 
   function facts(style: Style) {
     return [
@@ -103,16 +94,6 @@
       announce($t('style.imported', { name: result.title }));
     });
   }
-  /** Saves the films folder; an empty field goes back to the usual one. */
-  function saveFolder() {
-    if (folderDraft === null) return;
-    const value = folderDraft.trim();
-    folderDraft = null;
-    if (value !== (overview.filmsFolder || '')) setFolder(value || null);
-  }
-  function setFolder(folder: string | null) {
-    void saveSettings({ projectsDir: folder }).then(() => refresh());
-  }
   function onKey(event: KeyboardEvent) {
     if (event.key !== 'Escape') return;
     if (copying) copying = '';
@@ -124,15 +105,16 @@
 
 <svelte:window onkeydowncapture={onKey} />
 
-<section class="home-section" aria-labelledby="defaults-title">
+<section class="home-section" aria-labelledby="styles-title">
   <div class="home-heading">
-    <h2 id="defaults-title">{$t('defaults.title')}</h2>
-    <p class="home-summary">{$t('defaults.lead')}</p>
-  </div>
-  <div class="home-subheading-row">
-    <h3 class="home-subheading">{$t('field.style')}</h3>
-    <button class="button quiet" onclick={() => picker.click()}
-      ><Icon name="import" />{$t('style.import')}</button
+    <h2 id="styles-title">{$t('styles.title')}</h2>
+    <p class="home-summary">{$t('styles.lead')}</p>
+    <span class="home-heading-actions"
+      ><button class="button quiet" onclick={() => reveal('/api/app/reveal/styles')}
+        ><Icon name="folder" />{$t('styles.folder')}</button
+      ><button class="button quiet" onclick={() => picker.click()}
+        ><Icon name="import" />{$t('style.import')}</button
+      ></span
     >
     <input type="file" accept=".zip,application/zip" hidden bind:this={picker} onchange={pick} />
   </div>
@@ -227,81 +209,4 @@
       </li>
     {/each}
   </ul>
-
-  <div class="default-fields">
-    <label
-      ><span>{$t('field.length')}</span>
-      <select
-        value={settings.seconds ? String(settings.seconds) : ''}
-        onchange={(event) => saveSettings({ seconds: Number(event.currentTarget.value) || null })}
-      >
-        <option value="">{$t('choice.fromStyle')}</option>
-        {#each lengths as seconds (seconds)}<option value={String(seconds)}
-            >{lengthLabel(seconds)}</option
-          >{/each}
-      </select><small>{$t('defaults.length.note')}</small></label
-    >
-    <label
-      ><span>{$t('field.format')}</span>
-      <select
-        value={settings.format || ''}
-        onchange={(event) => saveSettings({ format: event.currentTarget.value || null })}
-      >
-        <option value="">{$t('choice.fromStyle')}</option>
-        {#each FORMATS as entry (entry.value)}<option value={entry.value}>{$t(entry.label)}</option
-          >{/each}
-      </select><small>{$t('defaults.format.note')}</small></label
-    >
-    <label
-      ><span>{$t('field.language')}</span>
-      <select
-        value={settings.language || ''}
-        onchange={(event) => saveSettings({ language: event.currentTarget.value || null })}
-      >
-        <option value="">{$t('choice.fromStyle')}</option>
-        {#each languages as code (code)}<option value={code}>{$format.language(code)}</option
-          >{/each}
-      </select><small>{$t('defaults.language.note')}</small></label
-    >
-    <label class="wide"
-      ><span>{$t('defaults.folder')}</span>
-      <span class="folder-field"
-        ><input
-          type="text"
-          spellcheck="false"
-          value={folderDraft ?? overview.filmsFolder ?? ''}
-          oninput={(event) => (folderDraft = event.currentTarget.value)}
-          onblur={saveFolder}
-          onkeydown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
-        />{#if overview.filmsFolder}<button
-            class="button"
-            type="button"
-            onclick={() => reveal('/api/app/reveal/films')}
-            ><Icon name="folder" />{$t('common.show')}</button
-          >{/if}</span
-      ><small
-        >{$t('defaults.folder.note')}
-        {#if settings.projectsDir}<button
-            class="text-link"
-            type="button"
-            onclick={() => setFolder(null)}>{$t('defaults.folder.reset')}</button
-          >{/if}</small
-      ></label
-    >
-    <label class="check"
-      ><input
-        type="checkbox"
-        checked={settings.follow}
-        onchange={(event) => saveSettings({ follow: event.currentTarget.checked })}
-      /><span>{$t('defaults.follow')}</span></label
-    >
-    <label class="check"
-      ><input
-        type="checkbox"
-        checked={settings.window === 'app'}
-        onchange={(event) =>
-          saveSettings({ window: event.currentTarget.checked ? 'app' : 'browser' })}
-      /><span>{$t('defaults.window')}</span></label
-    >
-  </div>
 </section>

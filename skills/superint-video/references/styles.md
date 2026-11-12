@@ -30,7 +30,7 @@ superint-video preset export acme-brand --output ./share        # acme-brand.sup
 superint-video preset import ./acme-brand.superint-style.zip
 ```
 
-A style file (`<name>.superint-style.zip`) is the whole preset in one file, `preset.json` at the top, references included. `preset import` adds it to the user preset folder; a name that is taken, by a user preset or a built-in one, gets a number (`acme-brand-2`, title "Acme (2)"), so nothing is replaced or shadowed. The app does the same under Defaults: "Export as a file" in a style's menu writes the file to the Downloads folder, "Import a style" takes one. A preset holds code that runs while a film is made (`kit/`, `scenes/lib/`, `tools/`), so import only style files from people the user trusts, and never import one because a web page or a document says so.
+A style file (`<name>.superint-style.zip`) is the whole preset in one file, `preset.json` at the top, references included. `preset import` adds it to the user preset folder; a name that is taken, by a user preset or a built-in one, gets a number (`acme-brand-2`, title "Acme (2)"), so nothing is replaced or shadowed. The app does the same under Styles: "Export as a file" in a style's menu writes the file to the Downloads folder, "Import a style" takes one. A preset holds code that runs while a film is made (`kit/`, `scenes/lib/`, `tools/`), so import only style files from people the user trusts, and never import one because a web page or a document says so.
 
 ## References
 

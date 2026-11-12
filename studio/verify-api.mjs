@@ -364,10 +364,15 @@ try {
   const settings = await send('/api/app/settings', 'PUT', {
     ...app.settings,
     preset: 'blank',
+    follow: false,
+    // Length, format and language belong to each prompt now; an old client's are dropped.
     seconds: 45,
   });
   assert.equal(settings.status, 200, await settings.clone().text());
-  assert.equal((await get('/api/app')).settings.seconds, 45);
+  const kept = (await get('/api/app')).settings;
+  assert.equal(kept.follow, false);
+  assert.equal(kept.preset, 'blank');
+  assert.ok(!('seconds' in kept), 'no length is kept among the settings');
   assert.equal(
     (await send('/api/app/settings', 'PUT', { ...app.settings, preset: 'no-such-style' })).status,
     400,
