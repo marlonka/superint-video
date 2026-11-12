@@ -139,6 +139,7 @@ pub fn routes(state: AppState) -> Router {
             "/api/app/styles/{name}/reference/{file}",
             get(style_reference),
         )
+        .route("/api/app/styles/{name}/preview/{file}", get(style_preview))
         .route("/api/app/agents/{id}/skills", post(install_skills))
         .route("/api/app/tools/{id}/install", post(install_tool))
         .route("/api/app/google/sign-in", post(google_sign_in))
@@ -780,6 +781,7 @@ fn styles(state: &AppState) -> Result<Value> {
                 .filter_map(|r| r.rsplit('/').next().map(str::to_owned))
                 .filter(|r| is_picture(r))
                 .collect();
+            let preview: Vec<&str> = p.previews().into_iter().filter(|f| is_picture(f)).collect();
             json!({
                 "name": p.config.name,
                 "title": p.config.title,
@@ -793,6 +795,7 @@ fn styles(state: &AppState) -> Result<Value> {
                 "music": p.config.music.is_some(),
                 "own": matches!(p.source, preset::Source::User),
                 "references": references,
+                "preview": preview,
             })
         })
         .collect();
@@ -809,16 +812,24 @@ fn is_picture(name: &str) -> bool {
 async fn style_reference(
     RoutePath((name, file)): RoutePath<(String, String)>,
 ) -> ApiResult<Response> {
-    if !is_picture(&file) {
+    style_picture(&file, || preset::reference(&name, &file))
+}
+
+/// A picture on a style's card.
+async fn style_preview(
+    RoutePath((name, file)): RoutePath<(String, String)>,
+) -> ApiResult<Response> {
+    style_picture(&file, || preset::preview(&name, &file))
+}
+
+fn style_picture(file: &str, read: impl FnOnce() -> Result<Vec<u8>>) -> ApiResult<Response> {
+    if !is_picture(file) {
         return Err(ApiError::bad("Only pictures are shown"));
     }
-    let bytes = preset::reference(&name, &file)
-        .map_err(|_| ApiError::new(StatusCode::NOT_FOUND, "No such reference"))?;
+    let bytes = read().map_err(|_| ApiError::new(StatusCode::NOT_FOUND, "No such picture"))?;
     Ok(bytes_response(
         bytes,
-        mime_guess::from_path(&file)
-            .first_or_octet_stream()
-            .as_ref(),
+        mime_guess::from_path(file).first_or_octet_stream().as_ref(),
     ))
 }
 

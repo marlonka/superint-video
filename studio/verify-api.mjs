@@ -381,6 +381,22 @@ try {
         `${key.name} names its ${role} model in its own provider's form`,
       );
   assert.ok(app.styles.some((style) => style.name === 'blank'));
+  // Each built-in look has three pictures of its own for its card, served as JPEG; the neutral
+  // style has none and falls back to its references.
+  for (const style of app.styles.filter((style) => style.name !== 'blank')) {
+    assert.equal(style.preview.length, 3, `${style.name} has three card pictures`);
+    const picture = await fetch(
+      `${origin}/api/app/styles/${style.name}/preview/${encodeURIComponent(style.preview[0])}`,
+    );
+    assert.equal(picture.status, 200);
+    assert.equal(picture.headers.get('content-type'), 'image/jpeg');
+  }
+  assert.deepEqual(app.styles.find((style) => style.name === 'blank').preview, []);
+  assert.equal(
+    (await fetch(`${origin}/api/app/styles/launch/preview/..%2Fpreset.json`)).status,
+    400,
+    'only pictures are served from a card',
+  );
   assert.equal(app.settings.preset, null);
   const send = (endpoint, method, body, overrides = {}) =>
     fetch(origin + endpoint, {

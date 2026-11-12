@@ -619,9 +619,7 @@ fn files_from_references(
     let look = Look::of(sheet)?;
     let mut style = Preset::builtin("blank")?;
     // References the user added to the neutral style belong to it, not to this one.
-    style
-        .files
-        .retain(|file, _| !file.starts_with("references/"));
+    style.drop_pictures();
 
     identity.name(&mut style.config, styles);
     style.config.defaults.workflow = identity.workflow.clone();
@@ -952,9 +950,8 @@ fn files_from_film(
         Some(base) => base,
         None => Preset::builtin("blank")?,
     };
-    style
-        .files
-        .retain(|file, _| !file.starts_with("references/"));
+    // The base's references and card pictures show its own look; this style shows the film's.
+    style.drop_pictures();
     let code: Vec<String> = film.code.keys().cloned().collect();
     for (file, bytes) in film.code {
         if neutral && (file == "kit/kit.js" || file == "kit/theme.css") {

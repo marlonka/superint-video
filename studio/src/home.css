@@ -908,13 +908,14 @@
   min-width: 0;
   padding-bottom: 28px;
 }
+/* One picture at a time, 16:9 like the films, so every card in a row stands as high. */
 .style-pictures {
-  display: flex;
-  gap: 1px;
-  align-items: center;
-  justify-content: center;
-  aspect-ratio: 3 / 1;
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
   overflow: hidden;
+  isolation: isolate;
   border-radius: 6px;
   outline: 2px solid transparent;
   outline-offset: 3px;
@@ -927,11 +928,44 @@
 .style.chosen > .style-pictures {
   outline-color: var(--text);
 }
-.style-pictures > img {
-  flex: 1;
-  width: 0;
+/* Pictures take turns (StylePictures.svelte): the next fades in over the last, which stays
+   whole beneath it until it is covered, so the frame never dims between them. */
+.style-picture {
+  position: absolute;
+  inset: 0;
+  width: 100%;
   height: 100%;
   object-fit: cover;
+  opacity: 0;
+  user-select: none;
+}
+.style-picture.under {
+  z-index: 1;
+  opacity: 1;
+}
+.style-picture.shown {
+  z-index: 2;
+  opacity: 1;
+  transition: opacity var(--fade) cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* While it is seen, a picture drifts a little closer. The drift goes on beneath the next one,
+   and rests while the card has the pointer or the focus. */
+.style-pictures.turning > .style-picture:is(.shown, .under) {
+  animation: style-drift var(--drift) linear both;
+}
+.style:is(:hover, :focus-within) > .style-pictures.turning > .style-picture {
+  animation-play-state: paused;
+}
+@keyframes style-drift {
+  to {
+    transform: scale(1.05);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .style-picture {
+    transition: none;
+    animation: none;
+  }
 }
 .style-title {
   padding-top: 14px;
