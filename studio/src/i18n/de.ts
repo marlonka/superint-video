@@ -130,8 +130,9 @@ export const de: Catalog = {
   'setup.models.title': 'Modelle',
   'setup.models.why':
     'Für Profis: welches Modell welche Aufgabe übernimmt. Leere Felder behalten die Standardmodelle, je nach Schlüssel.',
-  'setup.models.usual': 'Die Standardmodelle.',
-  'setup.models.own': 'Eigene Wahl: {list}.',
+  'setup.models.usual': 'Standardmodelle',
+  'setup.models.usualWhy': 'Gewählt nach deinen Schlüsseln.',
+  'setup.models.own': 'Eigene Wahl',
   'setup.models.change': 'Modelle wählen',
   'setup.models.field.narration': 'Stimme: Modell',
   'setup.models.field.voice': 'Stimme: Name',

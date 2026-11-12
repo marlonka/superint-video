@@ -132,8 +132,9 @@ export const en = {
   'setup.models.title': 'Models',
   'setup.models.why':
     'For pros: which model does which job. Empty fields keep the usual models, chosen by your keys.',
-  'setup.models.usual': 'The usual models.',
-  'setup.models.own': 'Your choice: {list}.',
+  'setup.models.usual': 'The usual models',
+  'setup.models.usualWhy': 'Chosen by your keys.',
+  'setup.models.own': 'Your choice',
   'setup.models.change': 'Choose models',
   'setup.models.field.narration': 'Voice: model',
   'setup.models.field.voice': 'Voice: name',

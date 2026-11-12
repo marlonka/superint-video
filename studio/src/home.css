@@ -367,53 +367,49 @@
   margin-left: 34px;
   font-size: 15px;
 }
-/* The models a pro chose: one line that says whether they are the usual ones, and the form. */
-/* In line with the text of the items above it. */
-.setup-models-choice {
+/* The models a pro chose: a row like the others, with no mark, as nothing is missing. The
+   form takes the text column for its fields and the button column for Save, as a key's does. */
+.setup-mark.blank {
+  border-color: transparent;
+}
+.setup-item > .models-form {
   display: grid;
-  justify-items: start;
-  gap: 12px;
-  padding: 8px 0 0 34px;
+  grid-column: 2 / -1;
+  grid-template-columns: subgrid;
+  row-gap: 8px;
 }
-.setup-models-choice > p {
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-.models-form {
+.models-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px 16px;
-  justify-self: stretch;
+  min-width: 0;
 }
-.models-form > label {
+.models-fields > label {
   display: flex;
   flex-direction: column;
   gap: 6px;
   min-width: 0;
 }
-.models-form > label > span {
+.models-fields > label > span {
   color: var(--secondary);
   font-size: 14px;
 }
-.models-form input {
+.models-fields input {
   width: 100%;
   font-size: 15px;
 }
-.models-form input.model-id {
+.models-fields input.model-id {
   font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
 }
-.models-form > .model-hint,
-.models-actions {
-  grid-column: 1 / -1;
-  margin: 0;
+/* Save stands level with the last fields, under the other buttons. */
+.models-form > .button {
+  align-self: end;
+  width: 100%;
 }
-.models-actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px 20px;
+.models-form > .model-hint,
+.models-form > .setup-links {
+  grid-column: 1;
+  margin: 0;
 }
 .setup-foot {
   display: flex;
@@ -876,7 +872,8 @@
   .setup-item > .key-form {
     grid-template-columns: minmax(0, 1fr);
   }
-  .models-form {
+  .setup-item > .models-form,
+  .models-fields {
     grid-template-columns: minmax(0, 1fr);
   }
   .place-fields {
@@ -884,9 +881,6 @@
   }
   .setup-more {
     margin-left: 0;
-  }
-  .setup-models-choice {
-    padding-left: 0;
   }
   .setup-foot > .button {
     width: 100%;

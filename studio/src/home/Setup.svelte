@@ -519,61 +519,76 @@
             <h3 id="setup-models">{$t('setup.models.title')}</h3>
             <p>{$t('setup.models.why')}</p>
           </header>
-          <div class="setup-models-choice">
-            <p>
-              {chosenModels.length
-                ? $t('setup.models.own', {
-                    list: chosenModels
-                      .map((field) => `${$t(field.label)} ${settings[field.setting]}`)
-                      .join(' · '),
-                  })
-                : $t('setup.models.usual')}
-            </p>
-            {#if !modelsOpen}<button class="button" onclick={openModels}
-                >{$t('setup.models.change')}</button
-              >{/if}
-            {#if modelsOpen}
-              <form
-                class="models-form"
-                transition:unfold
-                onsubmit={(event) => {
-                  event.preventDefault();
-                  saveModels();
-                }}
-              >
-                {#each MODEL_FIELDS as field (field.setting)}
-                  <label
-                    ><span>{$t(field.label)}</span>
-                    <input
-                      type="text"
-                      class:model-id={field.setting !== 'narrationVoice'}
-                      name={field.setting}
-                      autocomplete="off"
-                      spellcheck="false"
-                      placeholder={setup.models[field.usual]}
-                      aria-describedby="models-hint"
-                      bind:value={modelDrafts[field.setting]}
-                    /></label
-                  >
-                {/each}
-                <p class="model-hint" id="models-hint">{$t('setup.models.hint')}</p>
-                <div class="models-actions">
+          <ul class="setup-list">
+            <li class="setup-item">
+              <span class="setup-mark blank" aria-hidden="true"></span>
+              <div class="setup-text">
+                <strong
+                  >{$t(chosenModels.length ? 'setup.models.own' : 'setup.models.usual')}</strong
+                >
+                <span
+                  >{chosenModels.length
+                    ? chosenModels
+                        .map((field) => `${$t(field.label)} ${settings[field.setting]}`)
+                        .join(' · ')
+                    : $t('setup.models.usualWhy')}</span
+                >
+              </div>
+              <div class="setup-action">
+                <button
+                  class="button"
+                  aria-expanded={modelsOpen}
+                  aria-controls="models-form"
+                  onclick={() => (modelsOpen ? (modelsOpen = false) : openModels())}
+                  >{$t('setup.models.change')}</button
+                >
+              </div>
+              {#if modelsOpen}
+                <form
+                  class="models-form"
+                  id="models-form"
+                  transition:unfold
+                  onsubmit={(event) => {
+                    event.preventDefault();
+                    saveModels();
+                  }}
+                >
+                  <div class="models-fields">
+                    {#each MODEL_FIELDS as field (field.setting)}
+                      <label
+                        ><span>{$t(field.label)}</span>
+                        <input
+                          type="text"
+                          class:model-id={field.setting !== 'narrationVoice'}
+                          name={field.setting}
+                          autocomplete="off"
+                          spellcheck="false"
+                          placeholder={setup.models[field.usual]}
+                          aria-describedby="models-hint"
+                          bind:value={modelDrafts[field.setting]}
+                        /></label
+                      >
+                    {/each}
+                  </div>
                   <button class="button" type="submit" disabled={$busy === 'settings'}
                     >{$t('common.save')}</button
                   >
-                  {#if chosenModels.length}<button
-                      class="text-link"
-                      type="button"
-                      disabled={$busy === 'settings'}
-                      onclick={() => saveModels(true)}>{$t('setup.models.reset')}</button
-                    >{/if}
-                  <button class="text-link" type="button" onclick={() => (modelsOpen = false)}
-                    >{$t('common.cancel')}</button
-                  >
-                </div>
-              </form>
-            {/if}
-          </div>
+                  <p class="model-hint" id="models-hint">{$t('setup.models.hint')}</p>
+                  <span class="setup-links">
+                    {#if chosenModels.length}<button
+                        class="text-link"
+                        type="button"
+                        disabled={$busy === 'settings'}
+                        onclick={() => saveModels(true)}>{$t('setup.models.reset')}</button
+                      >{/if}
+                    <button class="text-link" type="button" onclick={() => (modelsOpen = false)}
+                      >{$t('common.cancel')}</button
+                    >
+                  </span>
+                </form>
+              {/if}
+            </li>
+          </ul>
         </section>
       {/if}
 
