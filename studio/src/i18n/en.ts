@@ -119,9 +119,9 @@ export const en = {
   'setup.key.OPENAI_API_KEY.why':
     'Only for speaking instead of typing, with gpt-transcribe. A film needs one of the other keys.',
   'setup.more.toggle': 'More providers: {providers}',
-  'setup.cloud.signIn': 'Sign in with Google',
+  'setup.cloud.signIn': 'Sign in with Google (ADC)',
   'setup.cloud.signInWhy':
-    'Recommended: your Google account instead of an API key. A window brings the Google Cloud CLI if needed and opens the sign-in in your browser.',
+    'Recommended: sign in to Google Cloud with your Google account (ADC, Application Default Credentials) instead of an API key. A window brings the Google Cloud CLI if needed and opens the sign-in in your browser.',
   'setup.cloud.signingIn':
     'A window walks you through the sign-in. The app notices it by itself once it is done.',
   'setup.cloud.useKey': 'Use an API key instead',

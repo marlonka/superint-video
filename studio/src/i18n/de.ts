@@ -117,9 +117,9 @@ export const de: Catalog = {
   'setup.key.OPENAI_API_KEY.why':
     'Nur zum Sprechen statt Tippen, mit gpt-transcribe. Für einen Film braucht es einen der anderen Schlüssel.',
   'setup.more.toggle': 'Weitere Anbieter: {providers}',
-  'setup.cloud.signIn': 'Mit Google anmelden',
+  'setup.cloud.signIn': 'Mit Google anmelden (ADC)',
   'setup.cloud.signInWhy':
-    'Empfohlen: mit deinem Google-Konto statt mit einem API-Schlüssel. Ein Fenster holt dafür bei Bedarf die Google Cloud CLI und öffnet die Anmeldung im Browser.',
+    'Empfohlen: die Anmeldung bei Google Cloud mit deinem Google-Konto (ADC, Application Default Credentials) statt eines API-Schlüssels. Ein Fenster holt dafür bei Bedarf die Google Cloud CLI und öffnet die Anmeldung im Browser.',
   'setup.cloud.signingIn':
     'Ein Fenster führt durch die Anmeldung. Die App bemerkt sie von selbst, sobald sie fertig ist.',
   'setup.cloud.useKey': 'Stattdessen einen API-Schlüssel eintragen',

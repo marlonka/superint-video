@@ -358,6 +358,8 @@
 .setup-action > .button,
 .key-form > .button {
   width: 100%;
+  /* Room for the longest label on one line, "Mit Google anmelden (ADC)". */
+  padding-inline: 10px;
 }
 .setup-action > .button > svg {
   width: 16px;
