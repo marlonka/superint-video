@@ -485,6 +485,11 @@ impl Server {
 
     /// Its address, if it still answers.
     pub async fn running(&self) -> Option<String> {
+        self.answer().await.map(|(url, _)| url)
+    }
+
+    /// Its address and what it says about itself, if it still answers.
+    pub async fn answer(&self) -> Option<(String, Value)> {
         let record = self.record()?;
         // One that said it stopped is not asked: nobody answers there, and that takes a while.
         if !record["stoppedAt"].is_null() {
@@ -504,7 +509,7 @@ impl Server {
             .json()
             .await
             .ok()?;
-        (ping[self.names.0] == self.names.1).then_some(url)
+        (ping[self.names.0] == self.names.1).then_some((url, ping))
     }
 
     /// Starts it detached with these arguments and waits until it answers.
@@ -652,6 +657,10 @@ fn keep_stdio_from_children() {
 /// the user chose that or no Chromium is there. Best effort: the URL is printed anyway.
 pub fn open_browser(url: &str) {
     use std::process::{Command, Stdio};
+    // A browser that starts here may run for hours: it must not keep this process's output open
+    // for whoever waits for it, such as the app's launcher.
+    #[cfg(windows)]
+    keep_stdio_from_children();
     if crate::home::Settings::current().window == crate::home::Window::App
         && let Ok(chrome) = process::chrome()
         && app_window(&chrome, url)

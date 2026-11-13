@@ -20,6 +20,10 @@ The include_dir crate packages omit their repository-level license file. That MI
 | Jost, Courier Prime, JetBrains Mono, Caveat, Fraunces (latin subsets, WOFF2) | `presets/miniature-3d/kit/fonts/` (JetBrains Mono also in `presets/launch/kit/fonts/`, its licence beside it as `JetBrainsMono-OFL.txt`); embedded in the executable and copied into projects created from the preset | SIL Open Font License 1.1. Copyright 2020 The Jost Project Authors, 2015 The Courier Prime Project Authors, 2020 The JetBrains Mono Project Authors, 2014 The Caveat Project Authors, 2020 The Fraunces Project Authors. Full texts in `presets/miniature-3d/kit/fonts/licenses/` |
 | Geist variable font (latin, latin-ext subsets, WOFF2) | `presets/blank/kit/fonts/` and `presets/launch/kit/fonts/`; embedded in the executable and copied into projects created from the preset | SIL Open Font License 1.1, Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font). Full text in `presets/blank/kit/fonts/OFL.txt`. |
 
+## Installer
+
+`Superint-Video-Setup.exe` is built with [Inno Setup](https://jrsoftware.org/isinfo.php) 6.7.3, whose setup and uninstall runtime is part of the installer. Inno Setup is Copyright (C) 1997-2026 Jordan Russell, portions Copyright (C) 2000-2026 Martijn Laan, under the [Inno Setup License](https://jrsoftware.org/files/is/license.txt). Its text is retained in [docs/THIRD_PARTY_LICENSES.txt](docs/THIRD_PARTY_LICENSES.txt), and the installer keeps Inno Setup's copyright notice and web address, as that license asks. The installer script is [packaging/setup.iss](https://github.com/marlonka/superint-video/blob/main/packaging/setup.iss).
+
 ## Adapted skill content
 
 `skills/superint-launch/` adapts rules, film shapes, handovers, art directions and the review checklist from [cinetic](https://github.com/Leonxlnx/cinetic) (snapshot `2d63a34f8cba3b197a04c9428b8353625a77b3b2`), rewritten for Superint Video. cinetic is licensed under the MIT License:

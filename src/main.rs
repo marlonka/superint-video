@@ -651,21 +651,44 @@ fn started_by_double_click() -> bool {
     }
 }
 
-/// The app's address, starting it in the background when it is not running.
+/// The app's address, starting it in the background when it is not running. An app that runs
+/// from another copy of this program, such as an older one unpacked elsewhere, makes way: the
+/// app someone starts is the one they see. The Studios of its films stay, so that a render in
+/// one of them goes on.
 async fn open_app(home: &std::path::Path, port: u16, open: bool) -> Result<Value> {
     let app = live::Server::app(home);
-    if let Some(url) = app.running().await {
-        if open {
-            live::open_browser(&url);
+    let mut replaced = None;
+    if let Some((url, ping)) = app.answer().await {
+        let theirs = ping["exe"].as_str().map(PathBuf::from);
+        let ours = superint_video::app::own_exe();
+        if theirs.is_some() && same_program(theirs.as_deref(), ours.as_deref()) {
+            if open {
+                live::open_browser(&url);
+            }
+            return Ok(json!({"url": url, "home": home, "alreadyRunning": true}));
         }
-        return Ok(json!({"url": url, "home": home, "alreadyRunning": true}));
+        app.stop().await;
+        replaced = Some(json!({"version": ping["version"], "exe": ping["exe"]}));
     }
     let port = port.to_string();
     let url = app
         .launch(&["app".as_ref(), "--port".as_ref(), port.as_ref()], open)
         .await
         .context("The app did not start")?;
-    Ok(json!({"url": url, "home": home, "alreadyRunning": false}))
+    Ok(json!({"url": url, "home": home, "alreadyRunning": false, "replaced": replaced}))
+}
+
+/// Two paths name the same program; on Windows without regard to case.
+fn same_program(a: Option<&Path>, b: Option<&Path>) -> bool {
+    let plain = |path: &Path| {
+        let text = path.display().to_string();
+        if cfg!(windows) {
+            text.replace('/', "\\").to_lowercase()
+        } else {
+            text
+        }
+    };
+    matches!((a, b), (Some(a), Some(b)) if plain(a) == plain(b))
 }
 
 /// Shows the recording view and, with `wait`, stays until every paragraph has an accepted

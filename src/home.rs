@@ -467,8 +467,19 @@ pub fn downloads_dir() -> Option<PathBuf> {
     known::downloads()
 }
 
-/// The user's Videos and Downloads folders, asked from Windows because either may have been
-/// moved to another drive.
+/// The user's desktop and the folder of the Start menu's programs, where a program's
+/// shortcuts go: `SUPERINT_SHORTCUTS` holds both in tests. Asked from Windows, because the
+/// desktop is often moved into OneDrive.
+pub fn shortcut_dirs() -> Option<(PathBuf, PathBuf)> {
+    if let Some(dir) = std::env::var_os("SUPERINT_SHORTCUTS").filter(|d| !d.is_empty()) {
+        let dir = PathBuf::from(dir);
+        return Some((dir.join("Desktop"), dir.join("Programs")));
+    }
+    Some((known::desktop()?, known::programs()?))
+}
+
+/// The user's Videos, Downloads and Desktop folders and the Start menu's programs, asked from
+/// Windows because any of them may have been moved to another drive.
 #[cfg(windows)]
 mod known {
     use std::{ffi::c_void, path::PathBuf};
@@ -486,6 +497,18 @@ mod known {
         0x123F,
         0x4565,
         [0x91, 0x64, 0x39, 0xC4, 0x92, 0x5E, 0x46, 0x7B],
+    );
+    const DESKTOP: Guid = Guid(
+        0xB4BF_CC3A,
+        0xDB2C,
+        0x424C,
+        [0xB0, 0x29, 0x7F, 0xE9, 0x9A, 0x87, 0xC6, 0x41],
+    );
+    const PROGRAMS: Guid = Guid(
+        0xA77F_5D77,
+        0x2E2B,
+        0x44C3,
+        [0xA6, 0xA2, 0xAB, 0xA6, 0x01, 0x05, 0x4A, 0x51],
     );
 
     #[link(name = "shell32")]
@@ -529,6 +552,12 @@ mod known {
     pub fn downloads() -> Option<PathBuf> {
         folder(&DOWNLOADS).or_else(|| in_profile("Downloads"))
     }
+    pub fn desktop() -> Option<PathBuf> {
+        folder(&DESKTOP).or_else(|| in_profile("Desktop"))
+    }
+    pub fn programs() -> Option<PathBuf> {
+        folder(&PROGRAMS)
+    }
 }
 #[cfg(not(windows))]
 mod known {
@@ -552,6 +581,13 @@ mod known {
             return Some(dir.into());
         }
         in_home("Downloads")
+    }
+    /// Shortcuts are a Windows matter.
+    pub fn desktop() -> Option<PathBuf> {
+        None
+    }
+    pub fn programs() -> Option<PathBuf> {
+        None
     }
 }
 

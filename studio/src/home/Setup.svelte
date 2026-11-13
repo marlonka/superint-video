@@ -64,6 +64,8 @@
   let checks: Record<string, KeyCheck | 'checking'> = {};
   /** Tools whose installation window was opened from here. */
   let installing: Record<string, boolean> = {};
+  /** The keys of the `.env` file are in the app, but the file holds more and stays. */
+  let envKept = false;
   /** The providers few people need are folded away until asked for or holding a key. */
   let moreOpen = false;
   /** Google Cloud: the user chose a key over the Google sign-in. */
@@ -112,6 +114,9 @@
   $: moreHeld = moreKeys.some((key) => key.present);
   $: moreShown = moreOpen || moreHeld;
   $: chosenModels = MODEL_FIELDS.filter((field) => settings[field.setting]);
+  $: shortcut = setup.shortcut;
+  $: shortcutDone = shortcut.desktop === 'here' && shortcut.startMenu === 'here';
+  $: shortcutElsewhere = shortcut.desktop === 'elsewhere' || shortcut.startMenu === 'elsewhere';
 
   /** The item whose action comes next. It alone carries the primary button. */
   function nextItem(state: Overview['setup'], open: typeof missing): string {
@@ -148,6 +153,26 @@
       installing = { ...installing, [tool.id]: true };
     });
   }
+  /** Puts the app on the desktop and in the Start menu, as an installer would. */
+  function makeShortcut() {
+    void run('shortcut', async () => {
+      const result = await call<{ shortcut: Overview['setup']['shortcut'] }>('/api/app/shortcut');
+      patch({ setup: { ...overview.setup, shortcut: result.shortcut } });
+      announce($t('setup.shortcut.made'));
+    });
+  }
+
+  /** Moves the keys of the `.env` file into the app, encrypted, and the file to the recycle bin. */
+  function adoptKeys() {
+    void run('adopt-keys', async () => {
+      const result = await call<{ keys: KeyRow[]; removed: boolean }>('/api/app/keys/adopt');
+      patch({ setup: { ...overview.setup, keys: result.keys } });
+      envKept = !result.removed;
+      if (result.removed) announce($t('setup.env.moved'));
+      await refresh();
+    });
+  }
+
   /** Chrome DevTools MCP: its project, and the coding agents that have it or lack it. */
   const BROWSER_PAGE = 'https://github.com/ChromeDevTools/chrome-devtools-mcp';
   $: agentsHere = setup.agents.filter((agent) => agent.found);
@@ -560,9 +585,59 @@
       </ul>
     </section>
 
+    {#if shortcut.app}
+      <section class="setup-group" aria-labelledby="setup-shortcut">
+        {@render heading(
+          null,
+          'setup-shortcut',
+          $t('setup.shortcut.title'),
+          $t('setup.shortcut.why'),
+        )}
+        <ul class="setup-list">
+          <SetupItem title={$t('setup.shortcut.item')} done={shortcutDone}>
+            <span
+              >{$t(
+                shortcutDone
+                  ? 'setup.shortcut.ready'
+                  : shortcutElsewhere
+                    ? 'setup.shortcut.elsewhere'
+                    : 'setup.shortcut.missing',
+              )}</span
+            >
+            <svelte:fragment slot="action">
+              {#if !shortcutDone}<button
+                  class="button"
+                  disabled={$busy === 'shortcut'}
+                  onclick={makeShortcut}
+                  >{$t(shortcutElsewhere ? 'setup.shortcut.renew' : 'setup.shortcut.make')}</button
+                >{/if}
+            </svelte:fragment>
+          </SetupItem>
+        </ul>
+      </section>
+    {/if}
+
     <section class="setup-group" aria-labelledby="setup-keys">
       {@render heading(null, 'setup-keys', $t('setup.key.title'), $t('setup.key.why'))}
       <div class="setup-keys">
+        {#if setup.envFile}
+          <ul class="setup-list">
+            <SetupItem title={$t('setup.env.title')} done={false}>
+              <span
+                >{$t(envKept ? 'setup.env.kept' : 'setup.env.why', {
+                  file: setup.envFile,
+                })}</span
+              >
+              <svelte:fragment slot="action">
+                {#if !envKept}<button
+                    class="button"
+                    disabled={$busy === 'adopt-keys'}
+                    onclick={adoptKeys}>{$t('setup.env.adopt')}</button
+                  >{/if}
+              </svelte:fragment>
+            </SetupItem>
+          </ul>
+        {/if}
         <dl class="setup-what">
           <div>
             <dt>{$t('setup.without.title')}</dt>

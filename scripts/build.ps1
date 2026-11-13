@@ -117,7 +117,7 @@ try {
     Copy-Item -LiteralPath (Join-Path $taskRepoRoot 'CHANGELOG.md') -Destination (Join-Path $taskDistRoot 'CHANGELOG.md') -Force
     Copy-Item -LiteralPath (Join-Path $taskRepoRoot 'THIRD_PARTY_NOTICES.md') -Destination (Join-Path $taskDistRoot 'THIRD_PARTY_NOTICES.md') -Force
     Copy-Item -LiteralPath (Join-Path $taskRepoRoot 'LICENSE') -Destination (Join-Path $taskDistRoot 'LICENSE') -Force
-    foreach ($taskDocument in @('HANDBUCH.md', 'FORMAT.md', 'video.schema.json', 'INTERFACES.md', 'THIRD_PARTY_LICENSES.txt')) {
+    foreach ($taskDocument in @('HANDBUCH.md', 'ENTWICKLER.md', 'DEVELOPERS.md', 'FORMAT.md', 'video.schema.json', 'INTERFACES.md', 'THIRD_PARTY_LICENSES.txt')) {
         Copy-Item -LiteralPath (Join-Path $taskRepoRoot "docs/$taskDocument") -Destination (Join-Path $taskDistRoot "docs/$taskDocument") -Force
     }
     $taskDistSkills = Join-Path $taskDistRoot 'skills'
@@ -134,6 +134,10 @@ try {
     $taskBuildSuffix = if ($DebugBuild) { '-debug' } else { '' }
     $taskArchiveName = "superint-video-$taskVersion-windows-x64$taskBuildSuffix.zip"
     $taskArchivePath = Join-Path $taskDistRoot $taskArchiveName
+    # Only this version's packages stay in dist: older ones are on the releases page.
+    Get-ChildItem -LiteralPath $taskDistRoot -File |
+        Where-Object { $_.Name -like 'superint-video-*-windows-x64*.zip' -or $_.Name -like 'Superint-Video-Setup*.exe' } |
+        Remove-Item -Force
     # Compress-Archive in Windows PowerShell 5.1 writes entry names with backslashes, which the ZIP
     # format does not allow: unzip on macOS and Linux then makes files named 'docs\HANDBUCH.md'.
     # So the archive is written entry by entry, with forward slashes.
@@ -157,7 +161,24 @@ try {
         }
     }
     finally { $taskZip.Dispose() }
-    $taskChecksumLines = @('Superint Video.exe', 'superint-video.exe', $taskArchiveName) | ForEach-Object {
+    # The installer people download: Inno Setup 6 builds it from the same files as the ZIP.
+    $taskSetupName = $null
+    if (-not $DebugBuild) {
+        # On the search path, else where its installer puts it for one user or for all.
+        $taskIsccPlaces = @(Get-Command 'ISCC.exe' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source)
+        if ($env:LOCALAPPDATA) { $taskIsccPlaces += Join-Path $env:LOCALAPPDATA 'Programs\Inno Setup 6\ISCC.exe' }
+        if (${env:ProgramFiles(x86)}) { $taskIsccPlaces += Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe' }
+        if ($env:ProgramFiles) { $taskIsccPlaces += Join-Path $env:ProgramFiles 'Inno Setup 6\ISCC.exe' }
+        $taskIscc = $taskIsccPlaces | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -First 1
+        if ($taskIscc) {
+            Invoke-Checked $taskIscc @('/Q', "/DAppVersion=$taskVersion", "/DSourceDir=$taskDistRoot", "/DOutputDir=$taskDistRoot", (Join-Path $taskRepoRoot 'packaging/setup.iss'))
+            $taskSetupName = "Superint-Video-Setup.exe"
+        }
+        else {
+            Write-Warning 'Inno Setup 6 was not found, so no installer was built. Install it with: winget install --id JRSoftware.InnoSetup --exact --scope user'
+        }
+    }
+    $taskChecksumLines = @('Superint Video.exe', 'superint-video.exe', $taskArchiveName, $taskSetupName) | Where-Object { $_ } | ForEach-Object {
         $taskFileHash = (Get-FileHash -LiteralPath (Join-Path $taskDistRoot $_) -Algorithm SHA256).Hash.ToLowerInvariant()
         "$taskFileHash  $_"
     }
@@ -165,6 +186,7 @@ try {
     Write-Host "Built: $(Join-Path $taskDistRoot 'superint-video.exe')"
     Write-Host "App:   $(Join-Path $taskDistRoot 'Superint Video.exe')"
     Write-Host "Package: $taskArchivePath"
+    if ($taskSetupName) { Write-Host "Installer: $(Join-Path $taskDistRoot $taskSetupName)" }
     Write-Host 'Run dist/superint-video.exe doctor --json to check Chrome and FFmpeg.'
 }
 finally { Pop-Location }

@@ -1,25 +1,33 @@
 # Superint Video: Handbuch
 
-Alles, was in die [README](../README.md) nicht passt: Installation im Detail, Studio, Agenten-Einrichtung, Presets, Prüfen und Rendern, Projektformat, Bauen aus dem Quellcode, Grenzen und Fehlerbehebung.
+Alles, was in die [README](../README.md) nicht passt: Installation im Detail, Studio, Agenten-Einrichtung, Presets, Prüfen und Rendern, Projektformat, Grenzen und Fehlerbehebung. Aufbau, Befehle und Bauen aus dem Quellcode stehen in [Für Entwickler](ENTWICKLER.md).
 
-## Schnellstart: fertiges Windows-Paket
+## Installieren
 
-1. Lade unter [Releases](https://github.com/marlonka/superint-video/releases/latest) die Datei `superint-video-0.9.1-windows-x64.zip` herunter.
-2. Entpacke das ZIP in einen beschreibbaren Ordner.
-3. Stelle die Laufzeit-Abhängigkeiten bereit:
+1. Lade [`Superint-Video-Setup.exe`](https://github.com/marlonka/superint-video/releases/latest/download/Superint-Video-Setup.exe) herunter und doppelklicke sie. Meldet Windows „Der Computer wurde durch Windows geschützt“, wähle **Weitere Informationen** und **Trotzdem ausführen**: Das Programm ist noch nicht signiert.
+2. Lass „Desktop-Symbol erstellen“ angehakt, wähle **Installieren** und **Fertigstellen**. Adminrechte sind nicht nötig. Superint Video landet in `%LOCALAPPDATA%\Programs\Superint Video`, im Startmenü und, wenn angehakt, auf dem Desktop. Der Programmordner kommt in deinen `PATH`, damit dein Coding-Agent `superint-video` in jedem neuen Terminal findet.
+3. Die App öffnet sich mit der Einrichtung (siehe [Die App](#die-app-startseite-und-einrichtung)).
+
+**Aktualisieren:** Das neue Setup einfach drüber installieren. Es beendet vorher App und Studios und ersetzt nur das Programm; Filme, Einstellungen und API-Schlüssel bleiben. **Deinstallieren:** Windows-Einstellungen → Apps → Installierte Apps → Superint Video. Entfernt werden Programm, Verknüpfungen und der Eintrag im `PATH`; deine Filme und `%USERPROFILE%\.superint-video` bleiben.
+
+**Ohne Installation:** Das ZIP `superint-video-<version>-windows-x64.zip` aus den [Releases](https://github.com/marlonka/superint-video/releases/latest) enthält dieselben Dateien. Entpacke es in einen beschreibbaren Ordner (Rechtsklick → **Alle extrahieren**; ein Doppelklick auf die EXE im noch gepackten ZIP startet sie ohne ihre Nachbardateien) und starte `Superint Video.exe`. Die Einrichtung legt die App mit „Auf den Desktop legen“ auf den Desktop und ins Startmenü.
+
+Was Superint Video zum Arbeiten braucht, holt die Einrichtung mit einem Klick:
 
 | Abhängigkeit                         | Verwendung                                                                         |
 | ------------------------------------ | ---------------------------------------------------------------------------------- |
 | Chrome, Chromium oder Microsoft Edge | HTML-Vorschau und Frame-Rendering                                                  |
 | FFmpeg **und** ffprobe im `PATH`     | Medienanalyse, Audio und MP4-Encoding; FFmpeg benötigt `libx265`, `libx264`, AAC und `zscale` |
 
-**Rust und Node.js werden zum Ausführen des fertigen Pakets nicht benötigt.** Studio, Szenen-Runtime und Starterprojekt sind in der EXE enthalten. Browser und FFmpeg werden separat installiert; die Anwendung lädt sie nicht selbst herunter.
+Rust und Node.js brauchst du nur, wenn du selbst baust. Studio, Szenen-Runtime und Starterprojekt sind in der EXE enthalten.
 
-Öffne PowerShell im entpackten Ordner:
+### Von der Kommandozeile
+
+Im Programmordner (oder überall, wenn du über das Setup installiert hast):
 
 ```powershell
-.\superint-video.exe doctor --json
-.\superint-video.exe new .\mein-video --topic "Warum ist der Himmel blau?" --seconds 30
+superint-video doctor --json
+superint-video new .\mein-video --topic "Warum ist der Himmel blau?" --seconds 30
 ```
 
 `new` startet Studio im Hintergrund und öffnet es im Browser. `superint-video studio .\mein-video` holt es später zurück, auch für ein bestehendes Projekt; `--stop` beendet es, und ohne Zuschauer und ohne Render beendet es sich nach zwei Stunden selbst. Wer das nicht will, gibt `new` und `render` `--no-studio` mit (in CI und mit `SUPERINT_NO_STUDIO` ist es von selbst aus). Der Port wird automatisch gewählt und bleibt für den Film derselbe, solange er frei ist: Ein Studio-Fenster, das noch offen ist, findet ein neu gestartetes Studio von selbst wieder. Für einen festen Port kannst du `studio .\mein-video --port 4317` verwenden, sofern er frei ist.
@@ -39,15 +47,15 @@ $env:SUPERINT_FFPROBE = 'C:\Tools\ffmpeg\bin\ffprobe.exe'
 
 ### Download prüfen
 
-Das Release enthält `SHA256SUMS.txt` mit den Prüfsummen des ZIPs und der EXE. Vergleiche den ZIP-Hash mit der entsprechenden Zeile:
+Das Release enthält `SHA256SUMS.txt` mit den Prüfsummen von Setup, ZIP und EXE. Vergleiche den Hash deiner Datei mit der entsprechenden Zeile:
 
 ```powershell
-Get-FileHash .\superint-video-0.9.1-windows-x64.zip -Algorithm SHA256
+Get-FileHash .\Superint-Video-Setup.exe -Algorithm SHA256
 ```
 
 ## Die App: Startseite und Einrichtung
 
-Ein Doppelklick auf `Superint Video.exe` (oder der Befehl `superint-video app`) öffnet die App in einem eigenen Fenster. Sie läuft im Hintergrund weiter und beendet sich nach zwei Stunden ohne offene Seite selbst; eine offene Seite zählt auch hinter anderen Fenstern oder bei abgeschaltetem Bildschirm, und Zeit im Ruhezustand zählt nicht mit. `superint-video app --stop` beendet sie sofort, samt den Studios der Filme, damit ein Update das Programm ersetzen kann. Beim Start holt sie diese Studios zurück, und ebenso jedes, das seit der Anmeldung am Computer von außen beendet wurde, etwa durch einen Absturz. Beide Programme gehören in denselben Ordner.
+Das Symbol auf dem Desktop, der Eintrag im Startmenü, ein Doppelklick auf `Superint Video.exe` oder der Befehl `superint-video app` öffnen die App in einem eigenen Fenster. Läuft schon eine App aus einer anderen Kopie, etwa einer älteren, macht sie der gestarteten Platz. Sie läuft im Hintergrund weiter und beendet sich nach zwei Stunden ohne offene Seite selbst; eine offene Seite zählt auch hinter anderen Fenstern oder bei abgeschaltetem Bildschirm, und Zeit im Ruhezustand zählt nicht mit. `superint-video app --stop` beendet sie sofort, samt den Studios der Filme, damit ein Update das Programm ersetzen kann. Beim Start holt sie diese Studios zurück, und ebenso jedes, das seit der Anmeldung am Computer von außen beendet wurde, etwa durch einen Absturz. Beide Programme gehören in denselben Ordner.
 
 **Sprache.** App und Studio sprechen Deutsch und Englisch. Beim ersten Start gilt die Sprache des Systems; der Globus oben rechts (im Studio: „⋯“) stellt um, und die Wahl bleibt gespeichert (`superint-video settings set uiLanguage de`). Die Namen unten sind die deutschen; auf Englisch heißen die Teile New film, Styles, Your films und Setup. Texte, die der Coding-Agent schreibt (Befunde, Schritte, Notizen), und Fehlermeldungen des Werkzeugs erscheinen so, wie sie geschrieben wurden; die Skills sagen ihm, sie in deiner Sprache zu schreiben.
 
@@ -56,6 +64,7 @@ Ein Doppelklick auf `Superint Video.exe` (oder der Befehl `superint-video app`) 
 - **Coding-Agent.** Claude Code, ChatGPT Codex oder Google Antigravity macht den Film, einer genügt. Ist einer installiert, kopiert „Skills hinzufügen“ die Superint-Skills in dessen Ordner; fehlt er, führt „Claude Code holen“ oder „ChatGPT Codex holen“ zur Installation.
 - **Werkzeuge.** Chrome (oder Edge) zeichnet jedes Bild, FFmpeg fügt Bilder und Ton zur MP4-Datei zusammen.
 - **API-Schlüssel (freiwillig).** Kein Schritt: Ein Film entsteht auch ohne. Die Einrichtung sagt, was ohne API-Schlüssel geht (Bild, Text im Bild, Soundeffekte und deine eigene Stimme, aufgenommen in der App oder als Audiodatei; auch ein Film ganz ohne Stimme) und was einer dazubringt (die KI-Stimme mit exakten Wort-Zeitpunkten, erzeugte Musik, Diktieren auf der Startseite, Stile aus Bildern). Ein API-Schlüssel von Google AI Studio oder OpenRouter genügt, „API-Schlüssel holen“ führt zum Anbieter. Darunter sind „Weitere Anbieter“ eingeklappt: Google Cloud und OpenAI (nur fürs Diktat und für neue Stile). Unter jedem Anbieter stehen die Modelle, die ein Film damit nutzt, solange Stil oder Projekt nichts anderes sagen: bei Google AI Studio `gemini-3.8-flash-tts` (Stimme), `gemini-3.5-transcribe` (Wort-Zeitpunkte) und `lyria-3.5` (Musik), bei OpenRouter dieselben Modelle unter dessen Namen (`google/gemini-3.8-flash-tts`, `google/gemini-3.5-transcribe`, `google/lyria-3-pro-preview`).
+- **Desktop und Startmenü.** Kein Schritt, aber auch beim ersten Start zu sehen, wenn die App nicht über das Setup kam: „Auf den Desktop legen“ legt ein Symbol auf den Desktop und einen Eintrag ins Startmenü. Zeigt eine Verknüpfung auf eine andere Kopie, etwa eine ältere, heißt der Knopf „Verknüpfung erneuern“.
 - **Freiwillig.** Earshot für Soundeffekte. „Installieren“ öffnet ein Fenster, das zuerst [uv](https://docs.astral.sh/uv/) über winget holt, falls es fehlt, und dann Earshot von GitHub installiert; „Auftrag für Claude Code oder Codex kopieren“ gibt dieselbe Aufgabe deinem Coding-Agent. Nicht `pip install earshot`: Auf PyPI gehört der Name einem anderen Projekt. Nach der Installation genügt „Erneut prüfen“, ein Neustart der App ist nicht nötig. Dazu [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp): Damit öffnet dein Coding-Agent Websites und macht Screenshots, etwa für einen Launch-Film über eine Website. Die Zeile sagt, bei welchem Coding-Agenten es eingerichtet ist und bei welchem es fehlt; „Auftrag kopieren“ gibt deinem Coding-Agenten die Anleitung für Claude Code, ChatGPT Codex und Google Antigravity, mit `--no-usage-statistics` und `--no-performance-crux`, damit weder Nutzungsdaten noch Trace-Adressen an Google gehen. Es braucht Node.js LTS. Die App liest dafür nur die Einstellungen der Agenten und ändert sie nicht.
 
 Fehlt Chrome oder FFmpeg, öffnet „Installieren“ ein sichtbares Terminal-Fenster mit einem festen winget-Befehl (`winget install --id Gyan.FFmpeg --exact --source winget` oder `Google.Chrome`). Die App stimmt dabei nichts für dich zu: Fragt winget nach Bedingungen, antwortest du im Fenster. Danach „Erneut prüfen“. Ohne winget führt „Download-Seite“ zum Hersteller.
@@ -82,7 +91,7 @@ Von der Kommandozeile, auch für deinen Coding-Agenten: `superint-video preset c
 
 **Stile weitergeben.** „Als Datei exportieren“ schreibt den ganzen Stil als `<name>.superint-style.zip` in deinen Downloads-Ordner und zeigt die Datei dort; Referenzbilder sind dabei. „Stil importieren“ fügt eine solche Datei zu deinen Stilen hinzu. Gibt es den Namen schon, bekommt der neue Stil eine Nummer („Mein Stil (2)“), ersetzt wird nichts. Ein Stil enthält Code, der läuft, während ein Film entsteht: Importiere nur Stile von Leuten, denen du vertraust. Von der Kommandozeile: `preset export <name>` und `preset import <datei>`.
 
-**API-Schlüssel.** Für die KI-Stimme, erzeugte Musik, das Diktat und Stile aus Bildern brauchst du einen API-Schlüssel aus deinem eigenen Konto: Google AI Studio ist der Standardweg, OpenRouter die Alternative, einer genügt. Du trägst ihn in der Einrichtung ein; die App fragt den Anbieter gleich nach dem Speichern, ob er funktioniert, und „Prüfen“ fragt später noch einmal. Die App speichert ihn nur auf diesem Rechner, unter Windows für dein Benutzerkonto verschlüsselt (`%USERPROFILE%\.superint-video\keys.dat`), und zeigt ihn nie wieder an, auch dem Coding-Agenten nicht. Eine `.env`-Datei oder Umgebungsvariable gilt weiterhin und hat Vorrang. Mit nur einem OpenRouter-Schlüssel laufen die Google-Modelle von selbst über OpenRouter. Ohne API-Schlüssel sprichst du den Film selbst oder er bleibt ohne Stimme; `superint-video doctor --json` zeigt unter `capabilities`, was gerade geht.
+**API-Schlüssel.** Für die KI-Stimme, erzeugte Musik, das Diktat und Stile aus Bildern brauchst du einen API-Schlüssel aus deinem eigenen Konto: Google AI Studio ist der Standardweg, OpenRouter die Alternative, einer genügt. Du trägst ihn in der Einrichtung ein; die App fragt den Anbieter gleich nach dem Speichern, ob er funktioniert, und „Prüfen“ fragt später noch einmal. Die App speichert ihn nur auf diesem Rechner, unter Windows für dein Benutzerkonto verschlüsselt (`%USERPROFILE%\.superint-video\keys.dat`), und zeigt ihn nie wieder an, auch dem Coding-Agenten nicht. Eine `.env`-Datei oder Umgebungsvariable gilt weiterhin und hat Vorrang. Eine `.env` liegt aber unverschlüsselt da; kommen Schlüssel aus einer, bietet die Einrichtung „In die App übernehmen“ an: Die Schlüssel kommen verschlüsselt in die App, und eine Datei, die nur Schlüssel enthielt, kommt in den Papierkorb. Enthält sie mehr, bleibt sie liegen, und die Einrichtung sagt dir, dass du die Schlüssel dort selbst herausnimmst. Mit nur einem OpenRouter-Schlüssel laufen die Google-Modelle von selbst über OpenRouter. Ohne API-Schlüssel sprichst du den Film selbst oder er bleibt ohne Stimme; `superint-video doctor --json` zeigt unter `capabilities`, was gerade geht.
 
 **Wer spricht.** Unter „Neuer Film“ steht neben Stil und Länge „Stimme“: „KI-Stimme“, „Eigene Stimme“ oder „Ohne Stimme“. Vorgewählt ist die KI-Stimme, wenn ein API-Schlüssel sie erreicht, sonst die eigene Stimme. Die Wahl steht in klaren Worten im Prompt, und der Coding-Agent richtet den Film danach aus.
 
@@ -299,7 +308,7 @@ Fonts, Bilder und Abhängigkeiten werden lokal eingebunden. Zeitgesteuertes Vide
 
 ## Aus dem Quellcode bauen
 
-Zusätzlich zu den Laufzeit-Abhängigkeiten benötigst du Rust mit Windows-MSVC-Buildtools, PowerShell und Node.js mit npm. Lokal geprüft: **Rust 1.100.0, Node.js 26.13.1 LTS, npm 12.2.2**. Abhängigkeiten sind in `Cargo.lock` und `studio/package-lock.json` festgehalten.
+Kurzfassung in [Für Entwickler](ENTWICKLER.md#aus-dem-quellcode-bauen). Zusätzlich zu den Laufzeit-Abhängigkeiten benötigst du Rust mit Windows-MSVC-Buildtools, PowerShell und Node.js mit npm, für den Installer [Inno Setup 6](https://jrsoftware.org/isinfo.php). Lokal geprüft: **Rust 1.100.0, Node.js 26.13.1 LTS, npm 12.2.2**. Abhängigkeiten sind in `Cargo.lock` und `studio/package-lock.json` festgehalten.
 
 ```powershell
 git clone https://github.com/marlonka/superint-video.git
@@ -308,7 +317,7 @@ Set-Location superint-video
 .\dist\superint-video.exe doctor --json
 ```
 
-Der Build installiert Studio-Abhängigkeiten, generiert Manifest-Typen, prüft Schema und Svelte, führt Tests aus, baut Studio und bettet es in die Rust-EXE ein. Anschließend prüft er die echte HTTP-API und erzeugt unter `dist/` das Windows-ZIP mit Dokumentation, Skill und Prüfsummen. Optionen: `-SkipInstall` bei bereits installierten npm-Abhängigkeiten, `-DebugBuild` für eine Debug-EXE; `-SkipChecks` überspringt die normalen Prüfungen.
+Der Build installiert Studio-Abhängigkeiten, generiert Manifest-Typen, prüft Schema und Svelte, führt Tests aus, baut Studio und bettet es in die Rust-EXE ein. Anschließend prüft er die echte HTTP-API und erzeugt unter `dist/` das Windows-ZIP mit Dokumentation, Skills und Prüfsummen und, wenn Inno Setup da ist, `Superint-Video-Setup.exe`. Ältere Pakete räumt er aus `dist/` weg. Optionen: `-SkipInstall` bei bereits installierten npm-Abhängigkeiten, `-DebugBuild` für eine Debug-EXE; `-SkipChecks` überspringt die normalen Prüfungen.
 
 ### Demo öffnen
 
@@ -368,6 +377,6 @@ Was dein Coding-Agent (Claude Code, ChatGPT Codex, Google Antigravity) mit deine
 | Ausgabe existiert bereits                  | Neuen Namen wählen oder bewusst `--overwrite` bzw. **Replace existing output file** verwenden |
 | Änderungen kollidieren                     | Recovery herunterladen, danach Projekt neu laden; parallele Schreibvorgänge vermeiden         |
 | Szene meldet „needs Chrome 157 or newer“   | Chrome aktualisieren oder mit `SUPERINT_CHROME` auf einen neueren zeigen; die Szene zeichnet HTML in einen Canvas |
-| Die App meldet „antwortet nicht“           | Die App läuft nicht mehr: `Superint Video.exe` doppelklicken. Startseite und Studio-Fenster verbinden sich danach von selbst |
+| Die App meldet „antwortet nicht“           | Die App läuft nicht mehr: Superint Video über das Desktop-Symbol oder das Startmenü öffnen. Startseite und Studio-Fenster verbinden sich danach von selbst |
 | Fester Port belegt                         | Studio ohne `--port` starten oder einen freien Port wählen                                    |
 | Rust kompiliert vor dem Studio-Build nicht | `.\scripts\build.ps1` verwenden; generierte Studio-Dateien werden in Rust eingebettet         |
