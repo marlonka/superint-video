@@ -23,6 +23,7 @@ pub mod renderer;
 pub mod review;
 pub mod server;
 pub mod sfx;
+pub mod shortcut;
 pub mod skills;
 pub mod style;
 pub mod voice;

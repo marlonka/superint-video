@@ -178,6 +178,15 @@ impl Keys {
         })
     }
 
+    /// The keys read from the `.env` file, under the names the app keeps them by.
+    pub fn from_file(&self) -> Vec<(&'static str, &Secret)> {
+        self.values
+            .iter()
+            .filter(|(_, (_, source))| matches!(source, Source::File(_)))
+            .map(|(&name, (secret, _))| (name, secret))
+            .collect()
+    }
+
     pub fn status(&self) -> Vec<KeyStatus> {
         KNOWN
             .iter()
@@ -226,6 +235,27 @@ fn find_file(start: &Path) -> Option<PathBuf> {
     })
 }
 
+/// Whether a `.env` file holds API keys and nothing else: empty lines, comments and the key
+/// names this tool reads. Once those keys are in the app, such a file has done its work; a file
+/// with anything more is still used by something else.
+pub fn only_keys(text: &str) -> bool {
+    let keys: Vec<&str> = KNOWN
+        .iter()
+        .copied()
+        .chain([GOOGLE_ALIAS])
+        .chain(ENTERPRISE.iter().copied())
+        .collect();
+    text.lines().all(|line| {
+        let line = line.trim().trim_start_matches('\u{feff}');
+        if line.is_empty() || line.starts_with('#') {
+            return true;
+        }
+        let line = line.strip_prefix("export ").unwrap_or(line);
+        line.split_once('=')
+            .is_some_and(|(name, _)| keys.contains(&name.trim()))
+    })
+}
+
 /// `KEY=value` lines with optional `export`, quotes and `#` comments.
 fn parse(text: &str) -> BTreeMap<String, String> {
     let mut values = BTreeMap::new();
@@ -267,6 +297,41 @@ mod tests {
         assert_eq!(values["EMPTY"], "");
         assert_eq!(values["QUOTED"], "a#b");
         assert!(!values.contains_key("BROKEN"));
+    }
+
+    #[test]
+    fn a_file_of_keys_alone_can_go() {
+        assert!(only_keys(
+            "# keys\n\nGEMINI_API_KEY=a\nexport OPENROUTER_API_KEY=\"b\"\nOPENAI_API_KEY=\n"
+        ));
+        assert!(only_keys(
+            "GOOGLE_API_KEY=c\nGOOGLE_GENAI_USE_ENTERPRISE=true\n"
+        ));
+        // A project, a setting or a line of something else is still needed by someone.
+        assert!(!only_keys("GEMINI_API_KEY=a\nGOOGLE_CLOUD_PROJECT=p\n"));
+        assert!(!only_keys("GEMINI_API_KEY=a\nDATABASE_URL=x\n"));
+        assert!(!only_keys("GEMINI_API_KEY=a\nsomething odd\n"));
+    }
+
+    #[test]
+    fn only_the_keys_of_the_file_move() {
+        let mut keys = Keys::default();
+        keys.values.insert(
+            GEMINI,
+            (Secret("from-file".into()), Source::File(GOOGLE_ALIAS)),
+        );
+        keys.values.insert(
+            OPENROUTER,
+            (Secret("from-env".into()), Source::Environment(OPENROUTER)),
+        );
+        keys.values
+            .insert(OPENAI, (Secret("from-app".into()), Source::App));
+        let moved: Vec<_> = keys
+            .from_file()
+            .into_iter()
+            .map(|(name, secret)| (name, secret.expose().to_string()))
+            .collect();
+        assert_eq!(moved, vec![(GEMINI, "from-file".to_string())]);
     }
 
     #[test]

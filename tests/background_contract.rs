@@ -26,7 +26,11 @@ exit $LASTEXITCODE
 "#;
 
 fn tool(home: &TempDir) -> tokio::process::Command {
-    let mut command = process::command(env!("CARGO_BIN_EXE_superint-video"));
+    tool_at(env!("CARGO_BIN_EXE_superint-video").as_ref(), home)
+}
+
+fn tool_at(program: &std::path::Path, home: &TempDir) -> tokio::process::Command {
+    let mut command = process::command(program);
     command
         .env("SUPERINT_HOME", home.path())
         .env("SUPERINT_ENV", home.path().join("none.env"))
@@ -76,5 +80,65 @@ async fn the_app_outlives_the_job_of_the_program_that_started_it() -> Result<()>
     ensure!(answer["app"] == true, "something else answered: {answer}");
     let stopped: Value = serde_json::from_slice(&stopped.stdout)?;
     ensure!(stopped["stopped"] == true, "the app was not stopped");
+    Ok(())
+}
+
+#[tokio::test]
+#[ignore = "requires a Windows desktop session"]
+async fn the_app_started_from_another_copy_takes_over() -> Result<()> {
+    let home = tempfile::Builder::new()
+        .prefix("superint-background-contract-")
+        .tempdir()?;
+    let port = std::net::TcpListener::bind("127.0.0.1:0")?
+        .local_addr()?
+        .port()
+        .to_string();
+    let first = tool(&home)
+        .args(["app", "--port", &port, "--no-open"])
+        .output()
+        .await?;
+    ensure!(first.status.success(), "the first app did not start");
+
+    // The same program in another folder, as a newer version unpacked elsewhere would be.
+    let folder = tempfile::Builder::new()
+        .prefix("superint-other-copy-")
+        .tempdir()?;
+    let copy = folder.path().join("superint-video.exe");
+    std::fs::copy(env!("CARGO_BIN_EXE_superint-video"), &copy)?;
+    let second = tool_at(&copy, &home)
+        .args(["app", "--port", &port, "--no-open"])
+        .output()
+        .await?;
+    let started: Value = serde_json::from_slice(&second.stdout)?;
+    let ping: Value = reqwest::Client::builder()
+        .no_proxy()
+        .timeout(Duration::from_secs(3))
+        .build()?
+        .get(format!("{}/api/app/ping", started["url"].as_str().unwrap_or_default()))
+        .send()
+        .await?
+        .json()
+        .await?;
+    // Asked again from the copy, the app it runs is its own.
+    let again: Value = serde_json::from_slice(
+        &tool_at(&copy, &home)
+            .args(["app", "--port", &port, "--no-open"])
+            .output()
+            .await?
+            .stdout,
+    )?;
+    tool_at(&copy, &home).args(["app", "--stop"]).output().await?;
+    ensure!(
+        started["replaced"]["exe"].is_string(),
+        "the copy did not take over: {started}"
+    );
+    let runs = ping["exe"].as_str().unwrap_or_default().to_lowercase();
+    ensure!(
+        runs.ends_with("superint-video.exe") && runs.contains("superint-other-copy-"),
+        "the app runs from {runs}, not from the copy"
+    );
+    ensure!(again["alreadyRunning"] == true, "the copy replaced itself: {again}");
+    // The stopped program lets go of its file a moment later; the folder may then go.
+    tokio::time::sleep(Duration::from_secs(1)).await;
     Ok(())
 }

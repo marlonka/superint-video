@@ -3,19 +3,21 @@
 <h1 align="center">Superint Video</h1>
 
 <p align="center">
-  <b>Dein Coding-Agent macht Videos: Erklärfilme, Launch-Filme, Loops, in jedem Stil.</b><br>
-  HTML-Szenen, eine Timeline in JSON, ein Studio im Browser und am Ende ein MP4.<br>
-  Lokal auf deinem Rechner, ohne Konto, ohne Credits, ohne Cloud-Renderdienst.
+  <b>Dein Coding-Agent macht Videos für dich.</b><br>
+  Du sagst, worum es gehen soll. Claude Code, ChatGPT Codex oder Google Antigravity recherchiert,<br>
+  schreibt, zeichnet, vertont und rendert den Film, und du schaust dabei zu.<br>
+  Alles läuft auf deinem eigenen PC, ohne Konto und ohne Abo.
 </p>
 
 <p align="center">
-  <img alt="Rust" src="https://img.shields.io/badge/Rust-CLI%20%2B%20Studio-b7410e?style=flat-square&logo=rust">
-  <img alt="Windows x64" src="https://img.shields.io/badge/Windows-x64-2f7bf5?style=flat-square">
+  <img alt="Windows 10 und 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-2f7bf5?style=flat-square">
+  <a href="https://github.com/marlonka/superint-video/releases/latest"><img alt="Version 0.9.2" src="https://img.shields.io/badge/Version-0.9.2-2e8b57?style=flat-square"></a>
   <img alt="Lizenz: MIT" src="https://img.shields.io/badge/Lizenz-MIT-3a3a3a?style=flat-square">
-  <a href="https://github.com/marlonka/superint-video/releases/tag/v0.9.1"><img alt="Release: v0.9.1" src="https://img.shields.io/badge/Release-v0.9.1-2e8b57?style=flat-square"></a>
 </p>
 
-<br>
+<p align="center">
+  <a href="https://github.com/marlonka/superint-video/releases/latest/download/Superint-Video-Setup.exe"><b>Superint Video für Windows herunterladen</b></a>
+</p>
 
 <p align="center">
   <img src="docs/images/studio.jpg" alt="Das Studio von Superint Video: links die Vorschau eines fertigen Erklärfilms, rechts der Fortschritt des Coding-Agenten, unten die Timeline mit Szenen, Stimme, Musik und Soundeffekten" width="100%">
@@ -23,167 +25,71 @@
   <sub>Das Studio mit einem fertigen Film. Du siehst, was dein Coding-Agent gerade tut, und änderst selbst, was du willst.</sub>
 </p>
 
-<p align="center">
-  <a href="#so-entsteht-ein-film">So entsteht ein Film</a> ·
-  <a href="#die-app">Die App</a> ·
-  <a href="#drei-teile-ein-werkzeug">Drei Teile</a> ·
-  <a href="#für-agenten-gebaut">Für Agenten</a> ·
-  <a href="#unter-der-haube">Unter der Haube</a> ·
-  <a href="#loslegen">Loslegen</a> ·
-  <a href="docs/HANDBUCH.md">Handbuch</a>
-</p>
+## Was du brauchst
 
-<br>
+- **Einen Windows-PC** mit Windows 10 oder 11 (64 Bit).
+- **Einen Coding-Agenten:** [Claude Code](https://claude.com/product/claude-code), [ChatGPT Codex](https://openai.com/codex/) oder [Google Antigravity](https://antigravity.google/), mit deinem Konto dort. Er macht die eigentliche Arbeit am Film.
+- **Chrome und FFmpeg.** Fehlt eines davon, installiert die App es für dich.
+- **Freiwillig: einen API-Schlüssel** von Google AI Studio oder OpenRouter, für eine KI-Stimme und Musik. Ohne ihn sprichst du den Film selbst ein, oder er kommt ohne Stimme aus.
 
-<table>
-  <tr>
-    <td width="25%" valign="top">
-      <h3>Jeder Stil</h3>
-      Das Werkzeug hat keinen eigenen Geschmack. Was ein Film wird, bestimmen ein Ablauf-Skill, ein Stil-Preset und deine Referenzbilder.
-    </td>
-    <td width="25%" valign="top">
-      <h3>Dein Agent führt Regie</h3>
-      Claude Code, ChatGPT Codex oder Google Antigravity recherchiert, schreibt, zeichnet und prüft. Es gibt keinen eingebauten Chat, und ein Film braucht keinen API-Schlüssel.
-    </td>
-    <td width="25%" valign="top">
-      <h3>Ton mit Ohren</h3>
-      Eine KI-Stimme oder deine eigene, in der App eingesprochen. Wortzeiten, Musik und Klänge mit gemessener Lautheit. Weil der Agent nicht hören kann, hört Earshot für ihn gegen.
-    </td>
-    <td width="25%" valign="top">
-      <h3>Zuschauen</h3>
-      Studio öffnet sich mit dem Projekt. Du siehst Briefing, Stil, Skills und den aktuellen Schritt, die Vorschau lädt neu, sobald eine Szene dazukommt, und beim Rendern wächst der Film dort Bild für Bild.
-    </td>
-  </tr>
-</table>
+## Installieren
 
-<br>
+1. **Herunterladen:** [`Superint-Video-Setup.exe`](https://github.com/marlonka/superint-video/releases/latest/download/Superint-Video-Setup.exe)
+2. **Doppelklick** auf die Datei. Vielleicht meldet Windows „Der Computer wurde durch Windows geschützt“, weil das Programm noch keine Signatur hat. Dann klickst du auf **Weitere Informationen** und **Trotzdem ausführen**.
+3. **Installieren:** Lass den Haken bei „Desktop-Symbol erstellen“ gesetzt, klick auf **Installieren** und dann auf **Fertigstellen**. Adminrechte brauchst du nicht.
+4. **Einrichten:** Superint Video öffnet sich mit der Einrichtung. Sie zeigt nur, was noch fehlt, und jede Zeile hat rechts den einen Knopf, der es erledigt:
+   - **Coding-Agent:** „Skills hinzufügen“ zeigt deinem Agenten, wie er mit Superint Video Filme macht.
+   - **Chrome und FFmpeg:** „Installieren“ öffnet ein Fenster, das sie über winget holt.
+   - **API-Schlüssel (freiwillig):** einfügen und speichern. Er bleibt verschlüsselt auf deinem PC.
 
-## So entsteht ein Film
-
-Du sagst, was du willst, in welchem Stil und ungefähr wie lang. Ein Satz genügt:
-
-```text
-Nutze den Skill superint-video: Explainer im Flat-Vector-Stil, 60 Sekunden,
-Thema „Warum Schlaf das Gehirn putzt“.
-```
-
-Der Agent fragt nur nach, was er nicht selbst gut entscheiden kann, etwa Screenshots des gewünschten Looks. Dann arbeitet er in Schritten, die jeweils eine Datei im Projekt hinterlassen: Recherche mit Quellen, drei Konzepte, Skript, Beats, Style-Frames, Szenen, Ton, Review, Polish und Render. Der Polish-Durchgang läuft von selbst vor jedem Render: Frische Augen sehen sich jedes Standbild, jeden Schnitt und jede Bewegung an und bessern nach, bis nichts mehr auffällt. Wie viele Runden, wählst du vorher in der Einrichtung: eine, zwei oder drei, jede mit neuen Augen und mehr Blick fürs Detail. Nach deiner Abnahme folgt ein Bericht mit einem Making-of zum Einfügen unter das Video.
-
-- **Eine Welt statt Folien.** Jedes Bild ist eine reine Funktion der Zeit, und jede Bewegung hängt an einem Wort der Stimme. So fallen Bild und Wort auf den Frame genau zusammen.
-- **Recherche, die trägt.** Jede Aussage im Film steht mit Quelle im Claim-Register. Drei Konzepte und drei Skriptentwürfe treten gegeneinander an, der beste geht durch Kritikrunden.
-- **Ton, der sitzt.** Mehrere Takes pro Absatz, transkribiert und gegen das Skript gemessen. Die Musik folgt einer Zeitleiste aus den echten Wortzeiten, die Klänge sitzen auf ihren Frames, das Master liegt bei −14 LUFS.
-- **Selbst Hand anlegen.** Text, Timing und Medien änderst du im Studio auf einer Timeline, mit Undo, Tastenkürzeln und Export. Dein Agent sieht die Änderungen sofort.
+Danach startest du Superint Video wie jedes andere Programm, über das Symbol auf dem Desktop oder über das Startmenü.
 
 <p align="center">
-  <a href="https://github.com/marlonka/superint-video/releases/download/v0.3.0/superint-video-launch.mp4"><img src="docs/images/launch-film.jpg" alt="Ein Bild aus dem Launch-Film: die Zeile „Im Studio siehst du jeden Schritt.“ über dem weich gezeichneten Studio" width="100%"></a>
-  <br>
-  <sub><a href="https://github.com/marlonka/superint-video/releases/download/v0.3.0/superint-video-launch.mp4">Den Launch-Film ansehen</a> (32 s, mit Ton). Superint Video hat ihn selbst gemacht, im Stil <code>launch</code>.</sub>
+  <img src="docs/images/app-setup.jpg" alt="Die Einrichtung: Coding-Agent, Werkzeuge, Stimme und Musik mit den Modellen je Anbieter, und rechts je Zeile ein Knopf" width="80%">
 </p>
 
-## Die App
+## Dein erster Film
 
-Ein Doppelklick auf `Superint Video.exe` öffnet die Startseite. Sie spricht Deutsch und Englisch.
+1. Öffne Superint Video und schreib unter **Neuer Film**, worum es gehen soll. Ein Satz genügt, etwa „Warum Schlaf das Gehirn putzt“.
+2. Klick auf **Prompt kopieren**.
+3. Füge den Prompt in Claude Code, ChatGPT Codex oder Google Antigravity ein und schick ihn ab.
+
+Dein Agent fragt nach, wenn ihm etwas fehlt, und legt dann los: Recherche, Skript, Bilder, Ton, Feinschliff und am Ende das MP4. Im Studio siehst du jeden Schritt, und die Vorschau wächst mit. Texte und Timing änderst du dort jederzeit selbst. Der fertige Film liegt in deinem Ordner `Videos\Superint Video`.
 
 <p align="center">
   <img src="docs/images/app-start.jpg" alt="Die Startseite: ein Feld für das Thema des Films, darunter Stil, Länge, Format und Sprache, der fertige Prompt mit dem Knopf „Prompt kopieren“ und vier Filme mit Vorschaubild und Stand" width="100%">
-  <br>
-  <sub>Thema eintippen, „Prompt kopieren“, in Claude Code, ChatGPT Codex oder Google Antigravity einfügen. Darunter stehen deine Filme mit ihrem Stand.</sub>
 </p>
 
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <img src="docs/images/app-setup.jpg" alt="Die Einrichtung: Coding-Agent, Werkzeuge, Stimme und Musik mit den Modellen je Anbieter, und rechts je Zeile ein Knopf" width="100%">
-    </td>
-    <td width="50%" valign="top">
-      <h3>Einrichtung, die niemand übersieht</h3>
-      Solange etwas fehlt, zeigt die App nur das: einen Coding-Agenten mit den Skills, Chrome und FFmpeg. Ein API-Schlüssel ist freiwillig, und die Einrichtung sagt, was ohne ihn geht und was er dazubringt. Jede Zeile hat rechts den einen Knopf, der sie erledigt.
-      <h3>Skills auf dem Stand der App</h3>
-      Ein Klick kopiert die Skills in den Ordner deines Agenten. Nach einem Update der App steht dort „Skills aktualisieren“; was ersetzt wird, bleibt auf deinem Rechner erhalten.
-      <h3>Filme an einem festen Ort</h3>
-      Jeder Film ist ein Ordner mit allem, was zu ihm gehört, in <code>Videos\Superint Video</code>. Einen anderen Ordner wählst du in der Einrichtung unter „Speicherort für Filme“.
-    </td>
-  </tr>
-</table>
+Mehr Ideen findest du in den [Starter-Prompts](prompts/README.md). Wie ein Ergebnis aussieht, zeigt der [Launch-Film](https://github.com/marlonka/superint-video/releases/download/v0.3.0/superint-video-launch.mp4) (32 s, mit Ton), den Superint Video über sich selbst gemacht hat.
 
-<p align="center">
-  <img src="docs/images/app-styles.jpg" alt="Die Stil-Karten mit je einem 16:9-Bild: „Neuen Stil erstellen“, Flat-Vektor-Erklärfilm als Standard, Launch-Film und Miniatur aus Code, darüber „Ordner deiner Stile“ und „Stil importieren“" width="100%">
-  <br>
-  <sub>Unter „Stile“: aus Bildern oder einem fertigen Film einen eigenen erstellen, einen als Standard wählen, eigene Referenzbilder hinzufügen, eine Kopie anlegen, als Datei weitergeben oder eine solche Datei importieren.</sub>
-</p>
+## Häufige Fragen
 
-## Drei Teile, ein Werkzeug
+**Was kostet das?** Superint Video selbst ist kostenlos und quelloffen. Du brauchst deinen Coding-Agenten mit dessen Abo oder Guthaben. Ein API-Schlüssel ist freiwillig; Google AI Studio hat eine kostenlose Stufe mit Tageslimit.
 
-| Teil | Bestimmt | Mitgeliefert |
-| --- | --- | --- |
-| **Ablauf-Skill** | Welche Art Film, wie er geplant, geschrieben und geprüft wird | [`superint-explainer`](skills/superint-explainer/SKILL.md) für Erklärvideos, [`superint-launch`](skills/superint-launch/SKILL.md) für Launch-, Update- und Produktfilme (aufgebaut auf [cinetic](https://github.com/Leonxlnx/cinetic)) |
-| **Stil-Preset** | Der Look: Farbe, Licht, Schrift, Formen, Figuren, Bewegung | `flat-explainer` (flache Vektorgrafik, Figuren, helle Farbwelten), `miniature-3d` (fotografische Miniaturwelt, ganz aus Code gerechnet, mit eigenem Skill [`superint-miniature`](skills/superint-miniature/SKILL.md)), `launch` (die echte Oberfläche deines Produkts in Code, für Launch- und Update-Filme mit Musik), `blank` (kein Hauslook, für dein Branding) |
-| **Referenzen** | Woran der Agent seine Bilder misst | Deine Standbilder und Screenshots, am Preset oder im Projekt |
+**Welche Filme kann ich machen?** Erklärfilme, Launch- und Update-Filme für ein Produkt, kurze Clips und Loops. Mitgeliefert sind drei Stile: flache Vektorgrafik, eine fotografische Miniaturwelt aus Code und ein Launch-Look. Unter „Stile“ machst du aus deinen eigenen Bildern einen neuen.
 
-Dazu kommen der Werkzeug-Skill [`superint-video`](skills/superint-video/SKILL.md) und der Ton-Skill [`superint-audio`](skills/superint-audio/SKILL.md). Einen Stil gibst du als eine Datei weiter (`<name>.superint-style.zip`), aus der App oder mit `preset export` und `preset import`. Die Regeln in Skills und Presets sind eine Untergrenze, keine Obergrenze: Ein stärkeres Modell darf es besser machen und begründet das im Bericht.
+**Wo liegen meine Filme?** In `Videos\Superint Video`, jeder Film in einem eigenen Ordner. Einen anderen Ort wählst du in der Einrichtung.
 
-## Für Agenten gebaut
+**Wie bekomme ich eine neue Version?** Lade das Setup erneut herunter und installier es einfach drüber. Filme, Einstellungen und API-Schlüssel bleiben erhalten. Bietet die Einrichtung danach „Skills aktualisieren“ an, klick darauf.
 
-Jeder Schritt ist ein Befehl, und jeder Befehl gibt JSON aus. Die CLI schreibt nie selbst Text: Jeden Prompt an Stimme oder Musik schreibt dein Agent.
+**Wie deinstalliere ich es?** In den Windows-Einstellungen unter **Apps** → **Installierte Apps** → **Superint Video** → **Deinstallieren**. Deine Filme und Einstellungen bleiben liegen.
 
-```powershell
-superint-video new .\schlaf --preset flat-explainer --topic "Warum Schlaf das Gehirn putzt" --seconds 60   # öffnet Studio; ohne Ordner landet der Film im Speicherort für Filme
-superint-video studio .\schlaf                  # holt Studio zurück
-superint-video voice takes .\schlaf             # Takes pro Absatz, transkribiert und gemessen
-superint-video voice own .\schlaf --wait        # oder: deine eigene Stimme, in Studio eingesprochen
-superint-video music .\schlaf                   # Musikvarianten, gemessen
-superint-video sfx kit .\schlaf                 # Klänge aus Earshot, auf die Frames gesetzt mit sfx place
-superint-video mix .\schlaf                     # Ducking, Master auf −14 LUFS
-superint-video review .\schlaf                  # Kontaktbogen und Arbeitsblatt für die Review-Runde
-superint-video polish .\schlaf                  # letzter Blick vor dem Render: Standbilder, Nahaufnahmen, Schnitte, Bewegungen
-superint-video polish .\schlaf --accept         # sauberen Durchgang festhalten; render verlangt ihn für die letzte Runde
-superint-video render .\schlaf --audio audio/master.wav --output renders/video.mp4
-superint-video listen .\schlaf\renders\video.mp4 --project .\schlaf   # gegenhören
-```
+**Geht es auch ohne Installation?** Ja. Lade aus den [Releases](https://github.com/marlonka/superint-video/releases/latest) das ZIP, entpack es (Rechtsklick → **Alle extrahieren**) und starte darin `Superint Video.exe`. In der Einrichtung legt „Auf den Desktop legen“ das Symbol an. Die zweite Datei, `superint-video.exe`, ist das Werkzeug für deinen Coding-Agenten; sie musst du nie selbst öffnen.
 
-Alle Befehle und Optionen stehen im [Handbuch](docs/HANDBUCH.md) und in `superint-video <befehl> --help`.
+**Was geht noch nicht?** Geprüft ist nur Windows. Kurze Filme gehen gut, sehr lange Projekte, HDR und Ripple-Editing noch nicht. Mehr dazu im [Handbuch](docs/HANDBUCH.md#grenzen).
 
-## Unter der Haube
-
-- **Eine EXE und ein Starter:** `superint-video.exe` ist die Rust-CLI mit eingebettetem Studio (Svelte 5), Szenen-Runtime und Presets; `Superint Video.exe` öffnet die App per Doppelklick.
-- **Deutsch und Englisch:** App und Studio folgen der Sprache deines Systems, der Globus oben rechts stellt um. Die Texte liegen in einem Katalog je Sprache; Zahlen, Zeiten und Aufzählungen schreibt der Browser so, wie die Sprache es verlangt.
-- **Szenen sind HTML:** Jeder Frame sieht gleich aus, ob vorwärts, rückwärts oder nach einem Sprung abgespielt. `video.json` speichert alle Zeiten als ganze Frames.
-- **Rendering:** Chrome nimmt die Bilder auf, mehrere Browser parallel; FFmpeg kodiert HEVC oder H.264 und prüft das Ergebnis.
-- **Ton:** Der Anbieter ist Konfiguration: Google AI Studio (`gemini-3.8-flash-tts`, `gemini-3.5-transcribe`, `lyria-3.5`), dieselben Modelle über Google Cloud, oder OpenRouter. Jede Anfrage wird zwischengespeichert, und die API-Keys liegen verschlüsselt in der App oder in einer `.env`. Ohne API-Schlüssel: deine eigene Stimme mit geschätzten Wortzeiten, Soundeffekte aus Earshot, und jedes MP4 hat eine Tonspur, notfalls eine stille.
-- **Geprüft:** Über 100 Tests. `scripts/build.ps1` baut und prüft alles lokal.
-
-## Loslegen
-
-1. Lade das ZIP aus den [Releases](https://github.com/marlonka/superint-video/releases/latest) und entpacke es.
-2. Starte **`Superint Video.exe`**. Solange etwas fehlt, zeigt die App nur die Einrichtung. Jede Zeile hat rechts den einen Knopf, der sie erledigt:
-   - **Coding-Agent:** Claude Code, ChatGPT Codex oder Google Antigravity. Ein Klick kopiert die Superint-Skills hinein. Von Hand gehören die Ordner aus `skills/` nach `%USERPROFILE%\.claude\skills\`, `%USERPROFILE%\.codex\skills\` oder `%USERPROFILE%\.gemini\config\skills\`.
-   - **Chrome** (oder Edge) und **FFmpeg:** Fehlt eines, installiert „Installieren“ es über winget in einem sichtbaren Terminal-Fenster. Die App stimmt dabei nichts für dich zu.
-   - **Ein API-Schlüssel** von Google AI Studio oder OpenRouter ist freiwillig. Ohne ihn entstehen Bild, Text im Bild und Soundeffekte, und du sprichst den Film selbst ein oder lässt ihn ohne Stimme. Mit ihm kommen die KI-Stimme mit exakten Wortzeiten, erzeugte Musik, Diktieren und Stile aus Bildern dazu. Du trägst ihn in der Einrichtung ein, er bleibt verschlüsselt auf deinem Rechner.
-   - [Earshot](https://github.com/Leonxlnx/earshot) für Soundeffekte ist freiwillig.
-3. Schreib unter „Neuer Film“, worum es gehen soll, kopiere den Prompt und füge ihn in Claude Code, ChatGPT Codex oder Google Antigravity ein. Stil und Länge sucht der Agent passend zum Thema aus, wenn du nichts anderes wählst. Der Film erscheint in der App, während er entsteht, und liegt danach in `Videos\Superint Video`.
-
-Von der Kommandozeile prüfst du die Installation so:
-
-```powershell
-.\superint-video.exe doctor --json
-```
-
-Aus dem Quellcode: `git clone`, dann `.\scripts\build.ps1`. Dafür brauchst du Rust 1.100, Node.js 26.13.1 LTS und npm 12.2.2. Details stehen im [Handbuch](docs/HANDBUCH.md#aus-dem-quellcode-bauen).
-
-> [!IMPORTANT]
-> **Stand:** v0.9.1 ist veröffentlicht. Enthalten sind Presets, Ablauf-Skills, Ton und Produktionsbereich sowie die App mit Einrichtung, Feinschliff in ein bis drei Runden, Diktat, Speicherort für Filme, Stil-Dateien, eigenen Stilen aus Bildern oder fertigen Filmen und neuen Filmen auf Grundlage eines anderen. Geprüft ist nur Windows x64. App und Studio sprechen Deutsch und Englisch; Meldungen der Kommandozeile sind englisch. Kurze SDR-Filme funktionieren gut; lange Projekte, HDR und Ripple-Editing nicht. Die Grenzen stehen im [Handbuch](docs/HANDBUCH.md#grenzen).
+**Etwas klappt nicht?** Schau unter [Fehler beheben](docs/HANDBUCH.md#fehler-beheben) nach oder öffne ein [Issue](https://github.com/marlonka/superint-video/issues/new/choose).
 
 ## Datenschutz und KI-Inhalte
 
-Superint Video sammelt keine Nutzungsdaten und braucht kein Konto. Bild, Studio und Render bleiben auf deinem Rechner, deine eigene Stimme auch, solange kein API-Schlüssel ihre Wortzeiten misst. Für KI-Stimme, Transkription und Musik gehen die Texte und Aufnahmen, die dein Agent dafür schreibt, an den Anbieter, den du eingerichtet hast (Google AI Studio, Google Cloud oder OpenRouter, fürs Diktat auch OpenAI), zu dessen Bedingungen. Bei der kostenlosen Stufe der Gemini API darf Google sie zur Verbesserung seiner Produkte nutzen. Was dein Coding-Agent mit deinen Dateien macht, regelt dessen Anbieter.
+Superint Video sammelt keine Nutzungsdaten und braucht kein Konto. Bilder, Studio und Render bleiben auf deinem PC. Nur wenn du einen API-Schlüssel einträgst, gehen die Texte für KI-Stimme und Musik an diesen Anbieter, zu dessen Bedingungen. Was dein Coding-Agent mit deinen Dateien macht, regelt dessen Anbieter.
 
-Stimme und Musik kommen meist aus generativen Modellen. Jedes exportierte MP4 sagt das in seinen Metadaten. Kennzeichne deine Filme beim Veröffentlichen auch sichtbar als KI-gestützt, und bilde echte Stimmen nur mit Einwilligung nach. Mehr dazu im [Handbuch](docs/HANDBUCH.md#datenschutz-und-ki-kennzeichnung).
+Stimme und Musik kommen meist aus generativen Modellen, und jedes MP4 sagt das in seinen Metadaten. Kennzeichne deine Filme beim Veröffentlichen auch sichtbar als KI-gestützt, und bilde echte Stimmen nur mit Einwilligung nach. Mehr dazu im [Handbuch](docs/HANDBUCH.md#datenschutz-und-ki-kennzeichnung).
 
-## Dokumentation
+## Mehr lesen
 
-- [Handbuch](docs/HANDBUCH.md): Installation, Studio, Presets, Prüfen und Rendern, Projektformat, Grenzen, Fehler beheben
-- [Starter-Prompts](prompts/README.md) für Erklärvideos, Shorts, Launch-Filme, eigene Skripte und Änderungen
-- [Szenen-API](skills/superint-video/references/scene-api.md), [Projektformat](docs/FORMAT.md), [JSON Schema](docs/video.schema.json)
+- [Handbuch](docs/HANDBUCH.md): App, Studio, Stile, Ton, Rendern, Grenzen und Fehler beheben
+- [Für Entwickler](docs/ENTWICKLER.md): wie es aufgebaut ist, alle Befehle, aus dem Quellcode bauen
 - [Versionsverlauf](CHANGELOG.md) · [Mitmachen](CONTRIBUTING.md) · [Sicherheit](SECURITY.md)
 
 ## Lizenz und Dank

@@ -9,6 +9,7 @@ use crate::{
     project::{modified_ms, without_verbatim},
     providers::{self, Provider},
     server::{ApiError, ApiResult, bytes_response},
+    shortcut,
     skills::{self, Agent},
     style,
 };
@@ -92,6 +93,7 @@ pub struct AppState {
     tools: Cache,
     styles: Cache,
     agents: Cache,
+    shortcut: Cache,
     pictures: Pictures,
 }
 
@@ -107,6 +109,7 @@ impl AppState {
             tools: Cache::default(),
             styles: Cache::default(),
             agents: Cache::default(),
+            shortcut: Cache::default(),
             pictures: Default::default(),
         }
     }
@@ -129,6 +132,7 @@ pub fn routes(state: AppState) -> Router {
         .route("/api/app/ping", get(ping))
         .route("/api/app/open", get(open_page))
         .route("/api/app/settings", put(save_settings))
+        .route("/api/app/keys/adopt", post(adopt_keys))
         .route("/api/app/keys/{name}", post(save_key).delete(remove_key))
         .route("/api/app/keys/{name}/test", post(test_key))
         .route(
@@ -159,13 +163,29 @@ pub fn routes(state: AppState) -> Router {
         .route("/api/app/styles/{name}/preview/{file}", get(style_preview))
         .route("/api/app/agents/{id}/skills", post(install_skills))
         .route("/api/app/tools/{id}/install", post(install_tool))
+        .route("/api/app/shortcut", post(make_shortcut))
         .route("/api/app/google/sign-in", post(google_sign_in))
         .route("/api/app/reveal/{what}", post(reveal_place))
         .with_state(state)
 }
 
+/// Says which program answers, so that starting the app from another copy, such as a newer
+/// one, replaces this one instead of showing it.
 async fn ping(State(state): State<AppState>) -> Json<Value> {
-    Json(json!({"app": true, "project": state.project}))
+    Json(json!({
+        "app": true,
+        "project": state.project,
+        "version": env!("CARGO_PKG_VERSION"),
+        "exe": own_exe(),
+    }))
+}
+
+/// This program, as the ping names it.
+pub fn own_exe() -> Option<PathBuf> {
+    std::env::current_exe()
+        .and_then(|exe| exe.canonicalize())
+        .ok()
+        .map(|exe| without_verbatim(&exe))
 }
 
 /// A start page holds this open for as long as it is open. While one does, the app stays:
@@ -205,7 +225,7 @@ async fn overview(
 }
 
 async fn payload(state: &AppState, fresh: bool) -> Result<Value> {
-    let tools = tools(state, fresh).await;
+    let (tools, shortcut) = tokio::join!(tools(state, fresh), shortcut_status(state, fresh));
     let state = state.clone();
     // Keys, settings, styles, skills and films are all read from disk.
     tokio::task::spawn_blocking(move || {
@@ -218,6 +238,8 @@ async fn payload(state: &AppState, fresh: bool) -> Result<Value> {
         let reaches = |route| providers::ready(&keys, sign_in.as_ref(), &place, route);
         let can = providers::capabilities(reaches);
         let setup_keys = key_rows(&keys, &settings, sign_in.as_ref(), &place);
+        // Only whether keys lie open in a `.env` file, and where: never a value.
+        let env_file = keys.file.clone().filter(|_| !keys.from_file().is_empty());
         let models = usual_models(reaches);
         // The model a style would be written with now, and the provider it would go to.
         let style_model = settings.style_model.clone();
@@ -253,7 +275,9 @@ async fn payload(state: &AppState, fresh: bool) -> Result<Value> {
                     "style": writes.as_ref().is_some_and(|(route, _)| generators.ready(*route)),
                 },
                 "tools": tools,
+                "shortcut": shortcut,
                 "keys": setup_keys,
+                "envFile": env_file,
                 "models": models,
                 "voices": voices(),
                 // Whose model it is: Google on either of its ways, as one of them steps in
@@ -449,6 +473,26 @@ const TOOLS: &[Tool] = &[
 ];
 
 /// The tools as the start page shows them: found or not, and how to get a missing one.
+/// Whether the app is on the desktop and in the Start menu. Reading a shortcut starts a program,
+/// so the answer is kept as long as the tools'.
+async fn shortcut_status(state: &AppState, fresh: bool) -> Value {
+    if let Some(status) = state.shortcut.get(TOOLS_FOR).filter(|_| !fresh) {
+        return status;
+    }
+    state
+        .shortcut
+        .put(serde_json::to_value(shortcut::status().await).unwrap_or(Value::Null))
+}
+
+/// Puts the app on the desktop and in the Start menu.
+async fn make_shortcut(State(state): State<AppState>) -> ApiResult<Json<Value>> {
+    let status = shortcut::create()
+        .await
+        .map_err(|error| ApiError::told("shortcut-failed", &format!("{error:#}")))?;
+    let status = state.shortcut.put(serde_json::to_value(status)?);
+    Ok(Json(json!({"shortcut": status})))
+}
+
 async fn tools(state: &AppState, fresh: bool) -> Value {
     if let Some(tools) = state.tools.get(TOOLS_FOR).filter(|_| !fresh) {
         return tools;
@@ -715,6 +759,36 @@ async fn save_key(
     let name = known_key(&name)?;
     KeyStore::at(&state.home).set(name, &body.value)?;
     Ok(Json(json!({"keys": Access::load(&state)?.key_rows()})))
+}
+
+/// Moves the keys of a `.env` file into the app, where they are encrypted, and the file into
+/// the recycle bin when it held nothing else. A file with more in it stays where it is: the
+/// answer says so, and the keys in it keep winning until the user takes them out.
+async fn adopt_keys(State(state): State<AppState>) -> ApiResult<Json<Value>> {
+    let keys = Keys::load(state.start())?;
+    let found = keys.from_file();
+    let Some(file) = keys.file.clone().filter(|_| !found.is_empty()) else {
+        return Err(ApiError::told(
+            "no-env-keys",
+            "No keys come from a .env file",
+        ));
+    };
+    let store = KeyStore::at(&state.home);
+    let mut adopted = Vec::new();
+    for (name, secret) in found {
+        store.set(name, secret.expose())?;
+        adopted.push(name);
+    }
+    // A file named by `SUPERINT_ENV` was chosen on purpose and stays where it is.
+    let named = std::env::var_os("SUPERINT_ENV").is_some();
+    let text = std::fs::read_to_string(&file).unwrap_or_default();
+    let removed = !named && env::only_keys(&text) && process::recycle(&file).is_ok();
+    Ok(Json(json!({
+        "adopted": adopted,
+        "file": file,
+        "removed": removed,
+        "keys": Access::load(&state)?.key_rows(),
+    })))
 }
 
 async fn remove_key(

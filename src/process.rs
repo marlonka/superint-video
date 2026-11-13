@@ -65,6 +65,57 @@ pub fn reveal_file(path: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Moves a file to the recycle bin, from where the user can bring it back. Without one, as on
+/// other systems than Windows, nothing happens and the answer says so.
+#[cfg(windows)]
+pub fn recycle(path: &Path) -> Result<()> {
+    use std::{ffi::c_void, os::windows::ffi::OsStrExt};
+    #[repr(C)]
+    struct FileOperation {
+        window: *mut c_void,
+        function: u32,
+        from: *const u16,
+        to: *const u16,
+        flags: u16,
+        aborted: i32,
+        names: *mut c_void,
+        title: *const u16,
+    }
+    #[link(name = "shell32")]
+    unsafe extern "system" {
+        fn SHFileOperationW(operation: *mut FileOperation) -> i32;
+    }
+    const DELETE: u32 = 3;
+    const SILENT: u16 = 0x0004;
+    const NO_CONFIRMATION: u16 = 0x0010;
+    const ALLOW_UNDO: u16 = 0x0040;
+    const NO_ERROR_UI: u16 = 0x0400;
+    let path = path.canonicalize().context("The file is not there")?;
+    let path = crate::project::without_verbatim(&path);
+    // A list of names, each ended by a NUL, the list by a second one.
+    let from: Vec<u16> = path.as_os_str().encode_wide().chain([0, 0]).collect();
+    let mut operation = FileOperation {
+        window: std::ptr::null_mut(),
+        function: DELETE,
+        from: from.as_ptr(),
+        to: std::ptr::null(),
+        flags: SILENT | NO_CONFIRMATION | ALLOW_UNDO | NO_ERROR_UI,
+        aborted: 0,
+        names: std::ptr::null_mut(),
+        title: std::ptr::null(),
+    };
+    // SAFETY: `from` is double-NUL-terminated and outlives the call; the other pointers are null.
+    let failed = unsafe { SHFileOperationW(&mut operation) };
+    if failed != 0 || operation.aborted != 0 || path.exists() {
+        bail!("The file could not be moved to the recycle bin");
+    }
+    Ok(())
+}
+#[cfg(not(windows))]
+pub fn recycle(_path: &Path) -> Result<()> {
+    bail!("There is no recycle bin here")
+}
+
 /// Where a tool such as `ffmpeg` is started from: `SUPERINT_<NAME>`, else the search path.
 /// On Windows a tool installed while this program runs is found right away, although this
 /// process still has the search path it started with: through winget's links, the folder of

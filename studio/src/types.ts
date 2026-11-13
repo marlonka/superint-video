@@ -312,6 +312,15 @@ export interface Film {
   note?: string | null;
   picture?: number | null;
 }
+/** Where a shortcut to the app is: none, one that starts this app, one that starts another copy. */
+export type ShortcutPlace = 'missing' | 'here' | 'elsewhere';
+export interface Shortcut {
+  /** The program a shortcut starts; null where there is none to start, as in an unpackaged build. */
+  app: string | null;
+  desktop: ShortcutPlace;
+  startMenu: ShortcutPlace;
+}
+
 export interface Overview {
   version: string;
   home: string;
@@ -319,7 +328,11 @@ export interface Overview {
   token: string;
   setup: {
     tools: Tool[];
+    /** The app on the desktop and in the Start menu. */
+    shortcut: Shortcut;
     keys: KeyRow[];
+    /** The `.env` file keys are read from, unencrypted; null when none are. Never a value. */
+    envFile: string | null;
     can: {
       picture: boolean;
       /** A key reaches a TTS model: the AI voice. The user's own voice needs none. */

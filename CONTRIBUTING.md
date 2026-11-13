@@ -19,7 +19,7 @@ Danke, dass du Superint Video besser machen willst. Fehlerberichte, Ideen, Stile
 
 ## Umgebung
 
-Geprüft auf Windows x64 mit Rust 1.100.0, Node.js 26.13.1 LTS und npm 12.2.2. Rust benötigt die MSVC-Buildtools. Chrome, Chromium oder Edge sowie FFmpeg und ffprobe werden für echte Frame- und Exportprüfungen separat installiert.
+Geprüft auf Windows x64 mit Rust 1.100.0, Node.js 26.13.1 LTS und npm 12.2.2. Rust benötigt die MSVC-Buildtools. Für den Installer kommt [Inno Setup 6](https://jrsoftware.org/isinfo.php) dazu (`winget install --id JRSoftware.InnoSetup --exact --scope user`); ohne baut der Build nur das ZIP und sagt das. Aufbau und Befehle im Überblick: [docs/ENTWICKLER.md](docs/ENTWICKLER.md). Chrome, Chromium oder Edge sowie FFmpeg und ffprobe werden für echte Frame- und Exportprüfungen separat installiert.
 
 ```powershell
 .\scripts\build.ps1
@@ -65,13 +65,13 @@ Lies die [Designregeln](docs/design.md); produktbezogene Entscheidungen stehen i
 
 - Ein Branch je Änderung, ein Pull Request gegen `main`.
 - Commit-Nachrichten folgen [Conventional Commits](https://www.conventionalcommits.org/), etwa `fix: preserve source offset after trim`.
-- Der Pull Request beschreibt das Problem, das neue Verhalten und die ausgeführten Prüfungen. Änderungen, die Nutzer bemerken, bekommen einen Eintrag unter „Unveröffentlicht“ in [CHANGELOG.md](CHANGELOG.md).
+- Der Pull Request beschreibt das Problem, das neue Verhalten und die ausgeführten Prüfungen. Änderungen, die Nutzer bemerken, bekommen einen kurzen Eintrag unter „Unveröffentlicht“ in [CHANGELOG.md](CHANGELOG.md), eingeordnet nach „Neu“, „Geändert“, „Behoben“ und „Entfernt“: ein Satz, was sich für Nutzer ändert, nicht wie.
 - Keine API-Schlüssel, `.env`-Dateien, persönlichen Pfade oder fremden Bilder und Filme committen. Referenzbilder, an deren Rechten du zweifelst, bleiben lokal (`preset reference`).
 - Neue Abhängigkeiten nur mit Grund. Jede neue Abhängigkeit kommt mit Lizenz in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) und `docs/THIRD_PARTY_LICENSES.txt`.
 
 ## Releases
 
-`dist/`, `target/`, npm-Abhängigkeiten, Renderausgaben und lokale Caches sind ausgeschlossen. `build.ps1` erzeugt das Windows-ZIP und `SHA256SUMS.txt`; ein Release enthält das geprüfte ZIP, die EXE und die Prüfsummen. Die Versionsnummer stammt aus `Cargo.toml` und muss zur Studio-Version und zum CHANGELOG passen.
+`dist/`, `target/`, npm-Abhängigkeiten, Renderausgaben und lokale Caches sind ausgeschlossen. `build.ps1` erzeugt `Superint-Video-Setup.exe` (mit [`packaging/setup.iss`](packaging/setup.iss)), das Windows-ZIP und `SHA256SUMS.txt`. Ein Release enthält das Setup, das ZIP, die CLI-EXE und die Prüfsummen. Das Setup heißt in jeder Version gleich, damit der Download-Link der README immer zur neuesten führt. Die Versionsnummer stammt aus `Cargo.toml` und muss zur Studio-Version, zum CHANGELOG und zum Versions-Badge der beiden READMEs passen.
 
 ## Lizenz
 

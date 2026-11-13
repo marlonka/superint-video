@@ -2,7 +2,12 @@
 //! run `superint-video app` from its own folder; the command-line tool stays the one program.
 #![cfg_attr(windows, windows_subsystem = "windows")]
 
-use std::process::Command;
+use std::{
+    io::Read,
+    process::{Command, Stdio},
+    sync::mpsc,
+    time::Duration,
+};
 
 fn main() {
     let name = if cfg!(windows) {
@@ -20,19 +25,42 @@ fn main() {
         ));
     };
     let mut command = Command::new(tool);
-    command.arg("app");
+    command
+        .arg("app")
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped());
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
         const CREATE_NO_WINDOW: u32 = 0x0800_0000;
         command.creation_flags(CREATE_NO_WINDOW);
     }
-    match command.output() {
-        Ok(output) if output.status.success() => {}
-        Ok(output) => fail(&format!(
-            "Superint Video could not start.\n\n{}",
-            String::from_utf8_lossy(&output.stderr).trim()
-        )),
+    let mut child = match command.spawn() {
+        Ok(child) => child,
+        Err(error) => return fail(&format!("Superint Video could not start: {error}")),
+    };
+    // The program is waited for, not the end of its output: a browser it opens could hold a
+    // copy of the pipe for as long as it runs, and this launcher would stay with it.
+    let (said, heard) = mpsc::channel();
+    if let Some(mut stderr) = child.stderr.take() {
+        std::thread::spawn(move || {
+            let mut text = String::new();
+            let _ = stderr.read_to_string(&mut text);
+            let _ = said.send(text);
+        });
+    }
+    match child.wait() {
+        Ok(status) if status.success() => {}
+        Ok(_) => {
+            let text = heard
+                .recv_timeout(Duration::from_secs(2))
+                .unwrap_or_default();
+            fail(&format!(
+                "Superint Video could not start.\n\n{}",
+                text.trim()
+            ))
+        }
         Err(error) => fail(&format!("Superint Video could not start: {error}")),
     }
 }

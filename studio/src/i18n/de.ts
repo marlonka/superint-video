@@ -28,6 +28,8 @@ export const de: Catalog = {
   'error.agent-not-installed': 'Dieser Coding-Agent ist auf diesem Computer nicht installiert.',
   'error.skills-missing':
     'Die Skills der App fehlen. Der Ordner „skills“ muss neben Superint Video liegen, so wie er im Download war.',
+  'error.no-env-keys': 'Keine API-Schlüssel kommen aus einer .env-Datei.',
+  'error.shortcut-failed': 'Die Verknüpfung ließ sich nicht anlegen.',
   'error.studio-not-started':
     'Studio ist für diesen Film nicht gestartet. Versuch es noch einmal; wenn es so bleibt, starte Superint Video neu.',
   'common.copyBlocked': 'Der Browser hat das Kopieren nicht erlaubt.',
@@ -236,6 +238,24 @@ export const de: Catalog = {
   'setup.key.replace': 'Ersetzen',
   'setup.key.remove': 'Entfernen',
   'setup.key.removed': 'API-Schlüssel für {provider} von diesem Rechner entfernt',
+  'setup.env.title': '.env-Datei',
+  'setup.env.why':
+    'Deine API-Schlüssel liegen unverschlüsselt in {file}, lesbar für jedes Programm und jeden Coding-Agenten in diesem Ordner. Die App speichert sie verschlüsselt für dein Benutzerkonto und legt die Datei in den Papierkorb.',
+  'setup.env.kept':
+    'Die API-Schlüssel sind jetzt auch verschlüsselt in der App. {file} enthält noch andere Einträge und bleibt deshalb liegen. Nimm die Schlüssel dort heraus, sonst gelten weiter die aus der Datei.',
+  'setup.env.adopt': 'In die App übernehmen',
+  'setup.env.moved': 'API-Schlüssel übernommen. Die .env-Datei liegt im Papierkorb.',
+  'setup.shortcut.title': 'Desktop und Startmenü',
+  'setup.shortcut.why': 'Damit du die App wiederfindest wie jedes andere Programm.',
+  'setup.shortcut.item': 'Verknüpfung',
+  'setup.shortcut.missing':
+    'Ein Symbol auf dem Desktop und ein Eintrag im Startmenü öffnen Superint Video, ohne dass du seinen Ordner suchen musst.',
+  'setup.shortcut.ready': 'Superint Video liegt auf dem Desktop und im Startmenü.',
+  'setup.shortcut.elsewhere':
+    'Die Verknüpfung öffnet eine andere Kopie von Superint Video, etwa eine ältere.',
+  'setup.shortcut.make': 'Auf den Desktop legen',
+  'setup.shortcut.renew': 'Verknüpfung erneuern',
+  'setup.shortcut.made': 'Superint Video liegt jetzt auf dem Desktop und im Startmenü',
 
   'setup.browser.why':
     'Damit öffnet dein Coding-Agent Websites und macht Screenshots, etwa für einen Launch-Film über eine Website.',

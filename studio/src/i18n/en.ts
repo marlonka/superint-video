@@ -29,6 +29,8 @@ export const en = {
   'error.agent-not-installed': 'This coding agent is not installed on this computer.',
   'error.skills-missing':
     'The skills that belong to the app are missing. The "skills" folder has to lie next to Superint Video, as it came in the download.',
+  'error.no-env-keys': 'No API keys come from a .env file.',
+  'error.shortcut-failed': 'The shortcut could not be made.',
   'error.studio-not-started':
     'Studio did not start for this film. Try again; if it stays like this, restart Superint Video.',
   'common.copyBlocked': 'The browser did not allow copying.',
@@ -234,6 +236,24 @@ export const en = {
   'setup.key.replace': 'Replace',
   'setup.key.remove': 'Remove',
   'setup.key.removed': 'API key for {provider} removed from this computer',
+  'setup.env.title': '.env file',
+  'setup.env.why':
+    'Your API keys are stored unencrypted in {file}, readable by any program and any coding agent in that folder. The app keeps them encrypted for your Windows account and moves the file to the recycle bin.',
+  'setup.env.kept':
+    'The API keys are now also encrypted in the app. {file} holds other entries too, so it stays. Take the keys out of it, or the ones in the file keep counting.',
+  'setup.env.adopt': 'Move into the app',
+  'setup.env.moved': 'API keys moved into the app. The .env file is in the recycle bin.',
+  'setup.shortcut.title': 'Desktop and Start menu',
+  'setup.shortcut.why': 'So you find the app again like any other program.',
+  'setup.shortcut.item': 'Shortcut',
+  'setup.shortcut.missing':
+    'An icon on the desktop and an entry in the Start menu open Superint Video without looking for its folder.',
+  'setup.shortcut.ready': 'Superint Video is on the desktop and in the Start menu.',
+  'setup.shortcut.elsewhere':
+    'The shortcut opens another copy of Superint Video, such as an older one.',
+  'setup.shortcut.make': 'Add to desktop',
+  'setup.shortcut.renew': 'Update shortcut',
+  'setup.shortcut.made': 'Superint Video is now on the desktop and in the Start menu',
 
   'setup.browser.why':
     'Lets your coding agent open websites and take screenshots, for example for a launch film about a website.',
