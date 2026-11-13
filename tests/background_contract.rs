@@ -114,7 +114,10 @@ async fn the_app_started_from_another_copy_takes_over() -> Result<()> {
         .no_proxy()
         .timeout(Duration::from_secs(3))
         .build()?
-        .get(format!("{}/api/app/ping", started["url"].as_str().unwrap_or_default()))
+        .get(format!(
+            "{}/api/app/ping",
+            started["url"].as_str().unwrap_or_default()
+        ))
         .send()
         .await?
         .json()
@@ -127,7 +130,10 @@ async fn the_app_started_from_another_copy_takes_over() -> Result<()> {
             .await?
             .stdout,
     )?;
-    tool_at(&copy, &home).args(["app", "--stop"]).output().await?;
+    tool_at(&copy, &home)
+        .args(["app", "--stop"])
+        .output()
+        .await?;
     ensure!(
         started["replaced"]["exe"].is_string(),
         "the copy did not take over: {started}"
@@ -137,7 +143,10 @@ async fn the_app_started_from_another_copy_takes_over() -> Result<()> {
         runs.ends_with("superint-video.exe") && runs.contains("superint-other-copy-"),
         "the app runs from {runs}, not from the copy"
     );
-    ensure!(again["alreadyRunning"] == true, "the copy replaced itself: {again}");
+    ensure!(
+        again["alreadyRunning"] == true,
+        "the copy replaced itself: {again}"
+    );
     // The stopped program lets go of its file a moment later; the folder may then go.
     tokio::time::sleep(Duration::from_secs(1)).await;
     Ok(())
