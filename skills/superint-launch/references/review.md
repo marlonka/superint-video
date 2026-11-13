@@ -27,4 +27,4 @@ Every item is a yes or a no with frame numbers. A no is a **P0** on the hook, a 
 
 ## 3. Log
 
-Write the pass into `process/review.md`: P0s and P1s with frames, what changed, what stays and why. Then comes the polish pass of the superint-video skill (`references/polish.md`), which looks at the end card at full size once more, and only then the render.
+Write the pass into `process/review.md`: P0s and P1s with frames, what changed, what stays and why. Then comes the polish walk of the superint-video skill (`references/polish.md`), which ends on the end card at full size, and only then the render.

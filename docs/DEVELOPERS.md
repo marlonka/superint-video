@@ -11,7 +11,7 @@ Use the superint-video skill: a flat-vector explainer, 60 seconds,
 topic "Why sleep cleans the brain".
 ```
 
-The agent only asks about what it cannot decide well itself, such as screenshots of the look you want. Then it works in steps that each leave a file in the project: research with sources, three concepts, script, beats, style frames, scenes, sound, review, polish and render. The polish pass runs by itself before every render: fresh eyes look at every still, cut and movement and fix things until nothing stands out, in one to three rounds. After you accept the film, a report follows with a making-of.
+The agent only asks about what it cannot decide well itself, such as screenshots of the look you want. Then it works in steps that each leave a file in the project: research with sources, three concepts, script, beats, style frames, scenes, sound, review, polish and render. The polish pass runs by itself before every render: fresh eyes walk the film one still at a time (one every 10 seconds), fix what stands out and add detail, in one to three rounds. After you accept the film, a report follows with a making-of.
 
 - **One world instead of slides.** Every picture is a pure function of time, and every movement hangs on a word of the voice.
 - **Research that holds.** Every claim in the film has a source in the claim register. Three concepts and three script drafts compete.
@@ -40,8 +40,8 @@ superint-video music .\sleep                  # music variants, measured
 superint-video sfx kit .\sleep                # sounds from Earshot, placed on frames with sfx place
 superint-video mix .\sleep                    # ducking, master at −14 LUFS
 superint-video review .\sleep                 # contact sheet and worksheet for the review round
-superint-video polish .\sleep                 # last look before the render
-superint-video polish .\sleep --accept        # record a clean pass
+superint-video polish .\sleep                 # last look before the render: the next still
+superint-video polish .\sleep --accept        # record the finished walk
 superint-video render .\sleep --audio audio/master.wav --output renders/video.mp4
 superint-video listen .\sleep\renders\video.mp4 --project .\sleep   # listen back
 superint-video doctor --json                  # finds Chrome, FFmpeg, Earshot and the API keys

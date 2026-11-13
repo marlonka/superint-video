@@ -31,7 +31,7 @@ Every step writes files in the project and ends at a gate. Do not start a step b
 | 5 | Style frames | hook, aha and title scenes, `renders/frames/` | Three frames hold up next to the references at full size and thumbnail size |
 | 6 | Build | `scenes/*.html`, `video.json` | `check` passes; every beat is on screen |
 | 7 | Review | `renders/review/<n>/`, `process/review.md` | A pass at a new grid offset finds nothing left to fix; the contact sheet holds up next to the references; every measured flag fixed (only the end card may stand still) |
-| 8 | Polish | `renders/polish/<n>/`, `process/polish.md` | Fresh eyes have looked at every still, close-up, cut and move and fixed what they found, in as many rounds as `polishRounds` sets; the last round is clean and `polish --accept` has recorded it |
+| 8 | Polish | `renders/polish/<n>/`, `process/polish.md` | Fresh eyes have walked the film one still at a time, fixed what a viewer would spot and added detail, in as many rounds as `polishRounds` sets; `polish --accept` has recorded the last round |
 | 9 | Render and hand over | `renders/<slug>.mp4` | The render's own numbers check out; the user has the MP4 and the Studio address and watches before anything else happens |
 | 10 | After acceptance | `renders/thumbnail.png`, `report.md` | Thumbnail made; report written in the brief's language; working files cleaned up |
 

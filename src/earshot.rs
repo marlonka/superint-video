@@ -95,7 +95,8 @@ pub struct Listen<'a> {
 /// `earshot llm`: a hosted audio model listens to `file` (only its audio is uploaded, to Google
 /// with the project's `GEMINI_API_KEY`) and answers Earshot's film-sound rubric plus the
 /// question. Our voices, music and SFX are generated on purpose, so synthesis is not a flaw.
-/// The answer is saved to `process/listen/<file stem>.json` so the Studio shows it.
+/// The answer is saved to `process/listen/<file stem>.json` so the Studio shows it; a passage
+/// gets a file of its own.
 pub async fn listen(root: &Path, request: Listen<'_>) -> Result<Value> {
     let keys = crate::env::Keys::load(root)?;
     let key = keys.require(crate::env::GEMINI)?;
@@ -128,15 +129,45 @@ pub async fn listen(root: &Path, request: Listen<'_>) -> Result<Value> {
         .file_stem()
         .and_then(OsStr::to_str)
         .unwrap_or("audio");
-    let saved = Path::new(LISTEN).join(format!("{stem}.json"));
-    let out = root.join(&saved);
+    let name = answer_name(stem, request.start, request.end);
+    let out = root.join(LISTEN).join(&name);
     std::fs::create_dir_all(out.parent().context("listen path has no parent")?)?;
     crate::project::atomic_write(&out, &serde_json::to_vec_pretty(&answer)?)?;
     Ok(serde_json::json!({
-        "saved": format!("{LISTEN}/{stem}.json"),
+        "saved": format!("{LISTEN}/{name}"),
         "answer": answer,
     }))
 }
 
+/// The file an answer is kept in. A passage (`--start`, `--end`) gets a name of its own, so it
+/// does not replace what was said about the whole file: `master.json`, `master-150-155s.json`.
+fn answer_name(stem: &str, start: Option<f64>, end: Option<f64>) -> String {
+    let seconds = |value: f64| format!("{}", (value * 10.0).round() / 10.0).replace('.', "_");
+    match (start, end) {
+        (None, None) => format!("{stem}.json"),
+        (start, end) => format!(
+            "{stem}-{}-{}s.json",
+            seconds(start.unwrap_or(0.0)),
+            end.map_or_else(|| "end".to_string(), seconds)
+        ),
+    }
+}
+
 /// Where `listen` keeps its answers inside a project.
 pub const LISTEN: &str = "process/listen";
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_passage_keeps_its_answer_apart_from_the_whole_file() {
+        assert_eq!(answer_name("master", None, None), "master.json");
+        assert_eq!(
+            answer_name("master", Some(150.0), Some(155.5)),
+            "master-150-155_5s.json"
+        );
+        assert_eq!(answer_name("film", None, Some(12.0)), "film-0-12s.json");
+        assert_eq!(answer_name("film", Some(240.0), None), "film-240-ends.json");
+    }
+}

@@ -48,7 +48,7 @@ impl ProjectStore {
             .canonicalize()
             .with_context(|| format!("cannot open project {}", directory.display()))?;
         ensure!(root.is_dir(), "project path is not a directory");
-        let (manifest, revision) = read_state(&root)?;
+        let (manifest, revision) = settled(|| read_state(&root))?;
         Ok(Self {
             root,
             manifest,
@@ -178,6 +178,19 @@ impl ProjectStore {
         Ok(())
     }
 
+    /// A snapshot for a command-line run. When a file is saved while the project is copied (by
+    /// the coding agent, a sub-agent or Studio), the project is read again and copied once more
+    /// instead of failing; it gives up when the project does not come to rest.
+    pub fn settled_snapshot(&mut self) -> Result<ProjectSnapshot> {
+        let mut first = true;
+        settled(|| {
+            if !std::mem::take(&mut first) {
+                self.reload()?;
+            }
+            self.snapshot()
+        })
+    }
+
     /// Copy immutable render inputs and verify both source and destination content hashes.
     pub fn snapshot(&self) -> Result<ProjectSnapshot> {
         let before = project_files(&self.root)?;
@@ -297,6 +310,36 @@ pub fn modified_ms(path: &Path) -> u64 {
     fs::metadata(path)
         .and_then(|m| m.modified())
         .map_or(0, millis)
+}
+
+/// How often a read or a snapshot is tried again when the project changed underneath it, and
+/// the pause between tries: a few seconds in all, enough for a writer to finish saving.
+const SETTLE_TRIES: u32 = 10;
+const SETTLE_PAUSE: std::time::Duration = std::time::Duration::from_millis(400);
+
+/// Whether an error only says that somebody saved a file at the same moment.
+fn changed_underneath(error: &anyhow::Error) -> bool {
+    let text = format!("{error:#}");
+    text.contains("project changed while") || text.contains("stale revision")
+}
+
+/// Runs `read` again while it fails only because the project changed underneath it.
+fn settled<T>(mut read: impl FnMut() -> Result<T>) -> Result<T> {
+    let mut tries = 1;
+    loop {
+        match read() {
+            Err(error) if changed_underneath(&error) && tries < SETTLE_TRIES => {
+                tries += 1;
+                std::thread::sleep(SETTLE_PAUSE);
+            }
+            Err(error) if changed_underneath(&error) => {
+                return Err(error.context(
+                    "the project kept changing for several seconds; run the command again once nothing writes to it",
+                ));
+            }
+            other => return other,
+        }
+    }
 }
 
 fn read_state(root: &Path) -> Result<(Manifest, String)> {

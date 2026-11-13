@@ -139,7 +139,7 @@ All three create a stored `voice_…` ID in the Google project (200 per project,
 - Measure the key with chroma analysis so pitched SFX play in the music's key.
 - The last cue is end-aligned so the music ends on the title. Join cues with 5 s equal-power crossfades.
 - Level: music about 22 dB under the voice, plus a 3 dB duck while words play. 15 dB was rejected as much too loud; the reference film measured a median voice-to-music distance of 21.9 dB.
-- One piece stops at about three minutes, whatever the prompt asks, and a variant can come back longer than its timeline (a 124 s timeline: 125, 128 and 156 s). Write a longer film as several cues, take the real length from the report and place the last one by `film end - length`. The silences between cues can tell something: ours fall on a white flash and on "I forget everything".
+- One piece stops at about three minutes, whatever the prompt asks, often well before (113 to 154 s for a longer ask), and a variant can come back longer than its timeline (a 124 s timeline: 125, 128 and 156 s). Two cues of one film can come back in different keys even when both prompts name one: measure each (`earshot measure <file> --music`) and put the change at a chapter break or under a pause. Write a longer film as several cues, take the real length from the report and place the last one by `film end - length`. The silences between cues can tell something: ours fall on a white flash and on "I forget everything".
 - Lyria makes music, not ambience: a prompt for rain or room tone still comes back as music. Make room tone and rain another way.
 
 ## Sources

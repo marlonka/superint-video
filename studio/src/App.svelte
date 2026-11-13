@@ -152,7 +152,7 @@
     polishFilter === 'all'
       ? true
       : polishFilter === 'fine'
-        ? row.verdict === 'ok' || row.verdict === 'kept'
+        ? row.verdict === 'ok' || row.verdict === 'kept' || row.verdict === 'fixed'
         : row.verdict === polishFilter,
   );
   $: polishRow = polishRows.find((row) => row.file === polishFile) || polishRows[0] || null;
@@ -332,7 +332,7 @@
       ['all', counts?.listed ?? 0],
       ['defect', counts?.defects ?? 0],
       ['open', counts?.open ?? 0],
-      ['fine', (counts?.ok ?? 0) + (counts?.kept ?? 0)],
+      ['fine', (counts?.ok ?? 0) + (counts?.kept ?? 0) + (counts?.fixed ?? 0)],
     ];
   }
   /** What the button at the head of a track does next. */
@@ -1836,7 +1836,7 @@
                   </p>
                   {#if polish.counts}
                     {@const counts = polish.counts}
-                    {@const fine = counts.ok + counts.kept}
+                    {@const fine = counts.ok + counts.kept + (counts.fixed ?? 0)}
                     <div
                       class="polish-bar"
                       role="img"
@@ -1859,6 +1859,9 @@
                         })}</span
                       >
                     </div>
+                    {#if counts.fixed}<div class="details-row">
+                        <span>{$t('polish.fixed')}</span><span>{counts.fixed}</span>
+                      </div>{/if}
                     <div class="details-row">
                       <span>{$t('polish.toFix')}</span><span>{counts.defects}</span>
                     </div>
@@ -2761,13 +2764,21 @@
               <button
                 aria-current={polishRow?.file === row.file}
                 onclick={() => (polishFile = row.file)}
-                ><img src={polishUrl(row.file)} alt="" loading="lazy" /><span
+                >{#if row.taken === false}<span class="polish-wait"></span>{:else}<img
+                    src={polishUrl(row.file)}
+                    alt=""
+                    loading="lazy"
+                  />{/if}<span
                   ><strong
                     ><span class={`verdict ${row.verdict}`} aria-hidden="true"></span>{polishName(
                       row,
                     )}</strong
                   ><span class="said"
-                    >{row.verdict === 'open' ? $t('polish.notLooked') : row.said}</span
+                    >{row.verdict !== 'open'
+                      ? row.said
+                      : row.file === polish.current && row.taken !== false
+                        ? $t('polish.lookingNow')
+                        : $t('polish.notLooked')}</span
                   ></span
                 ></button
               >
@@ -2775,7 +2786,9 @@
         </ul>
         <div class="polish-view">
           {#if polishRow}
-            <img src={polishUrl(polishRow.file)} alt={polishName(polishRow)} />
+            {#if polishRow.taken === false}<p class="field-note polish-empty">
+                {$t('polish.notYet')}
+              </p>{:else}<img src={polishUrl(polishRow.file)} alt={polishName(polishRow)} />{/if}
             <dl>
               <dt>{$t('polish.found')}</dt>
               <dd>{polishRow.verdict === 'open' ? $t('polish.notLooked') : polishRow.said}</dd>

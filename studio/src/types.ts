@@ -126,7 +126,9 @@ export interface PolishRow {
   kind: 'still' | 'cut' | 'move';
   time: number;
   closeUps: string[];
-  verdict: 'ok' | 'kept' | 'defect' | 'open';
+  /** False while a walk has not reached this still: there is no picture of it yet. */
+  taken?: boolean;
+  verdict: 'ok' | 'kept' | 'fixed' | 'defect' | 'open';
   said: string;
   fix: string;
 }
@@ -146,11 +148,15 @@ export interface Polish {
   /** The round of the latest pass and how many the film gets; absent while it is captured. */
   round?: number;
   rounds?: number;
+  /** The still being looked at now: the first one whose row is empty. */
+  current?: string | null;
   rows?: PolishRow[];
   counts?: {
     listed: number;
     ok: number;
     kept: number;
+    /** Found and fixed on the spot. */
+    fixed?: number;
     defects: number;
     open: number;
     settled: number;

@@ -465,3 +465,90 @@ async fn mono_voice_from_the_tool_mixes_into_both_channels() -> Result<()> {
     );
     Ok(())
 }
+
+#[tokio::test]
+#[ignore = "requires local FFmpeg"]
+async fn mix_gives_music_a_level_once_and_keeps_one_set_by_hand() -> Result<()> {
+    use serde_json::Value;
+    use superint_video::mix;
+    let directory = tempfile::Builder::new()
+        .prefix("superint-music-level-")
+        .tempdir()?;
+    let root = directory.path();
+    fs::create_dir(root.join("scenes"))?;
+    fs::create_dir(root.join("audio"))?;
+    fs::write(
+        root.join("scenes/markers.html"),
+        include_str!("../examples/fixture/scenes/markers.html"),
+    )?;
+    let tone = |hertz: f32, level: f32, seconds: usize| -> Vec<f32> {
+        (0..48_000 * seconds)
+            .map(|n| (n as f32 / 48_000.0 * hertz * std::f32::consts::TAU).sin() * level)
+            .collect()
+    };
+    // A voice of four seconds and a music bed that is far louder than it, as generated music is.
+    audio::write_wav(&root.join("audio/voice.wav"), &tone(220.0, 0.2, 4), 48_000)?;
+    audio::write_wav(&root.join("audio/bed.wav"), &tone(440.0, 0.6, 6), 48_000)?;
+    let manifest: Manifest = serde_json::from_value(json!({
+        "version":1,"width":320,"height":180,"fps":{"num":30,"den":1},"durationFrames":180,
+        "tracks":[{"id":"visuals","kind":"visual"},{"id":"voice","kind":"audio"},{"id":"music","kind":"audio"}],
+        "clips":[
+            {"id":"scene","type":"scene","src":"scenes/markers.html","track":"visuals","startFrame":0,"durationFrames":180,"sourceOffsetFrames":0,"props":{"label":"V","color":"#4685f5"}},
+            {"id":"voice","type":"audio","src":"audio/voice.wav","track":"voice","startFrame":30,"durationFrames":120,"sourceOffsetFrames":0},
+            {"id":"bed","type":"audio","src":"audio/bed.wav","track":"music","startFrame":0,"durationFrames":180,"sourceOffsetFrames":0}
+        ]
+    }))?;
+    manifest.validate()?;
+    fs::write(
+        root.join("video.json"),
+        serde_json::to_vec_pretty(&manifest)?,
+    )?;
+    let gain = || -> Result<f64> {
+        let film: Value = serde_json::from_slice(&fs::read(root.join("video.json"))?)?;
+        film["clips"][2]["gain"]
+            .as_f64()
+            .context("the bed has no gain")
+    };
+    let under = |report: &Value| {
+        report["music"]["underVoiceDuringWords"]
+            .as_f64()
+            .unwrap_or(0.0)
+    };
+
+    // The bed sits at full gain: the mix gives it its level and writes it into the clip, so
+    // Studio plays the music as the film has it.
+    let first = mix::mix(root).await?;
+    ensure!(
+        first["music"]["level"] == "mix" && (under(&first) - 22.0).abs() < 0.3,
+        "first mix: {first}"
+    );
+    let levelled = gain()?;
+    ensure!(
+        levelled < 0.2 && first["music"]["levelled"][0]["gain"].as_f64() == Some(levelled),
+        "the level is not in the clip: {levelled}, {first}"
+    );
+    // Again: nothing is without a level, and the film sounds the same.
+    let second = mix::mix(root).await?;
+    ensure!(
+        second["music"]["level"] == "timeline"
+            && second["music"]["gainDb"] == 0.0
+            && (under(&second) - 22.0).abs() < 0.3
+            && gain()? == levelled,
+        "second mix: {second}"
+    );
+    // The user turns the music up in Studio: it stays where they put it, and a level that is
+    // no longer background is named.
+    let mut film: Value = serde_json::from_slice(&fs::read(root.join("video.json"))?)?;
+    film["clips"][2]["gain"] = json!(0.5);
+    fs::write(root.join("video.json"), serde_json::to_vec_pretty(&film)?)?;
+    let third = mix::mix(root).await?;
+    let loud = third["warnings"].as_array().is_some_and(|list| {
+        list.iter()
+            .any(|w| w.as_str().unwrap_or("").contains("background"))
+    });
+    ensure!(
+        third["music"]["level"] == "timeline" && under(&third) < 12.0 && loud && gain()? == 0.5,
+        "third mix: {third}"
+    );
+    Ok(())
+}

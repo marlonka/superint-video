@@ -41,7 +41,7 @@ superint-video studio <dir>
 - Look at snapshots at a scale where text is readable; check settled frames, mid-motion frames and cut boundaries.
 - Studio runs in the foreground and prints its local URL. Keep a handle to stop it; do not detach it.
 - Errors name the clip, source and frame. Fix and repeat only the affected checks.
-- A change to the picture needs a polish pass before the new render ([polish.md](polish.md)): `superint-video polish <dir>` lists only the images the change touched when an earlier pass was accepted, and the whole film otherwise. Fill in its rows, then `polish --accept`.
+- A change to the picture needs a polish pass before the new render ([polish.md](polish.md)): `superint-video polish <dir>` walks only the stills the change touched when the film's last round was accepted, and the whole film otherwise. Write its rows, then `polish --accept`.
 
 Render to a new file name unless the user asked to replace an export:
 

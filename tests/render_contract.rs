@@ -486,80 +486,181 @@ async fn review_measures_actors_through_the_clip_transform_and_takes_close_ups()
 
 #[tokio::test]
 #[ignore = "requires local Chromium and FFmpeg"]
-async fn polish_lists_only_what_changed_and_accepts_only_a_clean_pass() -> Result<()> {
+async fn polish_walks_one_still_at_a_time_and_accepts_the_walk_with_its_fixes() -> Result<()> {
+    use serde_json::Value;
+    use std::path::PathBuf;
     use superint_video::{polish, project::picture_revision};
     let (directory, _) = project(Fps { num: 30, den: 1 })?;
     let root = directory.path();
-    // writes a verdict into the Defect cell of every image row
-    let fill = |pass: &Path, verdict: &str| -> Result<()> {
+    // What the polisher writes into the row of one still.
+    let fill = |pass: &Path, file: &str, finding: &str, fix: &str| -> Result<()> {
         let sheet = fs::read_to_string(pass.join("polish.md"))?;
+        let start = format!("| {file} |");
+        ensure!(sheet.contains(&start), "no row for {file}");
         let rows: Vec<String> = sheet
             .lines()
             .map(|line| {
-                if !["| frame-", "| cut-", "| motion-"]
-                    .iter()
-                    .any(|start| line.starts_with(start))
-                {
+                if !line.starts_with(&start) {
                     return line.to_string();
                 }
-                let mut cells: Vec<&str> = line.split(" | ").collect();
-                cells[4] = verdict;
-                cells.join(" | ")
+                let cells: Vec<&str> = line.split('|').map(str::trim).collect();
+                format!(
+                    "| {file} | {} | {} | {finding} | {fix} |",
+                    cells[2], cells[3]
+                )
             })
             .collect();
         fs::write(pass.join("polish.md"), rows.join("\n"))?;
         Ok(())
     };
+    // One `polish` call for a film that gets `rounds`: what it answers, and the pass folder.
+    async fn step(root: &Path, rounds: u8) -> Result<(Value, PathBuf)> {
+        let picture = picture_revision(root)?;
+        let next = polish::next(root, rounds, &picture);
+        let snapshot = ProjectStore::open(root)?.settled_snapshot()?;
+        let answer = polish::polish(snapshot, &picture, Some(1.0), &next).await?;
+        Ok((answer, next.output.clone()))
+    }
+    let colour = |clip: usize, colour: &str| -> Result<()> {
+        let mut manifest: Value = serde_json::from_slice(&fs::read(root.join("video.json"))?)?;
+        manifest["clips"][clip]["props"]["color"] = json!(colour);
+        fs::write(
+            root.join("video.json"),
+            serde_json::to_vec_pretty(&manifest)?,
+        )?;
+        Ok(())
+    };
 
-    let picture = picture_revision(root)?;
-    let next = polish::next(root, 1);
+    // The first call lays out the walk and takes one still: the first.
+    let (answer, first) = step(root, 1).await?;
     ensure!(
-        next.pass == 1 && next.round == 1 && next.previous.is_none(),
-        "first pass: {}",
-        next.pass
+        answer["pass"] == 1
+            && answer["round"] == 1
+            && answer["stills"] == 4
+            && answer["left"] == 4
+            && answer["next"]["row"] == "frame-000000.png"
+            && answer["next"]["taken"] == "new",
+        "first call: {answer}"
     );
-    let first = next.output.clone();
-    let result =
-        polish::polish(ProjectStore::open(root)?.snapshot()?, &picture, 1.0, &next).await?;
-    for file in [
-        "contact-sheet.png",
-        "polish.json",
-        "polish.md",
-        "frame-000000.png",
-        "frame-000089.png",
-        "close-000000-a.png",
-        "cut-000030.png",
-        "cut-000060.png",
-    ] {
+    for file in ["polish.json", "polish.md", "frame-000000.png"] {
         ensure!(first.join(file).is_file(), "{file} missing");
     }
-    ensure!(
-        result["toLookAt"]["stills"] == 4
-            && result["toLookAt"]["cuts"] == 4
-            && result["clean"] == false,
-        "first pass: {result}"
-    );
+    let taken = |folder: &Path| -> usize {
+        fs::read_dir(folder)
+            .into_iter()
+            .flatten()
+            .flatten()
+            .filter(|entry| entry.file_name().to_string_lossy().ends_with(".png"))
+            .count()
+    };
+    ensure!(taken(&first) == 1, "more than one picture was laid out");
     ensure!(
         polish::state(root, 1)?["state"] == "missing",
         "state before"
     );
     ensure!(
-        polish::accept(root, &picture, 1).is_err(),
+        polish::accept(root, &picture_revision(root)?, 1).is_err(),
         "a worksheet nobody filled in was accepted"
     );
-    fill(&first, "the label sits on the marker")?;
+    // Nothing written, nothing changed: the same still, not taken again.
+    let (answer, _) = step(root, 1).await?;
     ensure!(
-        polish::accept(root, &picture, 1).is_err(),
-        "a pass with defects was accepted"
+        answer["next"]["row"] == "frame-000000.png" && answer["next"]["taken"] == "same",
+        "the same still again: {answer}"
     );
-    fill(&first, "ok: reads at once")?;
-    polish::accept(root, &picture, 1)?;
+
+    // The row is written: the next call takes the next still.
+    fill(&first, "frame-000000.png", "ok: reads at once", "")?;
+    let (answer, _) = step(root, 1).await?;
+    ensure!(
+        answer["next"]["row"] == "frame-000030.png"
+            && answer["next"]["taken"] == "new"
+            && answer["done"] == 1
+            && answer["left"] == 3
+            && taken(&first) == 2,
+        "second still: {answer}"
+    );
+    // A fix changes the picture: the still whose row is empty is taken again, with the fix.
+    colour(1, "#f5c046")?;
+    let (answer, _) = step(root, 1).await?;
+    ensure!(
+        answer["next"]["row"] == "frame-000030.png" && answer["next"]["taken"] == "again",
+        "after a fix: {answer}"
+    );
+    // A still gets two looks, not three: after another change it is not taken again.
+    colour(1, "#f58a46")?;
+    let before = fs::metadata(first.join("frame-000030.png"))?.modified()?;
+    let (answer, _) = step(root, 1).await?;
+    ensure!(
+        answer["next"]["row"] == "frame-000030.png"
+            && answer["next"]["taken"] == "limit"
+            && fs::metadata(first.join("frame-000030.png"))?.modified()? == before,
+        "a third look: {answer}"
+    );
+    fill(
+        &first,
+        "frame-000030.png",
+        "the marker had the wrong colour",
+        "fixed: recoloured it",
+    )?;
+    let (answer, _) = step(root, 1).await?;
+    ensure!(
+        answer["next"]["row"] == "frame-000060.png",
+        "third still: {answer}"
+    );
+    fill(
+        &first,
+        "frame-000060.png",
+        "the label sits on the marker",
+        "",
+    )?;
+    let (answer, _) = step(root, 1).await?;
+    ensure!(
+        answer["next"]["row"] == "frame-000089.png",
+        "last still: {answer}"
+    );
+    fill(
+        &first,
+        "frame-000089.png",
+        "kept: the end card stands still on purpose",
+        "",
+    )?;
+
+    // No row is empty, but one only names a defect: the walk is not done.
+    let (answer, _) = step(root, 1).await?;
+    ensure!(
+        answer["next"].is_null() && answer["left"] == 0 && answer["clean"] == false,
+        "a named defect: {answer}"
+    );
+    ensure!(
+        polish::accept(root, &picture_revision(root)?, 1).is_err(),
+        "a pass with a defect was accepted"
+    );
+    fill(&first, "frame-000060.png", "ok: reads at once", "")?;
+    let (answer, _) = step(root, 1).await?;
+    ensure!(answer["clean"] == true, "every row settled: {answer}");
+    // Accepted for the picture as the fixes left it, with no second look at everything.
+    let accepted = polish::accept(root, &picture_revision(root)?, 1)?;
+    ensure!(
+        accepted["rows"] == 4 && accepted["fixed"] == 1 && accepted["kept"] == 1,
+        "accept: {accepted}"
+    );
+    ensure!(
+        first.join("contact-sheet.png").is_file(),
+        "no sheet of the walk"
+    );
     ensure!(
         polish::state(root, 1)?["state"] == "accepted",
         "state after"
     );
+    let (answer, _) = step(root, 1).await?;
+    ensure!(
+        answer["accepted"] == true && answer["next"].is_null(),
+        "nothing to look at: {answer}"
+    );
 
     // Notes and the report do not touch the picture.
+    fs::create_dir_all(root.join("process"))?;
     fs::write(root.join("process/review.md"), "a note")?;
     fs::write(root.join("report.md"), "a report")?;
     ensure!(
@@ -567,59 +668,42 @@ async fn polish_lists_only_what_changed_and_accepts_only_a_clean_pass() -> Resul
         "a note made the pass stale"
     );
 
-    // A change to the last clip: the record goes stale, and the next pass lists what it reached.
-    let mut manifest: serde_json::Value =
-        serde_json::from_slice(&fs::read(root.join("video.json"))?)?;
-    manifest["clips"][2]["props"]["color"] = json!("#f5c046");
-    fs::write(
-        root.join("video.json"),
-        serde_json::to_vec_pretty(&manifest)?,
-    )?;
+    // A change to the last clip: the record goes stale, and the next pass lists the stills
+    // that no longer show what somebody looked at.
+    colour(2, "#9a46f5")?;
     ensure!(
         polish::state(root, 1)?["state"] == "stale",
         "state after a change"
     );
-    let picture = picture_revision(root)?;
     ensure!(
-        polish::accept(root, &picture, 1).is_err(),
+        polish::accept(root, &picture_revision(root)?, 1).is_err(),
         "a pass was accepted for a picture it never saw"
     );
-    let next = polish::next(root, 1);
-    ensure!(
-        next.round == 1 && next.previous.is_some(),
-        "a change stays in round 1"
-    );
-    let second = next.output.clone();
-    let result =
-        polish::polish(ProjectStore::open(root)?.snapshot()?, &picture, 1.0, &next).await?;
+    let (answer, second) = step(root, 1).await?;
     let sheet = fs::read_to_string(second.join("polish.md"))?;
     ensure!(
-        result["toLookAt"]["stills"] == 2
-            && sheet.contains("| frame-000060.png |")
+        answer["pass"] == 2
+            && answer["round"] == 1
+            && answer["stills"] == 2
+            && answer["settled"] == 2
+            && answer["next"]["row"] == "frame-000060.png"
+            && answer["next"]["taken"] == "new"
             && sheet.contains("| frame-000089.png |")
-            && !sheet.contains("| frame-000000.png |")
-            && !sheet.contains("| cut-000030.png |"),
-        "second pass: {result}\n{sheet}"
+            && !sheet.contains("| frame-000000.png |"),
+        "second pass: {answer}\n{sheet}"
     );
-    fill(&second, "ok: reads at once")?;
-    polish::accept(root, &picture, 1)?;
+    fill(&second, "frame-000060.png", "ok: reads at once", "")?;
+    fill(&second, "frame-000089.png", "ok: reads at once", "")?;
+    polish::accept(root, &picture_revision(root)?, 1)?;
     let state = polish::state(root, 1)?;
     ensure!(
         state["state"] == "accepted" && state["pass"] == 2,
         "state after the second pass: {state}"
     );
 
-    // Nothing changed: the same frames come out pixel for pixel, and the pass is clean.
-    let next = polish::next(root, 1);
-    let result =
-        polish::polish(ProjectStore::open(root)?.snapshot()?, &picture, 1.0, &next).await?;
-    ensure!(result["clean"] == true, "third pass: {result}");
-
-    // The user wants two rounds: the clean round 1 is not enough to render, and once its last
-    // pass is accepted the next pass starts round 2 over the whole film, between the stills of
-    // round 1, with close-ups of every still and what round 1 found.
-    // As in a real round, the first pass keeps the finding the passes after it answered.
-    fill(&first, "the label sits on the marker")?;
+    // The user wants two rounds: the clean round 1 is not enough to render. The next call
+    // starts round 2 at its first still, between the stills of round 1, with what round 1 found.
+    let picture = picture_revision(root)?;
     let accepted = polish::accept(root, &picture, 2)?;
     ensure!(
         accepted["round"] == 1 && accepted["next"].as_str().unwrap_or("").contains("Round 2"),
@@ -630,34 +714,28 @@ async fn polish_lists_only_what_changed_and_accepts_only_a_clean_pass() -> Resul
         state["state"] == "next-round",
         "state after round 1 of 2: {state}"
     );
-    let next = polish::next(root, 2);
+    let (answer, third) = step(root, 2).await?;
+    let sheet = fs::read_to_string(third.join("polish.md"))?;
     ensure!(
-        next.round == 2 && next.previous.is_none() && next.pass == 4,
-        "round 2 starts fresh"
-    );
-    let fourth = next.output.clone();
-    let result =
-        polish::polish(ProjectStore::open(root)?.snapshot()?, &picture, 1.0, &next).await?;
-    let sheet = fs::read_to_string(fourth.join("polish.md"))?;
-    ensure!(
-        result["round"] == 2
-            && result["clean"] == false
-            && sheet.starts_with("# Polish pass 4, round 2 of 2")
+        answer["pass"] == 3
+            && answer["round"] == 2
+            && answer["next"]["row"] == "frame-000015.png"
+            && sheet.starts_with("# Polish pass 3, round 2 of 2")
             && sheet.contains("## Found in earlier rounds")
-            && sheet.contains("the label sits on the marker")
-            && sheet.contains("## How to look: round 2")
-            && sheet.contains("| frame-000015.png |")
-            && !sheet.contains("| frame-000000.png |")
-            && sheet.contains("| cut-000030.png |")
-            && fourth.join("close-000015-a.png").is_file(),
-        "round 2: {result}
-{sheet}"
+            && sheet.contains("the marker had the wrong colour")
+            && sheet.contains("## What to look for: round 2")
+            && !sheet.contains("| frame-000000.png |"),
+        "round 2: {answer}\n{sheet}"
     );
     ensure!(
         polish::accept(root, &picture, 2).is_err(),
         "round 2 was accepted before anyone looked"
     );
-    fill(&fourth, "ok: holds up")?;
+    let mut answer = answer;
+    while let Some(row) = answer["next"]["row"].as_str().map(str::to_string) {
+        fill(&third, &row, "ok: holds up", "")?;
+        answer = step(root, 2).await?.0;
+    }
     let accepted = polish::accept(root, &picture, 2)?;
     ensure!(accepted["round"] == 2, "accept of round 2: {accepted}");
     ensure!(

@@ -76,15 +76,15 @@ export const en = {
   'setup.films.window': 'Open in a window of its own instead of a browser tab',
   'setup.polish.title': 'Visual quality polish before the render',
   'setup.polish.why':
-    'A sub-agent of your coding agent looks at every frame with fresh eyes and fixes what it finds before the film is rendered.',
+    'A sub-agent of your coding agent walks the film with fresh eyes, one still after the other, and fixes what it finds before the film is rendered.',
   'setup.polish.choice': 'Visual quality loop before each render',
   'setup.polish.rounds': { one: '{count} round', other: '{count} rounds' },
   'setup.polish.what1':
-    'Fresh eyes check every still, cut and move and fix what they find. The usual choice.',
+    'Fresh eyes look at a still every 10 seconds (every 5 in a short film), fix what is wrong at once and go on to the next. The usual choice.',
   'setup.polish.what2':
-    'After the first round, a second with new eyes looks for what is still wrong and works out the detail. About twice the time and usage.',
+    'After the first round, a second with new eyes walks the pictures in between, looks for what is still wrong and works out the detail. About twice the time and usage.',
   'setup.polish.what3':
-    'A third round then goes through materials, light and motion across the whole film. About three times the time and usage.',
+    'A third round then goes through materials, light and composition across the whole film. About three times the time and usage.',
   'setup.polish.saved': 'Polish: {rounds} before each render',
   'settings.saved': 'Saved',
   'setup.continue': 'On to the first film',
@@ -633,8 +633,8 @@ export const en = {
   'polish.pass': 'pass {pass}',
   'polish.heading': 'Polish, pass {pass}',
   'polish.lead':
-    'Before a render, the film is looked at picture by picture: stills, both sides of every cut, and the fastest moves.',
-  'polish.state.capturing': 'Taking the pictures of the film',
+    'Before a render, the film is walked picture by picture: look at one still, fix it at once, check the fixed picture once, go on to the next.',
+  'polish.state.capturing': 'Taking the next picture',
   'polish.state.accepted': 'Clean: this picture may be rendered',
   'polish.state.nothingLeft': 'Nothing left to fix in this pass',
   'polish.state.nextRound': 'Round {round} is clean; round {next} follows with fresh eyes',
@@ -646,6 +646,9 @@ export const en = {
   'polish.lookedAt': 'Looked at',
   'polish.lookedAtCount': '{seen} of {listed} pictures',
   'polish.toFix': 'To fix',
+  'polish.fixed': 'Fixed',
+  'polish.lookingNow': 'Being looked at now',
+  'polish.notYet': 'This picture has not had its turn yet.',
   'polish.settled': 'Settled in earlier passes',
   'polish.open': 'See what was found',
   'polish.filters': 'Which pictures to show',
