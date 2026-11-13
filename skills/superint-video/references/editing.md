@@ -33,7 +33,7 @@ See [project.md](project.md) for the manifest fields.
 ```sh
 superint-video check <dir> --json
 superint-video snapshot <dir> --frames 0,45,90 --output renders/snapshots
-superint-video studio <dir>
+superint-video studio <dir> --background
 ```
 
 - `check` with zero sampled frames means visual validation did not run.

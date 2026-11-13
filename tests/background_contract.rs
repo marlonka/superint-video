@@ -151,3 +151,65 @@ async fn the_app_started_from_another_copy_takes_over() -> Result<()> {
     tokio::time::sleep(Duration::from_secs(1)).await;
     Ok(())
 }
+
+#[tokio::test]
+#[ignore = "requires a Windows desktop session"]
+async fn a_studio_started_in_the_background_answers_at_once_and_stays_until_stopped() -> Result<()>
+{
+    let home = tempfile::Builder::new()
+        .prefix("superint-background-contract-")
+        .tempdir()?;
+    let film = home.path().join("film");
+    std::fs::create_dir_all(&film)?;
+    std::fs::write(
+        film.join("video.json"),
+        r#"{"version":1,"width":320,"height":180,"fps":{"num":30,"den":1},"durationFrames":30,
+            "tracks":[{"id":"scenes","kind":"visual"}],"clips":[]}"#,
+    )?;
+    let studio = |extra: &'static [&'static str]| {
+        let mut command = tool(&home);
+        command.arg("studio").arg(&film).args(extra);
+        command
+    };
+    let started = studio(&["--background", "--no-open"]).output().await?;
+    ensure!(
+        started.status.success(),
+        "Studio did not start: {}",
+        String::from_utf8_lossy(&started.stderr)
+    );
+    let started: Value = serde_json::from_slice(&started.stdout)?;
+    let url = started["url"].as_str().context("no address")?.to_string();
+    ensure!(
+        started["background"] == true,
+        "not in the background: {started}"
+    );
+
+    // The command has returned. The server answers, and a second call finds it instead of
+    // starting another.
+    let page = reqwest::Client::builder()
+        .no_proxy()
+        .timeout(Duration::from_secs(3))
+        .build()?
+        .get(&url)
+        .send()
+        .await;
+    let again: Value = serde_json::from_slice(
+        &studio(&["--background", "--no-open"])
+            .output()
+            .await?
+            .stdout,
+    )?;
+    let stopped: Value = serde_json::from_slice(&studio(&["--stop"]).output().await?.stdout)?;
+    ensure!(
+        page.context("Studio did not answer")?.status().is_success(),
+        "Studio answered with an error"
+    );
+    ensure!(
+        again["alreadyRunning"] == true && again["url"] == url.as_str(),
+        "a second Studio started: {again}"
+    );
+    ensure!(stopped["stopped"] == true, "Studio was not stopped");
+    // The stopped program lets go of its files a moment later; the folder may then go.
+    tokio::time::sleep(Duration::from_secs(1)).await;
+    Ok(())
+}

@@ -192,7 +192,7 @@ superint-video render <dir> --output renders/<slug>.mp4
 
 - Do not overwrite an existing export unless asked; choose a new name.
 - Read what the render reports: size, fps, frames, and with audio the loudness and true peak of the MP4.
-- Then give the user the MP4 path and the Studio address, where the finished film plays (`superint-video studio <dir>` brings it back), and stop. They watch first: no thumbnail, report or cleanup yet.
+- Then give the user the MP4 path and the Studio address, where the finished film plays (`superint-video studio <dir> --background` brings it back), and stop. They watch first: no thumbnail, report or cleanup yet.
 - What they say after watching is a change like any other: fix it, run `polish` again (it walks only the stills that changed), accept, render under a new name.
 
 ## 10. After the user has accepted

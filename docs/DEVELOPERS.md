@@ -33,7 +33,7 @@ Every step is a command, and every command prints JSON. The CLI never writes tex
 
 ```powershell
 superint-video new .\sleep --preset flat-explainer --topic "Why sleep cleans the brain" --seconds 60
-superint-video studio .\sleep                 # brings Studio back
+superint-video studio .\sleep --background    # brings Studio back
 superint-video voice takes .\sleep            # takes per paragraph, transcribed and measured
 superint-video voice own .\sleep --wait       # or: your own voice, recorded in Studio
 superint-video music .\sleep                  # music variants, measured

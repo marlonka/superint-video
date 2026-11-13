@@ -30,7 +30,7 @@ superint-video doctor --json
 superint-video new .\mein-video --topic "Warum ist der Himmel blau?" --seconds 30
 ```
 
-`new` startet Studio im Hintergrund und öffnet es im Browser. `superint-video studio .\mein-video` holt es später zurück, auch für ein bestehendes Projekt; `--stop` beendet es, und ohne Zuschauer und ohne Render beendet es sich nach zwei Stunden selbst. Wer das nicht will, gibt `new` und `render` `--no-studio` mit (in CI und mit `SUPERINT_NO_STUDIO` ist es von selbst aus). Der Port wird automatisch gewählt und bleibt für den Film derselbe, solange er frei ist: Ein Studio-Fenster, das noch offen ist, findet ein neu gestartetes Studio von selbst wieder. Für einen festen Port kannst du `studio .\mein-video --port 4317` verwenden, sofern er frei ist.
+`new` startet Studio im Hintergrund und öffnet es im Browser. `superint-video studio .\mein-video --background` holt es später zurück, auch für ein bestehendes Projekt, und nennt sofort seine Adresse (ohne `--background` läuft der Befehl selbst als Studio, bis du ihn mit Strg+C beendest); `--stop` beendet es, und ohne Zuschauer und ohne Render beendet es sich nach zwei Stunden selbst. Wer das nicht will, gibt `new` und `render` `--no-studio` mit (in CI und mit `SUPERINT_NO_STUDIO` ist es von selbst aus). Der Port wird automatisch gewählt und bleibt für den Film derselbe, solange er frei ist: Ein Studio-Fenster, das noch offen ist, findet ein neu gestartetes Studio von selbst wieder. Für einen festen Port kannst du `studio .\mein-video --port 4317` verwenden, sofern er frei ist.
 
 `doctor` prüft die Programm-Erkennung. Danach prüfst du mit `check` echte Frames im Browser; erst damit wird auch das Rendering ausgeführt.
 

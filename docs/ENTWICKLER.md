@@ -33,7 +33,7 @@ Jeder Schritt ist ein Befehl, und jeder Befehl gibt JSON aus. Die CLI schreibt n
 
 ```powershell
 superint-video new .\schlaf --preset flat-explainer --topic "Warum Schlaf das Gehirn putzt" --seconds 60
-superint-video studio .\schlaf                  # holt Studio zurück
+superint-video studio .\schlaf --background     # holt Studio zurück
 superint-video voice takes .\schlaf             # Takes pro Absatz, transkribiert und gemessen
 superint-video voice own .\schlaf --wait        # oder: deine eigene Stimme, in Studio eingesprochen
 superint-video music .\schlaf                   # Musikvarianten, gemessen

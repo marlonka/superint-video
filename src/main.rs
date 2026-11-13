@@ -138,7 +138,8 @@ enum Commands {
         #[command(subcommand)]
         command: PresetCommand,
     },
-    /// Open the local editor server. Ctrl+C stops its processes.
+    /// Open the local editor server. Ctrl+C stops its processes; with `--background` it starts
+    /// on its own and the command returns at once.
     Studio {
         #[arg(default_value = ".")]
         project: PathBuf,
@@ -150,6 +151,10 @@ enum Commands {
         /// Stop this project's running Studio.
         #[arg(long)]
         stop: bool,
+        /// Start it in the background and print its address at once, the way `new` and `render`
+        /// do: it outlives this command and the program that ran it.
+        #[arg(long, conflicts_with_all = ["stop", "detached"])]
+        background: bool,
         /// Started by another command: no console, and it ends itself after long without a viewer.
         #[arg(long, hide = true)]
         detached: bool,
@@ -1077,6 +1082,7 @@ async fn run() -> Result<()> {
             port,
             no_open,
             stop,
+            background,
             detached,
         } => {
             let root = ProjectStore::open(&project)?.root;
@@ -1087,6 +1093,12 @@ async fn run() -> Result<()> {
                     live::open_browser(&url);
                 }
                 print_json(json!({"url": url, "project": root, "alreadyRunning": true}));
+            } else if background {
+                let url = live::Server::studio(&root)
+                    .launch(&["studio".as_ref(), root.as_os_str()], !no_open)
+                    .await
+                    .context("Studio did not start in the background")?;
+                print_json(json!({"url": url, "project": root, "background": true}));
             } else {
                 server::studio(
                     root,
