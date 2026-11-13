@@ -178,7 +178,7 @@
 <section class="home-section" aria-labelledby="new-title" bind:this={section}>
   <div class="home-heading">
     <h2 id="new-title">{$t('compose.title')}</h2>
-    <p class="home-summary">{$t('compose.lead', { agents })}</p>
+    <p class="home-summary">{$t('compose.lead')}</p>
   </div>
   <div class="composer">
     <div class="composer-field" class:dictating>
@@ -258,8 +258,9 @@
         </select>
       </div>
     </div>
+    <p class="composer-prompt-for" id="prompt-for">{$t('compose.promptFor', { agents })}</p>
     <div class="composer-prompt">
-      <pre aria-label={$t('compose.promptLabel')}>{prompt}</pre>
+      <pre aria-label={$t('compose.promptLabel')} aria-describedby="prompt-for">{prompt}</pre>
       <button class="button primary" disabled={!topic.trim()} onclick={copyPrompt}
         ><Icon name={copied ? 'check' : 'copy'} />{$t(
           copied ? 'common.copied' : 'compose.copy',
@@ -267,7 +268,7 @@
       >
     </div>
     {#if handedOver}<p class="composer-next" role="status">
-        {$t(overview.settings.follow ? 'compose.next' : 'compose.nextList', { agents })}
+        {$t(overview.settings.follow ? 'compose.next' : 'compose.nextList')}
       </p>{/if}
   </div>
 </section>

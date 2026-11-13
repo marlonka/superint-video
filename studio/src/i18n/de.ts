@@ -376,8 +376,8 @@ export const de: Catalog = {
 
   // Neuer Film
   'compose.title': 'Neuer Film',
-  'compose.lead':
-    'Du beschreibst ihn, dein Coding-Agent baut ihn. Den Prompt dafür kopierst du in {agents}.',
+  'compose.lead': 'Du beschreibst ihn, dein Coding-Agent baut ihn.',
+  'compose.promptFor': 'Den Prompt kopierst du in {agents} und schickst ihn dort ab.',
   'compose.placeholder': 'Worum soll es im Film gehen? Ein, zwei Sätze genügen.',
   'compose.lengthIs': 'Also {length}',
   'compose.lengthHelp': 'Zum Beispiel 3 min, 90 s oder 2:30, höchstens 60 min',
@@ -389,9 +389,9 @@ export const de: Catalog = {
   'compose.copy': 'Prompt kopieren',
   'compose.copied': 'Prompt kopiert.',
   'compose.next':
-    'Jetzt in {agents} einfügen und abschicken. Lass dieses Fenster offen: Sobald dein Coding-Agent loslegt, wechselt es zum neuen Film, und du siehst jeden Schritt. Zuschauen musst du nicht, er arbeitet auch im Hintergrund weiter, bis das MP4 fertig ist.',
+    'Lass dieses Fenster offen: Sobald dein Coding-Agent loslegt, wechselt es zum neuen Film, und du siehst jeden Schritt. Zuschauen musst du nicht, er arbeitet auch im Hintergrund weiter, bis das MP4 fertig ist.',
   'compose.nextList':
-    'Jetzt in {agents} einfügen und abschicken. Sobald dein Coding-Agent loslegt, steht der Film unten unter „Erstellte Filme“; dort öffnest du ihn und siehst jeden Schritt. Zuschauen musst du nicht, er arbeitet auch im Hintergrund weiter, bis das MP4 fertig ist.',
+    'Sobald dein Coding-Agent loslegt, steht der Film unten unter „Erstellte Filme“; dort öffnest du ihn und siehst jeden Schritt. Zuschauen musst du nicht, er arbeitet auch im Hintergrund weiter, bis das MP4 fertig ist.',
   'compose.copyBlocked':
     'Der Browser hat das Kopieren nicht erlaubt. Markiere den Text und kopiere ihn von Hand.',
   'dictate.start': 'Sprechen',

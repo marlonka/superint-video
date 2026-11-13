@@ -721,16 +721,20 @@
   color: var(--secondary);
   font-size: 14px;
 }
+/* The body size, like every other list on the start page, so "16:9, quer (YouTube)" fits. */
 .composer-choice select,
 .composer-choice input[type='text'] {
   width: 100%;
+  font-size: 15px;
 }
 /* The length: a field that looks and opens like the lists beside it, and takes typing. */
 .length-field {
   position: relative;
 }
+/* The arrow sits where the lists draw theirs, with the same room before it. */
 .length-field > input[type='text'] {
-  padding-right: 40px;
+  padding-right: 35px;
+  text-overflow: ellipsis;
 }
 /* Empty, the field says what the topic decides, in the same ink as the lists beside it. */
 .length-field > input[type='text']::placeholder {
@@ -812,6 +816,12 @@
 }
 .length-note.failed {
   color: var(--error);
+}
+/* Where the prompt goes, right above it, like the labels of the choices above. */
+.composer-prompt-for {
+  margin: 0 0 -6px;
+  color: var(--secondary);
+  font-size: 14px;
 }
 .composer-prompt {
   display: flex;

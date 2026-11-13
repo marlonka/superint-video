@@ -11,7 +11,7 @@
 
 <p align="center">
   <img alt="Windows 10 and 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-2f7bf5?style=flat-square">
-  <a href="https://github.com/marlonka/superint-video/releases/latest"><img alt="Version 0.9.4" src="https://img.shields.io/badge/Version-0.9.4-2e8b57?style=flat-square"></a>
+  <a href="https://github.com/marlonka/superint-video/releases/latest"><img alt="Version 0.9.5" src="https://img.shields.io/badge/Version-0.9.5-2e8b57?style=flat-square"></a>
   <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-3a3a3a?style=flat-square">
 </p>
 
