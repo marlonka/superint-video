@@ -2,6 +2,17 @@
 
 Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. Das Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Nummern folgen [Semantic Versioning](https://semver.org/lang/de/). Jede Version zum Herunterladen steht unter [Releases](https://github.com/marlonka/superint-video/releases).
 
+## [0.9.5] – 2026-11-13
+
+### Geändert
+
+- Unter „Neuer Film“ steht direkt über dem Prompt, wohin er gehört: in Claude Code, ChatGPT Codex oder Google Antigravity.
+- Alle Auswahllisten haben denselben Pfeil wie das Feld „Länge“.
+
+### Behoben
+
+- Die Auswahllisten schnitten ihren Text weit vor dem Pfeil ab, etwa bei „16:9, quer (YouTube)“. Passt ein Text wirklich nicht, endet er jetzt mit „…“.
+
 ## [0.9.4] – 2026-11-13
 
 ### Neu
@@ -165,6 +176,7 @@ Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. 
 
 - Erste Version: eine Rust-CLI und Studio im Browser für HTML-Szenen, Timeline, Prüfen, Snapshots und MP4-Export über Chromium und FFmpeg.
 
+[0.9.5]: https://github.com/marlonka/superint-video/releases/tag/v0.9.5
 [0.9.4]: https://github.com/marlonka/superint-video/releases/tag/v0.9.4
 [0.9.3]: https://github.com/marlonka/superint-video/releases/tag/v0.9.3
 [0.9.2]: https://github.com/marlonka/superint-video/releases/tag/v0.9.2

@@ -371,7 +371,8 @@ export const en = {
 
   // New film
   'compose.title': 'New film',
-  'compose.lead': 'You describe it, your coding agent builds it. Copy the prompt into {agents}.',
+  'compose.lead': 'You describe it, your coding agent builds it.',
+  'compose.promptFor': 'Copy the prompt into {agents} and send it there.',
   'compose.placeholder': 'What should the film be about? One or two sentences are enough.',
   'compose.lengthIs': 'So {length}',
   'compose.lengthHelp': 'For example 3 min, 90 s or 2:30, at most 60 min',
@@ -383,9 +384,9 @@ export const en = {
   'compose.copy': 'Copy prompt',
   'compose.copied': 'Prompt copied.',
   'compose.next':
-    'Now paste it into {agents} and send it. Keep this window open: as soon as your coding agent starts, it switches to the new film and you see every step. You do not have to watch: it also works in the background until the MP4 is done.',
+    'Keep this window open: as soon as your coding agent starts, it switches to the new film and you see every step. You do not have to watch: it also works in the background until the MP4 is done.',
   'compose.nextList':
-    'Now paste it into {agents} and send it. As soon as your coding agent starts, the film shows up below under “Your films”; open it there to see every step. You do not have to watch: it also works in the background until the MP4 is done.',
+    'As soon as your coding agent starts, the film shows up below under “Your films”; open it there to see every step. You do not have to watch: it also works in the background until the MP4 is done.',
   'compose.copyBlocked': 'The browser did not allow copying. Select the text and copy it by hand.',
   'dictate.start': 'Speak',
   'dictate.startHint': 'Say what the film should be about instead of typing it',
