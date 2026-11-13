@@ -242,18 +242,18 @@ enum Commands {
         #[arg(long)]
         output: Option<PathBuf>,
     },
-    /// The last look before a render, for eyes that did not build the film: a still every few
-    /// seconds, close-ups at native resolution, both sides of every cut and strips over the
-    /// fastest moves, on a worksheet. A later pass lists only what changed or stayed open. A film
-    /// gets 1 to 3 rounds (polishRounds in brief.md, else the user's setting); once a round is
-    /// accepted, the next pass starts the next round over the whole film.
+    /// The last look before a render, for eyes that did not build the film, one picture at a
+    /// time: every call takes the next still (10 s apart, 5 s in a film of up to a minute) from
+    /// the picture as it is now and names it; look at it, fix what is wrong, write its row, call
+    /// again. A film gets 1 to 3 rounds (polishRounds in brief.md, else the user's setting); once
+    /// a round is accepted, the next call starts the next round at the first still.
     Polish {
         #[arg(default_value = ".")]
         project: PathBuf,
-        /// Seconds between stills (default 5).
+        /// Seconds between stills when a round starts (default 10; 5 in a film of up to 60 s).
         #[arg(long)]
         every: Option<f64>,
-        /// Record the latest pass as clean: every row says ok or kept and nothing changed since.
+        /// Record the walk: every row says ok, kept or fixed, and every still was taken.
         #[arg(long)]
         accept: bool,
     },
@@ -609,7 +609,7 @@ fn running(command: &Commands) -> Option<live::Running> {
             project,
             accept: false,
             ..
-        } => (project, "Polish pass: looking at every part of the film"),
+        } => (project, "Polish: taking the next still to look at"),
         Commands::Music { project, .. } => (project, "Generating music"),
         Commands::Mix { project } => (project, "Mixing"),
         Commands::Listen { project, .. } => (project, "Listening"),
@@ -1156,8 +1156,8 @@ async fn run() -> Result<()> {
             project,
             json: machine,
         } => {
-            let store = ProjectStore::open(project)?;
-            let result = renderer::check(store.snapshot()?).await?;
+            let mut store = ProjectStore::open(project)?;
+            let result = renderer::check(store.settled_snapshot()?).await?;
             if machine {
                 print_json(result.clone());
             } else {
@@ -1186,9 +1186,9 @@ async fn run() -> Result<()> {
             frames,
             output,
         } => {
-            let store = ProjectStore::open(project)?;
+            let mut store = ProjectStore::open(project)?;
             let output = relative_output(&store.root, output);
-            print_json(renderer::snapshots(store.snapshot()?, &frames, &output).await?);
+            print_json(renderer::snapshots(store.settled_snapshot()?, &frames, &output).await?);
         }
         Commands::Review {
             project,
@@ -1201,7 +1201,7 @@ async fn run() -> Result<()> {
             no_motion,
             output,
         } => {
-            let store = ProjectStore::open(project)?;
+            let mut store = ProjectStore::open(project)?;
             let output = output.map_or_else(
                 || review::next_output(&store.root),
                 |path| relative_output(&store.root, path),
@@ -1227,27 +1227,21 @@ async fn run() -> Result<()> {
                 crop,
                 motion: every.is_some() && !no_motion,
             };
-            print_json(review::review(store.snapshot()?, &options, &output).await?);
+            print_json(review::review(store.settled_snapshot()?, &options, &output).await?);
         }
         Commands::Polish {
             project,
             every,
             accept,
         } => {
-            let store = ProjectStore::open(project)?;
+            let mut store = ProjectStore::open(project)?;
             let picture = project::picture_revision(&store.root)?;
             let (rounds, from) = polish::rounds(&store.root)?;
             let mut result = if accept {
                 polish::accept(&store.root, &picture, rounds)?
             } else {
-                let next = polish::next(&store.root, rounds);
-                polish::polish(
-                    store.snapshot()?,
-                    &picture,
-                    every.unwrap_or(polish::EVERY_SECONDS),
-                    &next,
-                )
-                .await?
+                let next = polish::next(&store.root, rounds, &picture);
+                polish::polish(store.settled_snapshot()?, &picture, every, &next).await?
             };
             result["roundsFrom"] = json!(from);
             print_json(result);
@@ -1263,7 +1257,7 @@ async fn run() -> Result<()> {
             no_studio,
             unpolished,
         } => {
-            let store = ProjectStore::open(project)?;
+            let mut store = ProjectStore::open(project)?;
             // A film made from a brief is polished before its final render, in as many rounds as
             // it gets; a bare project is not held up.
             let briefed = store.root.join("brief.md").is_file();
@@ -1278,12 +1272,12 @@ async fn run() -> Result<()> {
                 if polished["state"] == "next-round" {
                     let done = polished["round"].as_u64().unwrap_or(1);
                     bail!(
-                        "Round {done} of {rounds} polish rounds is accepted; round {} needs fresh eyes. Start a new polisher, cold, with the brief in references/polish.md of the superint-video skill: its `superint-video polish <dir>` starts that round over the whole film, and it ends with `polish --accept`. {skip}",
+                        "Round {done} of {rounds} polish rounds is accepted; round {} needs fresh eyes. Start a new polisher, cold, with the brief in references/polish.md of the superint-video skill: its `superint-video polish <dir>` starts that round at the first still, and it ends with `polish --accept`. {skip}",
                         done + 1
                     );
                 }
                 bail!(
-                    "No polish pass is accepted for this picture ({}). Run `superint-video polish <dir>`, fix what it lists, run it again until a pass is clean, then `polish --accept`. {skip}",
+                    "No polish pass is accepted for this picture ({}). Run `superint-video polish <dir>`: it shows one still at a time. Fix what is wrong in each, write its row, run it again for the next, then `polish --accept`. {skip}",
                     polished["state"].as_str().unwrap_or("missing")
                 );
             }
@@ -1298,7 +1292,7 @@ async fn run() -> Result<()> {
                 let _ = tokio::signal::ctrl_c().await;
                 signal.cancel();
             });
-            let snapshot = store.snapshot()?;
+            let snapshot = store.settled_snapshot()?;
             let reporter = live::LiveRender::start(
                 &store.root,
                 &output,

@@ -2,6 +2,24 @@
 
 Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. Das Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Nummern folgen [Semantic Versioning](https://semver.org/lang/de/). Jede Version zum Herunterladen steht unter [Releases](https://github.com/marlonka/superint-video/releases).
 
+## [0.10.0] – 2026-11-14
+
+### Neu
+
+- **Der Feinschliff arbeitet Details aus:** Vor dem Render behebt dein Coding-Agent nicht mehr nur Fehler. Er ergänzt in jedem Bild, was ihm fehlt: Material, kleine Teile, Licht, Tiefe.
+
+### Geändert
+
+- **Der Feinschliff ist viel schneller:** Dein Coding-Agent sieht alle 10 Sekunden ein Standbild an (bei Filmen bis zu einer Minute alle 5), bessert es sofort nach, sieht einmal das Ergebnis an und geht zum nächsten. Vorher sah er Hunderte Bilder an und brauchte dafür über eine Stunde.
+- Studio zeigt beim Feinschliff, welches Bild gerade angesehen wird und was daran gebessert wurde.
+- **Musik ist leiser Hintergrund, auch in der Vorschau:** `mix` schreibt die Lautstärke der Musik in den Clip. Vorher spielte die Vorschau in Studio die Musik viel lauter als der fertige Film.
+- Stellst du die Lautstärke der Musik in Studio selbst ein, gilt dein Wert auch im fertigen Film.
+
+### Behoben
+
+- Befehle brachen mit „project changed while …“ ab, wenn Studio im selben Moment etwas speicherte. Sie warten jetzt kurz und lesen neu.
+- `listen` für einen Ausschnitt überschrieb die Antwort für den ganzen Film.
+
 ## [0.9.5] – 2026-11-13
 
 ### Geändert
@@ -176,6 +194,7 @@ Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. 
 
 - Erste Version: eine Rust-CLI und Studio im Browser für HTML-Szenen, Timeline, Prüfen, Snapshots und MP4-Export über Chromium und FFmpeg.
 
+[0.10.0]: https://github.com/marlonka/superint-video/releases/tag/v0.10.0
 [0.9.5]: https://github.com/marlonka/superint-video/releases/tag/v0.9.5
 [0.9.4]: https://github.com/marlonka/superint-video/releases/tag/v0.9.4
 [0.9.3]: https://github.com/marlonka/superint-video/releases/tag/v0.9.3

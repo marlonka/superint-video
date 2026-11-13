@@ -37,7 +37,7 @@ A film a product team would post on launch day: a stranger knows **what the prod
 | 5 | Ending and style frames | end card, two key frames, `renders/frames/` | The end card reads at thumbnail size; frames hold up next to the references and the brand |
 | 6 | Build | `scenes/*.html`, `video.json` | `check` passes; every line and every act on screen; the product's UI built in code with its real strings |
 | 7 | Review | `renders/review/<n>/`, `process/review.md` | One director pass ([references/review.md](references/review.md)) finds no P0; a second pass only when the first changed something big |
-| 8 | Polish | `renders/polish/<n>/`, `process/polish.md` | Fresh eyes have looked at every still, close-up, cut and move (`references/polish.md` of the superint-video skill, with `--every 1` under 30 s and `--every 2` above) and fixed what they found, in as many rounds as `polishRounds` sets; the last round is clean and `polish --accept` has recorded it |
+| 8 | Polish | `renders/polish/<n>/`, `process/polish.md` | Fresh eyes have walked the film one still at a time (`references/polish.md` of the superint-video skill; `--every 2` for a film under 20 s, so every scene is seen), fixed what a viewer would spot and added detail, in as many rounds as `polishRounds` sets; `polish --accept` has recorded the last round |
 | 9 | Render and hand over | `renders/<slug>.mp4` | The render's own numbers check out; the user has the MP4 and the Studio address and watches before anything else happens |
 | 10 | After acceptance | variants, `renders/poster.png`, `report.md` | The variants reframed, not cropped, each with its own accepted polish pass; the report names the direction and why, the track and its licence or prompt, and ends with the making-of |
 

@@ -49,7 +49,7 @@ You cannot hear. Three tools listen for you, and every take, music pick and fini
 | How loud, how peaky, which key? | `earshot measure <file>` (`--music` for the key); `mix` and `render` report loudness and true peak |
 | How does it sound? Natural or rushed, does the music mask words, does a hit land on the cut, does the ending work? | `superint-video listen <file> --question "…"` |
 
-`listen` runs Earshot's audio critic (`earshot llm`): the audio goes to Gemini with the project's `GEMINI_API_KEY`, and the answer comes back with scores, strengths and issues with start and end seconds plus a fix each, saved to `process/listen/<file>.json`. It costs a few cents per film and needs no download. Without a key `listen` and `transcribe` are out: quote the measurements of `voice assemble`, `mix` and `render`, and say in the report that only the user has heard the film.
+`listen` runs Earshot's audio critic (`earshot llm`): the audio goes to Gemini with the project's `GEMINI_API_KEY`, and the answer comes back with scores, strengths and issues with start and end seconds plus a fix each, saved to `process/listen/<file>.json` (a passage gets its seconds in the name: `master-150-155s.json`). It costs a few cents per film and needs no download. Without a key `listen` and `transcribe` are out: quote the measurements of `voice assemble`, `mix` and `render`, and say in the report that only the user has heard the film.
 
 - Ask in the film's language and ask for timestamps: "Klingt die Stimme natürlich? Wo wirkt sie gehetzt oder flach? Mit Zeitstempeln."
 - Takes: listen to the recommended take of each paragraph, and to the alternative when the word error rates are close.

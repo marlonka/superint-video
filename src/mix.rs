@@ -22,6 +22,11 @@ pub const SILENCE_LUFS: f64 = -70.0;
 const NARRATION: &str = "audio/voice.wav";
 /// The track the voice is placed on: the narration, or takes spoken over the picture.
 const VOICE_TRACK: &str = "voice";
+/// The track the music is placed on.
+const MUSIC_TRACK: &str = "music";
+/// Music less than this many dB under the voice while words are spoken is reported: it is no
+/// longer background.
+const LOUD_MUSIC: f64 = 12.0;
 const CHANNELS: usize = 2;
 /// Seconds on the film timeline, start and end.
 type Intervals = Vec<(f64, f64)>;
@@ -36,7 +41,9 @@ pub struct Settings {
     /// True-peak ceiling of the WAV; AAC adds about a decibel on top.
     #[serde(default = "ceiling")]
     pub ceiling: f64,
-    /// Music this many dB under the voice while words are spoken; null keeps the clip gains.
+    /// The level a music clip gets that has none yet (it sits at full gain): this many dB under
+    /// the voice while words are spoken. `mix` writes it into the clip, so Studio plays the
+    /// music as the film has it. A clip whose gain somebody set keeps it; null levels nothing.
     #[serde(default = "music_under")]
     pub music_under: Option<f64>,
     #[serde(default = "duck")]
@@ -61,6 +68,8 @@ fn duck() -> f64 {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Ride {
+    /// The frames between which the music holds `db` more (or less). It ramps there over
+    /// `rampFrames` before `from` and back over `rampFrames` after `to`.
     pub from: u64,
     pub to: u64,
     pub db: f64,
@@ -90,13 +99,21 @@ pub async fn mix(root: &Path) -> Result<Value> {
     let settings = settings(&store.root)?;
     let frames = manifest.fps.sample_at(manifest.duration_frames, RATE)? as usize;
     let mut buses: BTreeMap<String, Vec<f32>> = BTreeMap::new();
+    // Music nobody has given a level yet, apart from the music whose gain was set.
+    let mut unlevelled = vec![0f32; frames * CHANNELS];
+    let mut to_level: Vec<&Clip> = Vec::new();
     let mut clips = 0;
     for clip in audible(manifest) {
         let samples = decode_clip(&store.root, manifest, clip).await?;
         let start = manifest.fps.sample_at(clip.start_frame, RATE)? as usize * CHANNELS;
-        let bus = buses
-            .entry(clip.track.clone())
-            .or_insert_with(|| vec![0.0; frames * CHANNELS]);
+        let bus = if without_level(clip) && settings.music_under.is_some() {
+            to_level.push(clip);
+            &mut unlevelled
+        } else {
+            buses
+                .entry(clip.track.clone())
+                .or_insert_with(|| vec![0.0; frames * CHANNELS])
+        };
         for (target, sample) in bus.iter_mut().skip(start).zip(samples) {
             *target += sample;
         }
@@ -112,41 +129,69 @@ pub async fn mix(root: &Path) -> Result<Value> {
     let (speech, mut warnings) = speech(&store.root, manifest).await?;
 
     let mut music_report = Value::Null;
-    if let Some(music) = buses.get_mut("music") {
+    // The gain each music clip without a level gets, to be written into the film.
+    let mut levelled: Vec<(String, f64)> = Vec::new();
+    if buses.contains_key(MUSIC_TRACK) || !to_level.is_empty() {
         let mut envelope = duck_envelope(frames, &speech, settings.duck_db);
         for ride in &settings.rides {
             add_ride(&mut envelope, manifest, ride);
         }
-        apply_envelope(music, &envelope);
         let mut gain_db = 0.0;
-        if let (Some(under), Some(voice)) = (settings.music_under, buses.get("voice")) {
-            if speech.is_empty() {
-                warnings.push(
-                    "no words to measure the music against; music keeps its clip gains".into(),
-                );
-            } else {
-                let voice_db = during(voice, &speech)?.integrated_lufs;
-                let music = buses.get_mut("music").unwrap();
-                let music_db = during(music, &speech)?.integrated_lufs;
-                if music_db > -70.0 {
-                    gain_db = voice_db - under - music_db;
-                    scale(music, gain_db);
+        if !to_level.is_empty() {
+            apply_envelope(&mut unlevelled, &envelope);
+            if let (Some(under), Some(voice)) = (settings.music_under, buses.get(VOICE_TRACK)) {
+                if speech.is_empty() {
+                    warnings.push(
+                        "no words to measure the music against; music keeps its clip gains".into(),
+                    );
+                } else {
+                    let voice_db = during(voice, &speech)?.integrated_lufs;
+                    let music_db = during(&unlevelled, &speech)?.integrated_lufs;
+                    if music_db > -70.0 {
+                        gain_db = voice_db - under - music_db;
+                        scale(&mut unlevelled, gain_db);
+                        let gain = round(10f64.powf(gain_db / 20.0), 5);
+                        levelled = to_level.iter().map(|c| (c.id.clone(), gain)).collect();
+                    }
                 }
             }
         }
-        let music = &buses["music"];
-        let under = match buses.get("voice") {
+        if let Some(set) = buses.get_mut(MUSIC_TRACK) {
+            apply_envelope(set, &envelope);
+        }
+        let music = buses
+            .entry(MUSIC_TRACK.into())
+            .or_insert_with(|| vec![0.0; frames * CHANNELS]);
+        for (target, sample) in music.iter_mut().zip(&unlevelled) {
+            *target += sample;
+        }
+        let music = &buses[MUSIC_TRACK];
+        let under = match buses.get(VOICE_TRACK) {
             Some(voice) if !speech.is_empty() => Some(round(
                 during(voice, &speech)?.integrated_lufs - during(music, &speech)?.integrated_lufs,
                 2,
             )),
             _ => None,
         };
+        if let Some(under) = under
+            && under < LOUD_MUSIC
+        {
+            warnings.push(format!(
+                "the music is only {under} dB under the voice while words are spoken; music under a voice is background, about {} dB under",
+                music_under().unwrap_or(22.0)
+            ));
+        }
         music_report = json!({
             "gainDb": round(gain_db, 2),
             "duckDb": settings.duck_db,
             "underVoiceDuringWords": under,
             "rides": settings.rides.len(),
+            // Where the level comes from: the mix set it, or the clips brought their gains.
+            "level": if levelled.is_empty() { "timeline" } else { "mix" },
+            "levelled": levelled
+                .iter()
+                .map(|(id, gain)| json!({"clip": id, "gain": gain}))
+                .collect::<Vec<_>>(),
         });
     }
 
@@ -186,6 +231,39 @@ pub async fn mix(root: &Path) -> Result<Value> {
         "warnings": warnings,
     });
     write_report(&store.root, &report)?;
+    let mut report = report;
+    if !levelled.is_empty() {
+        // The level goes into the clips, the way Studio would set it: from now on the preview
+        // plays the music as the film has it, and the user changes it there.
+        let operations: Vec<Value> = levelled
+            .iter()
+            .map(|(id, gain)| json!({"type": "updateClip", "id": id, "changes": {"gain": gain}}))
+            .collect();
+        let text = serde_json::to_string(&operations)?;
+        let request = crate::edit::Request {
+            operations: Some(&text),
+            clip: None,
+            props: &[],
+            sets: &[],
+            dry_run: false,
+        };
+        match crate::edit::run(&store.root, &request).await {
+            Ok(_) => {
+                report["music"]["note"] = json!(
+                    "The music had no level yet: it is now written into its clips, so Studio plays it as the film has it. A gain set there afterwards is kept."
+                );
+            }
+            Err(error) => {
+                report["ok"] = json!(false);
+                if let Some(list) = report["warnings"].as_array_mut() {
+                    list.push(json!(format!(
+                        "the music level could not be written into its clips ({error:#}); Studio plays the music louder than the film has it. Run `mix` again."
+                    )));
+                }
+            }
+        }
+        write_report(&store.root, &report)?;
+    }
     Ok(report)
 }
 
@@ -221,6 +299,12 @@ fn silent(root: &Path, output: &Path, frames: usize) -> Result<Value> {
 pub async fn measure(path: &Path) -> Result<Loudness> {
     let samples = audio::decode_channels(path, RATE, CHANNELS as u32).await?;
     audio::loudness(&samples, RATE, CHANNELS as u32)
+}
+
+/// A music clip at full gain has no level yet: `mix` gives it one. Any other gain is somebody's
+/// choice, made in Studio or with `edit`, and stays.
+fn without_level(clip: &Clip) -> bool {
+    clip.track == MUSIC_TRACK && (clip.gain - 1.0).abs() < 1e-9
 }
 
 fn audible(manifest: &Manifest) -> impl Iterator<Item = &Clip> {
@@ -595,6 +679,28 @@ mod tests {
         assert!(reduction > 5.0);
         // Far from the spike the signal is untouched.
         assert!((samples[2 * 1000] - 0.1 * (1000f32 * 0.05).sin()).abs() < 1e-6);
+    }
+
+    #[test]
+    fn only_music_at_full_gain_is_without_a_level() {
+        let manifest: Manifest = serde_json::from_value(json!({
+            "version":1,"width":2,"height":2,"fps":{"num":30,"den":1},"durationFrames":300,
+            "tracks":[{"id":"music","kind":"audio"},{"id":"voice","kind":"audio"}],
+            "clips":[
+                {"id":"bed","type":"audio","track":"music","src":"audio/bed.wav","startFrame":0,"durationFrames":300},
+                {"id":"set","type":"audio","track":"music","src":"audio/bed.wav","startFrame":0,"durationFrames":300,"gain":0.07},
+                {"id":"voice","type":"audio","track":"voice","src":"audio/voice.wav","startFrame":0,"durationFrames":300}
+            ]
+        }))
+        .unwrap();
+        let without: Vec<&str> = manifest
+            .clips
+            .iter()
+            .filter(|clip| without_level(clip))
+            .map(|clip| clip.id.as_str())
+            .collect();
+        // The gain the user set in Studio stays; the voice is never levelled as music.
+        assert_eq!(without, vec!["bed"]);
     }
 
     #[test]

@@ -28,9 +28,13 @@ Look at each at full size and scaled to 320 px wide, next to the references at t
 
 **Next pass:** alternate the grid offset (`--offset 1.5`, then `--offset 0`) so each pass sees the frames between the previous pass's frames. The workflow says how many passes; stop when a pass at a new offset finds nothing that matters.
 
+## A move over every frame
+
+A still cannot show a jump between two frames. When something moves through the whole film (a pointer, a camera, a hand), keep its position a pure function of time and ask it for every frame: the largest step and the largest turn from one frame to the next, and whether it covers a text. The preview server serves every project file at `<previewUrl>/asset/<path>` (`studio` prints `previewUrl`), so a scene's modules can be imported in the browser and asked directly. A step far larger than its neighbours is a jump a viewer sees.
+
 ## Before and after the render
 
-Review passes end when the film holds up for its author. Then comes the polish pass ([polish.md](polish.md)): fresh eyes, close-ups, cuts and moves, and the record that `render` asks for.
+Review passes end when the film holds up for its author. Then comes polish ([polish.md](polish.md)): fresh eyes walk the film one still at a time, fix what they see and add detail, and leave the record that `render` asks for.
 
 To judge sound against the picture, render a draft first (`render --quality draft`) and listen to it with `superint-video listen` (see the `superint-audio` skill). Don't claim to have listened if you only checked metadata.
 

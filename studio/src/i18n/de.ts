@@ -76,15 +76,15 @@ export const de: Catalog = {
   'setup.films.window': 'In einem eigenen Fenster öffnen statt in einem Browser-Tab',
   'setup.polish.title': 'Visueller Qualitäts-Feinschliff vor dem Render',
   'setup.polish.why':
-    'Ein Sub-Agent deines Coding-Agents sieht jedes Bild mit frischen Augen an und bessert nach, bevor der Film gerendert wird.',
+    'Ein Sub-Agent deines Coding-Agents geht den Film mit frischen Augen durch, ein Standbild nach dem anderen, und bessert nach, bevor der Film gerendert wird.',
   'setup.polish.choice': 'Visueller Qualitätsloop vor jedem Render',
   'setup.polish.rounds': { one: '{count} Runde', other: '{count} Runden' },
   'setup.polish.what1':
-    'Frische Augen prüfen jedes Standbild, jeden Schnitt und jede Bewegung und bessern nach. Die übliche Wahl.',
+    'Frische Augen sehen alle 10 Sekunden ein Standbild an (bei kurzen Filmen alle 5), bessern gleich nach und gehen zum nächsten. Die übliche Wahl.',
   'setup.polish.what2':
-    'Nach der ersten Runde sucht eine zweite mit neuen Augen, was noch falsch ist, und arbeitet Details aus. Etwa doppelt so viel Zeit und Nutzung.',
+    'Nach der ersten Runde geht eine zweite mit neuen Augen die Bilder dazwischen durch, sucht, was noch falsch ist, und arbeitet Details aus. Etwa doppelt so viel Zeit und Nutzung.',
   'setup.polish.what3':
-    'Danach geht eine dritte Runde Material, Licht und Bewegung im ganzen Film durch. Etwa dreimal so viel Zeit und Nutzung.',
+    'Danach geht eine dritte Runde Material, Licht und Bildaufbau im ganzen Film durch. Etwa dreimal so viel Zeit und Nutzung.',
   'setup.polish.saved': 'Feinschliff: {rounds} vor jedem Render',
   'settings.saved': 'Gespeichert',
   'setup.continue': 'Weiter zum ersten Film',
@@ -642,8 +642,8 @@ export const de: Catalog = {
   'polish.pass': 'Durchgang {pass}',
   'polish.heading': 'Feinschliff, Durchgang {pass}',
   'polish.lead':
-    'Vor einem Render wird der Film Bild für Bild angesehen: Standbilder, beide Seiten jedes Schnitts und die schnellsten Bewegungen.',
-  'polish.state.capturing': 'Die Bilder des Films werden aufgenommen',
+    'Vor einem Render wird der Film Bild für Bild durchgegangen: ein Standbild ansehen, gleich bessern, das gebesserte Bild einmal prüfen, weiter zum nächsten.',
+  'polish.state.capturing': 'Das nächste Bild wird aufgenommen',
   'polish.state.accepted': 'Sauber: Dieses Bild darf gerendert werden',
   'polish.state.nothingLeft': 'In diesem Durchgang ist nichts mehr zu beheben',
   'polish.state.stale': 'Das Bild hat sich seit dem letzten sauberen Durchgang geändert',
@@ -655,6 +655,9 @@ export const de: Catalog = {
   'polish.lookedAt': 'Angesehen',
   'polish.lookedAtCount': '{seen} von {listed} Bildern',
   'polish.toFix': 'Zu beheben',
+  'polish.fixed': 'Gebessert',
+  'polish.lookingNow': 'Wird gerade angesehen',
+  'polish.notYet': 'Dieses Bild ist noch nicht an der Reihe.',
   'polish.settled': 'In früheren Durchgängen erledigt',
   'polish.open': 'Befunde ansehen',
   'polish.filters': 'Welche Bilder gezeigt werden',

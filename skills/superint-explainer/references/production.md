@@ -171,17 +171,18 @@ The first full build is a draft. Work on it in passes, going through the film ev
 - **Motion:** something moves in every frame; only the end card holds still.
 - **Ending:** the message lands over its own image, and the end card holds 3–6 s while the music resolves.
 
-These passes are yours as the author: composition, flow and the picture against the words. The cold look at how every object, cut and move is made comes next.
+These passes are yours as the author: composition, flow and the picture against the words. The cold look at how every object is made, and at what each picture still lacks, comes next.
 
 ## 8. Polish → `renders/polish/<n>/`, `process/polish.md`
 
-Before any delivery render, fresh eyes go through the film once more: every still at full size, close-ups, both sides of every cut and the fastest moves. They do it in as many rounds as the user set (`polishRounds`, 1 to 3), each round a new cold polisher after the one before. Follow `references/polish.md` of the superint-video skill; nobody has to ask for this step. For this workflow:
+Before any delivery render, fresh eyes walk the film once more, one still at a time: one every 10 s (every 5 s in a film of up to a minute), looked at once, improved in the scene code, looked at once more, then on to the next. They do it in as many rounds as the user set (`polishRounds`, 1 to 3), each round a new cold polisher after the one before. Follow `references/polish.md` of the superint-video skill; nobody has to ask for this step. For this workflow:
 
 - The polisher redraws what is built wrong and adds the detail that is missing, in the scene libraries, so one fix reaches every scene. The script, the voice and the timing of the words stay.
 - Judge against the stills in `references/` at the same size: a prop, an icon or a background that is simpler than theirs is a defect even when nothing in it is wrong.
-- Check characters and hero objects settled and mid-move; the strips show the frames in between.
+- Every still gets at least one detail it lacked (material, small parts, light, depth, life), as long as a picture in `references/` is richer than it.
+- The walk is quick on purpose: no other pictures than its stills, no still more than twice. What moves between two stills is the review passes' job (step 7).
 - With audio, listen to the mix against the picture on a draft render before this step (`render --quality draft`, then `superint-video listen`; see the `superint-audio` skill), so that nothing is left to check after the final render.
-- The gate is `superint-video polish <dir> --accept` of the last round. To polish a film that is already delivered, run the same loop, then render under a new name.
+- The gate is `superint-video polish <dir> --accept` of the last round. To polish a film that is already delivered, run the same walk, then render under a new name.
 
 ## 9. Render and hand over
 
@@ -192,7 +193,7 @@ superint-video render <dir> --output renders/<slug>.mp4
 - Do not overwrite an existing export unless asked; choose a new name.
 - Read what the render reports: size, fps, frames, and with audio the loudness and true peak of the MP4.
 - Then give the user the MP4 path and the Studio address, where the finished film plays (`superint-video studio <dir>` brings it back), and stop. They watch first: no thumbnail, report or cleanup yet.
-- What they say after watching is a change like any other: fix it, run `polish` again (it lists only what changed), accept, render under a new name.
+- What they say after watching is a change like any other: fix it, run `polish` again (it walks only the stills that changed), accept, render under a new name.
 
 ## 10. After the user has accepted
 

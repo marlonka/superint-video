@@ -1415,6 +1415,12 @@
   background: var(--raised);
   object-fit: cover;
 }
+.polish-list .polish-wait {
+  width: 96px;
+  aspect-ratio: 16 / 9;
+  border: 1px dashed var(--border);
+  border-radius: 5px;
+}
 .polish-list strong {
   display: flex;
   align-items: center;
@@ -1440,6 +1446,7 @@
   border-radius: 50%;
 }
 .verdict.ok,
+.verdict.fixed,
 .verdict.kept {
   background: var(--text);
   border-color: var(--text);

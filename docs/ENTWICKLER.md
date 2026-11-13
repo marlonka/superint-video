@@ -11,7 +11,7 @@ Nutze den Skill superint-video: Explainer im Flat-Vector-Stil, 60 Sekunden,
 Thema „Warum Schlaf das Gehirn putzt“.
 ```
 
-Der Agent fragt nur nach, was er nicht selbst gut entscheiden kann, etwa Screenshots des gewünschten Looks. Dann arbeitet er in Schritten, die jeweils eine Datei im Projekt hinterlassen: Recherche mit Quellen, drei Konzepte, Skript, Beats, Style-Frames, Szenen, Ton, Review, Feinschliff und Render. Der Feinschliff läuft vor jedem Render von selbst: Frische Augen sehen sich jedes Standbild, jeden Schnitt und jede Bewegung an und bessern nach, bis nichts mehr auffällt, in ein bis drei Runden. Nach deiner Abnahme folgt ein Bericht mit einem Making-of.
+Der Agent fragt nur nach, was er nicht selbst gut entscheiden kann, etwa Screenshots des gewünschten Looks. Dann arbeitet er in Schritten, die jeweils eine Datei im Projekt hinterlassen: Recherche mit Quellen, drei Konzepte, Skript, Beats, Style-Frames, Szenen, Ton, Review, Feinschliff und Render. Der Feinschliff läuft vor jedem Render von selbst: Frische Augen gehen Bild für Bild durch den Film (alle 10 Sekunden ein Standbild), beheben, was auffällt, und arbeiten Details aus, in ein bis drei Runden. Nach deiner Abnahme folgt ein Bericht mit einem Making-of.
 
 - **Eine Welt statt Folien.** Jedes Bild ist eine reine Funktion der Zeit, und jede Bewegung hängt an einem Wort der Stimme.
 - **Recherche, die trägt.** Jede Aussage im Film steht mit Quelle im Claim-Register. Drei Konzepte und drei Skriptentwürfe treten gegeneinander an.
@@ -40,8 +40,8 @@ superint-video music .\schlaf                   # Musikvarianten, gemessen
 superint-video sfx kit .\schlaf                 # Klänge aus Earshot, auf die Frames gesetzt mit sfx place
 superint-video mix .\schlaf                     # Ducking, Master auf −14 LUFS
 superint-video review .\schlaf                  # Kontaktbogen und Arbeitsblatt für die Review-Runde
-superint-video polish .\schlaf                  # letzter Blick vor dem Render
-superint-video polish .\schlaf --accept         # sauberen Durchgang festhalten
+superint-video polish .\schlaf                  # letzter Blick vor dem Render: das nächste Standbild
+superint-video polish .\schlaf --accept         # fertigen Durchgang festhalten
 superint-video render .\schlaf --audio audio/master.wav --output renders/video.mp4
 superint-video listen .\schlaf\renders\video.mp4 --project .\schlaf   # gegenhören
 superint-video doctor --json                    # findet Chrome, FFmpeg, Earshot und die API-Schlüssel
