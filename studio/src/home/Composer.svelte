@@ -40,6 +40,8 @@
   };
   let seconds: number | null = null;
   let copied = false;
+  /** The prompt went to the clipboard: the next step is in the coding agent. */
+  let handedOver = false;
   let field: HTMLTextAreaElement;
   /** Where the cursor was when the field was left: dictated text goes there. */
   let caret: [number, number] | null = null;
@@ -166,9 +168,9 @@
     return lines.join('\n');
   }
   async function copyPrompt() {
-    if (!(await copyText(prompt, $t('compose.copied', { agents }))))
-      return fail($t('compose.copyBlocked'));
+    if (!(await copyText(prompt, $t('compose.copied')))) return fail($t('compose.copyBlocked'));
     copied = true;
+    handedOver = true;
     setTimeout(() => (copied = false), 4000);
   }
 </script>
@@ -264,5 +266,8 @@
         )}</button
       >
     </div>
+    {#if handedOver}<p class="composer-next" role="status">
+        {$t(overview.settings.follow ? 'compose.next' : 'compose.nextList', { agents })}
+      </p>{/if}
   </div>
 </section>

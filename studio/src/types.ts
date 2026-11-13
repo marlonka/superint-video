@@ -224,6 +224,13 @@ export interface KeyCheck {
   creditLeft?: number | null;
   /** The provider's answer, with `refused`. */
   detail?: string;
+  /** Google Cloud: asked with the user's Google sign-in, not a saved key. */
+  signIn?: boolean;
+  /** Google Cloud, with `refused`: the project asked for and Google's reason. */
+  project?: string | null;
+  reason?: string | null;
+  /** Google Cloud, with `refused` by a sign-in: its other projects that serve the models. */
+  usable?: string[];
 }
 /** A coding agent that operates Superint Video once it has the skills. */
 export interface Agent {

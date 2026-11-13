@@ -14,16 +14,20 @@
   min-width: 0;
   background: var(--page);
 }
-/* Few controls: one row at any width, unlike the editor's header, which folds. */
+/* Few controls: one row at any width, unlike the editor's header, which folds. The name and
+   version stand in the middle of the window, the controls keep to the right. */
 .home > .app-header {
-  flex-wrap: nowrap;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+.home > .app-header > .wordmark {
+  grid-column: 2;
 }
 .home > .app-header > .header-actions {
-  flex: 0 1 auto;
+  grid-column: 3;
+  justify-self: end;
   flex-wrap: nowrap;
   min-width: 0;
-  margin-left: auto;
 }
 .home > .app-header > .header-actions > .button {
   min-width: 0;
@@ -830,6 +834,13 @@
   overflow-wrap: anywhere;
   user-select: all;
 }
+/* The step after copying, which happens in the coding agent: it stays until the page is left. */
+.composer-next {
+  max-width: 72ch;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+}
 
 .film-grid,
 .style-grid {
@@ -1244,6 +1255,16 @@
   }
 }
 @container application (max-width: 620px) {
+  /* Too narrow for the name in the middle: it goes back to the left, beside the controls. */
+  .home > .app-header {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .home > .app-header > .wordmark {
+    grid-column: 1;
+  }
+  .home > .app-header > .header-actions {
+    grid-column: 2;
+  }
   .home-page {
     padding-inline: 16px;
   }

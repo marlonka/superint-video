@@ -2,6 +2,24 @@
 
 Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. Das Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Nummern folgen [Semantic Versioning](https://semver.org/lang/de/). Jede Version zum Herunterladen steht unter [Releases](https://github.com/marlonka/superint-video/releases).
 
+## [0.9.4] – 2026-11-13
+
+### Neu
+
+- **Google Cloud findet ein passendes Projekt:** Lehnt Google deine Anmeldung für ein Projekt ab, sucht „Prüfen“ unter deinen anderen Projekten die, in denen es funktioniert, und bietet sie mit einem Klick an.
+
+### Geändert
+
+- README, Startseite und Handbuch sagen klarer, wie es gedacht ist: Superint Video schreibt den Prompt, du kopierst ihn in deinen Coding-Agenten, und der baut den Film, während du zuschaust oder im Hintergrund.
+- Nach „Prompt kopieren“ steht unter dem Prompt, was als Nächstes kommt.
+- Name und Version stehen oben in der Mitte.
+- „Erneut prüfen“ erscheint in der Einrichtung nur, solange etwas offen ist, und sagt, was es tut.
+- Der Feinschliff heißt jetzt „Visueller Qualitäts-Feinschliff vor dem Render“.
+
+### Behoben
+
+- Die Prüfung von Google Cloud sprach von einem API-Schlüssel, obwohl die App mit deiner Google-Anmeldung fragte. Jetzt nennt sie die Anmeldung, das Projekt und den Grund der Ablehnung.
+
 ## [0.9.3] – 2026-11-13
 
 ### Behoben
@@ -147,6 +165,7 @@ Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. 
 
 - Erste Version: eine Rust-CLI und Studio im Browser für HTML-Szenen, Timeline, Prüfen, Snapshots und MP4-Export über Chromium und FFmpeg.
 
+[0.9.4]: https://github.com/marlonka/superint-video/releases/tag/v0.9.4
 [0.9.3]: https://github.com/marlonka/superint-video/releases/tag/v0.9.3
 [0.9.2]: https://github.com/marlonka/superint-video/releases/tag/v0.9.2
 [0.9.1]: https://github.com/marlonka/superint-video/releases/tag/v0.9.1

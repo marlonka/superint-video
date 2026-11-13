@@ -1,6 +1,6 @@
 # Starter-Prompts
 
-Kopierfertige Aufträge für Claude Code oder Codex. Ersetze die Teile in `<spitzen Klammern>` und schicke den Text im Ordner deiner Wahl ab. Der Agent braucht Zugriff auf Dateien, Shell und (für die Recherche) Websuche, und er muss die Skills `superint-video`, `superint-audio` und den passenden Ablauf-Skill (`superint-explainer`, `superint-launch`) kennen (siehe [README](../README.md#agenten-einrichten)).
+Kopierfertige Aufträge für Claude Code, ChatGPT Codex oder Google Antigravity. Ersetze die Teile in `<spitzen Klammern>` und schicke den Text im Ordner deiner Wahl ab. Der Agent braucht Zugriff auf Dateien, Shell und (für die Recherche) Websuche, und er muss die Skills `superint-video`, `superint-audio` und den passenden Ablauf-Skill (`superint-explainer`, `superint-launch`) kennen (siehe [Handbuch](../docs/HANDBUCH.md#agenten-einrichten)).
 
 | Datei | Wofür |
 | --- | --- |

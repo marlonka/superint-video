@@ -117,6 +117,12 @@
   $: shortcut = setup.shortcut;
   $: shortcutDone = shortcut.desktop === 'here' && shortcut.startMenu === 'here';
   $: shortcutElsewhere = shortcut.desktop === 'elsewhere' || shortcut.startMenu === 'elsewhere';
+  // Asking again is for after an installation outside the app; with nothing open it has no job.
+  $: somethingOpen =
+    missing.length > 0 ||
+    setup.tools.some((tool) => !tool.ok) ||
+    behind.length > 0 ||
+    (!!shortcut.app && !shortcutDone);
 
   /** The item whose action comes next. It alone carries the primary button. */
   function nextItem(state: Overview['setup'], open: typeof missing): string {
@@ -232,6 +238,7 @@
   /** What a check of a key found, in the app's language. */
   function checkText(key: KeyRow, check: KeyCheck): string {
     if (check.state === 'none') return $t('setup.key.check.none');
+    if (check.state === 'refused' && check.signIn) return signInRefused(check);
     if (check.state === 'refused')
       return [
         $t('setup.key.check.refused', { detail: check.detail || '' }),
@@ -241,13 +248,41 @@
         .filter(Boolean)
         .join(' ');
     if (check.state === 'partial')
-      return $t('setup.key.check.partial', { models: $format.and(check.missing || []) });
+      return $t(check.signIn ? 'setup.key.check.partialSignIn' : 'setup.key.check.partial', {
+        models: $format.and(check.missing || []),
+      });
+    if (check.signIn) return $t('setup.key.check.worksSignIn');
     if (typeof check.creditLeft === 'number')
       return $t('setup.key.check.credit', { amount: $format.dollars(check.creditLeft) });
     if (check.creditLeft !== undefined) return $t('setup.key.check.works');
     if (key.name === 'OPENAI_API_KEY') return $t('setup.key.check.worksDictation');
     if (key.name === 'GOOGLE_CLOUD_API_KEY') return $t('setup.key.check.worksCloud');
     return $t('setup.key.check.worksAll');
+  }
+
+  /** Why Google Cloud turned the user's Google sign-in away, and where to go from there. */
+  function signInRefused(check: KeyCheck): string {
+    if (!check.project) return $t('setup.cloud.needsProject');
+    const why =
+      check.reason === 'CONSUMER_INVALID'
+        ? $t('setup.cloud.refused.project')
+        : check.reason === 'SERVICE_DISABLED'
+          ? $t('setup.cloud.refused.apiOff')
+          : $t('setup.cloud.refused.said', { detail: check.detail || '' });
+    const next = !check.usable
+      ? ''
+      : check.usable.length
+        ? $t('setup.cloud.usable', { projects: $format.and(check.usable) })
+        : check.reason === 'SERVICE_DISABLED'
+          ? ''
+          : $t('setup.cloud.noUsable');
+    return [$t('setup.cloud.refused', { project: check.project }), why, next]
+      .filter(Boolean)
+      .join(' ');
+  }
+  /** Points Google Cloud at another project of the sign-in and checks again. */
+  function useProject(key: KeyRow, project: string) {
+    void saveAndCheck(key, { googleCloudProject: project }, $t('setup.cloud.saved'));
   }
 
   /** Opens the window that signs the user in with Google; the app notices the sign-in itself. */
@@ -380,7 +415,23 @@
         })}</span
       >{:else if check}<span class="setup-note" class:failed={!check.ok} role="status"
         >{checkText(key, check)}</span
-      >{/if}
+      >
+      {#if refused && check.signIn && !key.place?.fixed && !placeOpen}
+        {#if check.usable?.length}<span class="setup-links"
+            >{#each check.usable.slice(0, 3) as project (project)}<button
+                class="text-link"
+                disabled={$busy === 'settings'}
+                onclick={() => useProject(key, project)}
+                >{$t('setup.cloud.use', { project })}</button
+              >{/each}</span
+          >{:else if check.reason === 'SERVICE_DISABLED' && check.project}<a
+            class="text-link"
+            href={`https://console.cloud.google.com/apis/library/aiplatform.googleapis.com?project=${encodeURIComponent(check.project)}`}
+            target="_blank"
+            rel="noreferrer">{$t('setup.cloud.enableApi')}</a
+          >{/if}
+      {/if}
+    {/if}
     {#if own && !replacing[key.name]}<span class="setup-links">
         <button class="text-link" onclick={() => (replacing = { ...replacing, [key.name]: true })}
           >{$t('setup.key.replace')}</button
@@ -830,7 +881,11 @@
           >{$t('setup.settingsFolder')}</button
         >{/if}
       <span class="setup-foot-actions">
-        <button class="button" onclick={() => refresh(true)}>{$t('setup.checkAgain')}</button>
+        {#if somethingOpen}<button
+            class="button"
+            title={$t('setup.checkAgainHint')}
+            onclick={() => refresh(true)}>{$t('setup.checkAgain')}</button
+          >{/if}
         {#if first && done === total}<button class="button primary" onclick={oncontinue}
             >{$t('setup.continue')}</button
           >{:else if onclose}<button class="button primary" onclick={onclose}

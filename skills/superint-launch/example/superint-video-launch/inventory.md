@@ -37,6 +37,6 @@ Der Film „Modellfamilien: Die richtige Größe wählen“, den Superint Video 
 
 ## Nicht im Film
 
-- Andere Marken als Bild: kein Claude-Code- oder Codex-Logo, keine nachgebaute Oberfläche dieser Programme; das Terminal ist neutral.
+- Andere Marken als Bild: kein Claude-Code- oder ChatGPT-Codex-Logo, keine nachgebaute Oberfläche dieser Programme; das Terminal ist neutral.
 - Bilder des Falls mit lesbaren Modell- oder Firmennamen (die Tabellen mit GPT und Claude) nur so klein, dass sie nicht lesbar sind.
 - Keine erfundenen Zahlen: Bilder pro Sekunde, Restzeit und Dauer kommen aus echten Läufen oder bleiben weg.

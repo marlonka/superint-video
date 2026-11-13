@@ -74,10 +74,10 @@ export const en = {
   'setup.films.opening': 'Opening',
   'setup.films.follow': 'Go to a new film as soon as the coding agent begins it',
   'setup.films.window': 'Open in a window of its own instead of a browser tab',
-  'setup.polish.title': 'Polish before the render',
+  'setup.polish.title': 'Visual quality polish before the render',
   'setup.polish.why':
     'A sub-agent of your coding agent looks at every frame with fresh eyes and fixes what it finds before the film is rendered.',
-  'setup.polish.choice': 'Rounds before each render',
+  'setup.polish.choice': 'Visual quality loop before each render',
   'setup.polish.rounds': { one: '{count} round', other: '{count} rounds' },
   'setup.polish.what1':
     'Fresh eyes check every still, cut and move and fix what they find. The usual choice.',
@@ -97,6 +97,8 @@ export const en = {
   'setup.part.soundEffects': 'sound effects',
   'setup.skip': 'Continue without finishing',
   'setup.checkAgain': 'Check again',
+  'setup.checkAgainHint':
+    'Looks for Chrome, FFmpeg, Earshot, the coding agents and the shortcut again right away, such as after an installation.',
   'setup.done': 'Done',
   'setup.todo': 'To do',
   'setup.banner.title': 'Setup is not finished',
@@ -106,7 +108,8 @@ export const en = {
   'setup.effect.picture': 'Without Chrome and FFmpeg no film can be rendered.',
 
   'setup.agent.title': 'Coding agent',
-  'setup.agent.why': 'Makes the film: writes, draws, checks and renders it. One is enough.',
+  'setup.agent.why':
+    'Builds your films with Superint Video: writes, draws, checks and renders. One is enough.',
   'setup.agent.absent': 'Not installed',
   'setup.agent.ready': 'Has the Superint skills',
   'setup.agent.missing': '{count} of {total} skills are missing',
@@ -191,6 +194,17 @@ export const en = {
   'setup.cloud.hint':
     'With a project, voice, word timings and dictation are made in the region. Without one, an express-mode key is served globally. Music (Lyria 3) is served globally only.',
   'setup.cloud.saved': 'Google Cloud: saved',
+  'setup.cloud.refused': 'Google did not accept your sign-in for the project {project}.',
+  'setup.cloud.refused.project':
+    'The project ID comes from your Google sign-in (its quota project), not from an API key, and your Google account cannot reach this project.',
+  'setup.cloud.refused.apiOff':
+    'This project has the Agent Platform API (formerly Vertex AI API) switched off.',
+  'setup.cloud.refused.said': 'Google says: {detail}',
+  'setup.cloud.usable': 'With your sign-in it works in: {projects}.',
+  'setup.cloud.noUsable':
+    'Under “Project and region”, enter a Google Cloud project that has the Agent Platform API switched on.',
+  'setup.cloud.use': 'Use {project}',
+  'setup.cloud.enableApi': 'Switch on the Agent Platform API',
   'setup.openai.eu': 'Process in the EU (eu.api.openai.com)',
   'setup.openai.euHint':
     'Only when platform.openai.com shows Europe under Settings, Project, "Project Residency". Most projects are Global; then leave it off.',
@@ -228,6 +242,9 @@ export const en = {
     'The API key works: dictation and the model for new styles are reachable.',
   'setup.key.check.credit': 'The API key works. {amount} of its limit is left.',
   'setup.key.check.partial': 'The API key works, but it does not reach {models}.',
+  'setup.key.check.worksSignIn':
+    'The sign-in works: voice, word timings and dictation are reachable. Music is only asked when it is made.',
+  'setup.key.check.partialSignIn': 'The sign-in works, but it does not reach {models}.',
   'setup.key.check.refused': 'The provider did not accept the API key: {detail}',
   'setup.key.placeholder': 'Paste the API key here',
   'setup.key.label': 'API key for {provider}',
@@ -354,7 +371,7 @@ export const en = {
 
   // New film
   'compose.title': 'New film',
-  'compose.lead': 'Describe the film, copy the prompt and paste it into {agents}.',
+  'compose.lead': 'You describe it, your coding agent builds it. Copy the prompt into {agents}.',
   'compose.placeholder': 'What should the film be about? One or two sentences are enough.',
   'compose.lengthIs': 'So {length}',
   'compose.lengthHelp': 'For example 3 min, 90 s or 2:30, at most 60 min',
@@ -364,7 +381,11 @@ export const en = {
   'compose.baseClear': 'No base film',
   'compose.promptLabel': 'The prompt for your coding agent',
   'compose.copy': 'Copy prompt',
-  'compose.copied': 'Copied. Paste it into {agents}.',
+  'compose.copied': 'Prompt copied.',
+  'compose.next':
+    'Now paste it into {agents} and send it. Keep this window open: as soon as your coding agent starts, it switches to the new film and you see every step. You do not have to watch: it also works in the background until the MP4 is done.',
+  'compose.nextList':
+    'Now paste it into {agents} and send it. As soon as your coding agent starts, the film shows up below under “Your films”; open it there to see every step. You do not have to watch: it also works in the background until the MP4 is done.',
   'compose.copyBlocked': 'The browser did not allow copying. Select the text and copy it by hand.',
   'dictate.start': 'Speak',
   'dictate.startHint': 'Say what the film should be about instead of typing it',
