@@ -7,6 +7,7 @@ Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. 
 ### Neu
 
 - **Der Feinschliff arbeitet Details aus:** Vor dem Render behebt dein Coding-Agent nicht mehr nur Fehler. Er ergänzt in jedem Bild, was ihm fehlt: Material, kleine Teile, Licht, Tiefe.
+- `superint-video studio <Ordner> --background` holt Studio im Hintergrund zurück und nennt sofort seine Adresse. Es läuft weiter, auch wenn dein Coding-Agent sich beendet.
 
 ### Geändert
 
