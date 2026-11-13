@@ -82,6 +82,13 @@ unsafe extern "system" {
         returned: *mut usize,
     ) -> i32;
     fn DeleteProcThreadAttributeList(list: *mut c_void);
+    fn GetProcessTimes(
+        process: Handle,
+        created: *mut u64,
+        exited: *mut u64,
+        kernel: *mut u64,
+        user: *mut u64,
+    ) -> i32;
     fn CreateProcessW(
         application: *const u16,
         command_line: *mut u16,
@@ -132,6 +139,34 @@ pub fn in_job() -> bool {
     // SAFETY: the pseudo handle of this process is always valid, and `inside` outlives the call.
     let asked = unsafe { IsProcessInJob(GetCurrentProcess(), null_mut(), &mut inside) };
     asked != 0 && inside != 0
+}
+
+/// When the user's desktop started, in milliseconds since 1970: the moment they signed in.
+/// Whatever ran before that ended when they signed out or switched the computer off, and so
+/// did every window of it.
+pub fn desktop_started_ms() -> Option<u64> {
+    const PROCESS_QUERY_LIMITED_INFORMATION: u32 = 0x1000;
+    /// A `FILETIME` counts 100 ns steps since 1601, which is this many before 1970.
+    const TO_1970: u64 = 116_444_736_000_000_000;
+    // SAFETY: the handle is checked and closed; the four times outlive the call that fills
+    // them, and a `FILETIME` is two 32-bit halves that read as one `u64` on Windows.
+    unsafe {
+        let mut shell_id = 0;
+        let window = GetShellWindow();
+        if window.is_null() || GetWindowThreadProcessId(window, &mut shell_id) == 0 {
+            return None;
+        }
+        let shell = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, shell_id);
+        if shell.is_null() {
+            return None;
+        }
+        let shell = Owned(shell);
+        let (mut created, mut exited, mut kernel, mut user) = (0, 0, 0, 0);
+        if GetProcessTimes(shell.0, &mut created, &mut exited, &mut kernel, &mut user) == 0 {
+            return None;
+        }
+        Some(created.checked_sub(TO_1970)? / 10_000)
+    }
 }
 
 /// Starts `program` with these arguments as a child of the desktop shell, without a window.
@@ -358,6 +393,21 @@ mod tests {
         assert_eq!(quoted(r"C:\My Films\"), r#""C:\My Films\\""#);
         assert_eq!(quoted(r#"say "hi""#), r#""say \"hi\"""#);
         assert_eq!(quoted(r#"a\"b c"#), r#""a\\\"b c""#);
+    }
+
+    #[test]
+    fn the_desktop_started_before_now_and_not_before_this_computer_was_built() {
+        // No desktop where tests run as a service; then there is nothing to say.
+        let Some(started) = desktop_started_ms() else {
+            return;
+        };
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64;
+        assert!(started <= now, "{started} is after {now}");
+        // 2020-01-01: a wrong epoch or unit would land far outside.
+        assert!(started > 1_577_836_800_000, "{started}");
     }
 
     #[test]

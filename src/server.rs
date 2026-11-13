@@ -474,17 +474,22 @@ pub async fn studio(root: PathBuf, port: u16, options: StudioOptions) -> Result<
     Ok(())
 }
 
-/// Starts the Studio of every film on the list whose Studio was ended from outside: the
-/// computer restarted, the program that had started it updated itself, or it crashed. Each
-/// comes back at its old address and without a window of its own, for the window that may
-/// still be open. One that was stopped, or ended itself for want of a viewer, stays off.
+/// Starts the Studio of every film on the list whose Studio was ended from outside since the
+/// user signed in: the program updated itself, the one that had started it did, or it crashed.
+/// Each comes back at its old address and without a window of its own, for the window that
+/// may still be open. One that was stopped, or ended itself for want of a viewer, stays off,
+/// and so does one from before the user signed in, because its windows went with that.
 async fn bring_back_studios(home: PathBuf) {
+    #[cfg(windows)]
+    let signed_in = crate::outside::desktop_started_ms().unwrap_or(0);
+    #[cfg(not(windows))]
+    let signed_in = 0;
     for film in home::films(&home) {
         // The folder as a Studio names it, which is how its record is compared.
         let Ok(root) = film.path.canonicalize() else {
             continue;
         };
-        if root.join("video.json").is_file() && live::Server::studio(&root).lost().await {
+        if root.join("video.json").is_file() && live::Server::studio(&root).lost(signed_in).await {
             live::start_studio(&root, false).await;
         }
     }

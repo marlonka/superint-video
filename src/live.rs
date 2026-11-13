@@ -470,13 +470,17 @@ impl Server {
         url.rsplit(':').next()?.parse().ok()
     }
 
-    /// It was running and never said that it stopped: it was ended from outside, by a restart
-    /// of the computer, an update of the program that started it, or a crash. A window of it
-    /// may still be open.
-    pub async fn lost(&self) -> bool {
-        self.record()
-            .is_some_and(|record| record["pid"].is_u64() && record["stoppedAt"].is_null())
-            && self.running().await.is_none()
+    /// It was started after `since_ms`, was running and never said that it stopped: it was
+    /// ended from outside, by an update of the program or of whoever started it, or by a
+    /// crash. A window of it may still be open.
+    pub async fn lost(&self, since_ms: u64) -> bool {
+        self.record().is_some_and(|record| {
+            record["pid"].is_u64()
+                && record["stoppedAt"].is_null()
+                && record["startedAt"]
+                    .as_u64()
+                    .is_some_and(|at| at >= since_ms)
+        }) && self.running().await.is_none()
     }
 
     /// Its address, if it still answers.
@@ -723,17 +727,20 @@ mod tests {
             .port();
         let studio = Server::studio(root.path());
         assert_eq!(studio.last_port(), None);
-        assert!(!studio.lost().await);
+        assert!(!studio.lost(0).await);
 
         // It ran and is gone without a word: ended from outside.
+        let before = now_ms();
         studio.register(&format!("http://127.0.0.1:{port}"));
         assert_eq!(studio.last_port(), Some(port));
-        assert!(studio.lost().await);
+        assert!(studio.lost(before).await);
+        // Started before the user signed in: no window of it can be open.
+        assert!(!studio.lost(now_ms() + 60_000).await);
 
         // It said that it stopped: where it was is still known, and nobody asks there.
         studio.unregister();
         assert_eq!(studio.last_port(), Some(port));
-        assert!(!studio.lost().await);
+        assert!(!studio.lost(0).await);
         assert!(studio.running().await.is_none());
 
         // An address from somewhere else is never taken.
