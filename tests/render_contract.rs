@@ -214,6 +214,30 @@ defineScene({ready: stage.ready, async render({frame}) {
             capture.frame(4).await? == first,
             "seeking back gave another picture of the same frame"
         );
+        // The player as Studio's preview loads it draws the same picture.
+        let watched = capture
+            .page
+            .url()
+            .await?
+            .context("the capture has no address")?
+            .replace("?capture=1", "");
+        capture.page.goto(watched).await?;
+        renderer::eval(
+            &capture.page,
+            "(async()=>{await window.__superint.ready;await window.__superint.seek(4);return window.__superint.getState()})()",
+        )
+        .await?;
+        let shown = capture
+            .page
+            .screenshot(
+                ScreenshotParams::builder()
+                    .format(CaptureScreenshotFormat::Png)
+                    .full_page(false)
+                    .build(),
+            )
+            .await?;
+        pixel(&png(&shown)?, 560, 300, [255, 0, 0], 2).context("the preview")?;
+        pixel(&png(&shown)?, 300, 90, [255, 255, 255], 2).context("the preview's bar")?;
         Ok(())
     }
     .await;

@@ -6,7 +6,7 @@ A canvas can draw real HTML. The children of a `<canvas>` that carry `drawable` 
 
 **Do not use it** for what CSS does by itself (move, scale, rotate, fade, `filter: blur()` on an element). Plain HTML is simpler, costs nothing per frame, and its text props stay clickable in Studio's preview.
 
-It needs Chrome 157 or newer, where it works without a flag. `check`, `snapshot` and `render` stop with a message that says so when the rendering Chrome is older; Studio's preview in an older browser shows the HTML plain, without the effect.
+It needs Chrome 157 or newer, where it works without a flag. `check`, `snapshot` and `render` stop with a message that says so when the rendering Chrome is older; Studio's preview in an older browser shows the HTML plain, without the effect, so judge such a scene by `snapshot` and `review`, which use the rendering Chrome, not by a preview you cannot be sure of.
 
 ## The pattern
 
