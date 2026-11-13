@@ -24,6 +24,7 @@ export const en = {
   'error.recording-long': 'The recording is longer than ten minutes. Dictate in shorter parts.',
   'error.dictation-needs-key': 'Dictation needs an API key. Add one under Setup.',
   'error.film-folder-gone': 'The folder of this film is gone. It was moved or deleted.',
+  'error.film-not-listed': 'This film is no longer on the list. It was removed in another window.',
   'error.copy-needs-name': 'The copy needs a name.',
   'error.agent-not-installed': 'This coding agent is not installed on this computer.',
   'error.skills-missing':

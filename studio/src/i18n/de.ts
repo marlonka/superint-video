@@ -22,6 +22,8 @@ export const de: Catalog = {
     'Zum Diktieren braucht es einen API-Schlüssel. Trag einen unter Einrichtung ein.',
   'error.film-folder-gone':
     'Der Ordner dieses Films ist nicht mehr da. Er wurde verschoben oder gelöscht.',
+  'error.film-not-listed':
+    'Dieser Film steht nicht mehr in der Liste. Er wurde in einem anderen Fenster entfernt.',
   'error.copy-needs-name': 'Die Kopie braucht einen Namen.',
   'error.agent-not-installed': 'Dieser Coding-Agent ist auf diesem Computer nicht installiert.',
   'error.skills-missing':

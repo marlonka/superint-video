@@ -420,7 +420,7 @@ impl Generators {
         })
     }
 
-    /// Ways and models that were at their limit in this run.
+    /// Ways and models that were at their limit or turned the request away in this run.
     pub fn limited(&self) -> Vec<String> {
         self.limited
             .lock()
@@ -458,7 +458,8 @@ impl Generators {
         let open: Vec<Provider> = routes
             .iter()
             .copied()
-            .filter(|&route| !self.is_limited(route, model))
+            // Under the name the model has on that way, as `across` took note of it.
+            .filter(|&route| !self.is_limited(route, &Self::model_on(route, model)))
             .collect();
         match (open.is_empty(), routes.is_empty()) {
             (false, _) => open,
@@ -499,7 +500,9 @@ impl Generators {
 
     /// Asks each way in turn until one answers. A rate limit hands over to the next way and
     /// keeps the limited one out for the rest of this run; after the retries in `send`, a 429
-    /// means the day's quota, so waiting would only stop the film. Any other error stops.
+    /// means the day's quota, so waiting would only stop the film. So does a way that turns the
+    /// request away (not signed in for it, not allowed, model not there) while another way is
+    /// set up: the film should not stop over the one that does not work. Any other error stops.
     async fn across<T, Fut>(
         &self,
         tries: Vec<(Provider, String)>,
@@ -512,12 +515,23 @@ impl Generators {
             match ask(*route, model.clone()).await {
                 Ok(value) => return Ok((value, *route, model.clone())),
                 Err(error) => match tries.get(index + 1) {
-                    Some((next, other)) if is_rate_limit(&error) => {
+                    Some((next, other)) if is_rate_limit(&error) || is_refusal(&error) => {
                         if let Ok(mut set) = self.limited.lock()
                             && set.insert(format!("{route:?} {model}"))
                         {
+                            let why = if is_rate_limit(&error) {
+                                "is at its limit".to_string()
+                            } else {
+                                // The provider's answer on one line, as far as it says why.
+                                let said = format!("{error:#}")
+                                    .split_whitespace()
+                                    .collect::<Vec<_>>()
+                                    .join(" ");
+                                let said: String = said.chars().take(160).collect();
+                                format!("was turned away ({said})")
+                            };
                             eprintln!(
-                                "{}: {model} is at its limit, using {other} through {} for the rest of this run",
+                                "{}: {model} {why}, using {other} through {} for the rest of this run",
                                 route.label(),
                                 next.label()
                             );
@@ -1646,6 +1660,30 @@ mod twin_tests {
             all.routes(AI_STUDIO.speech),
             [Provider::AiStudio, Provider::OpenRouter]
         );
+        // A way that turns the request away hands over too, and stays out of this run.
+        let (_, route, _) = runtime
+            .block_on(
+                all.across(all.ways(AI_STUDIO.music), |route, model| async move {
+                    if route == Provider::GoogleCloud {
+                        Err(anyhow!(
+                            "Google Cloud returned 403 Forbidden: Permission denied on resource project x."
+                        ))
+                    } else {
+                        Ok(model)
+                    }
+                }),
+            )
+            .unwrap();
+        assert_eq!(route, Provider::AiStudio);
+        assert_eq!(
+            all.routes(AI_STUDIO.music),
+            [Provider::AiStudio, Provider::OpenRouter]
+        );
+        // Any other error stops, whatever ways are left.
+        let stopped = runtime.block_on(all.across(all.ways(AI_STUDIO.music), |_, _| async {
+            Err::<(), _>(anyhow!("Google AI Studio returned 400 Bad Request: no"))
+        }));
+        assert!(stopped.is_err());
         // Without a way left, a limit stays the error it is.
         let last = runtime.block_on(
             all.across(vec![(Provider::OpenRouter, "x".into())], |_, _| async {

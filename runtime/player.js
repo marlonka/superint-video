@@ -35,11 +35,13 @@ function post(type, extra = {}) {
   if (studioOrigin && parent !== window) parent.postMessage({ source: 'superint-player', type, ...state(), ...extra }, studioOrigin);
 }
 function report(error, clip) {
-  const message = error?.message || String(error);
+  // A scene's error carries the scene's name for whoever reads it alone; here the name stands apart.
+  const named = clip ? `${clip.src} [${clip.id}]` : '', said = error?.message || String(error);
+  const message = named && said.startsWith(`${named}: `) ? said.slice(named.length + 2) : said;
   const diagnostic = { severity: 'error', code: 'RUNTIME', message, ...(clip ? { clipId: clip.id, path: clip.src } : {}) };
   errors.push(diagnostic);
   if (errors.length > 100) errors.shift();
-  errorElement.textContent = (clip ? `${clip.src} [${clip.id}]\n` : '') + message;
+  errorElement.textContent = (clip ? `${named}\n` : '') + message;
   errorElement.style.display = 'block';
   post('error', diagnostic);
 }
@@ -64,7 +66,11 @@ addEventListener('message', event => {
     if (!layer || event.origin !== 'null') return;
     const request = sceneRequests.get(message.requestId);
     if (message.type === 'error') {
-      if (request) request.reject(new Error(message.message)); else report(new Error(message.message), layer.clip);
+      // What the scene threw, under the scene's name, without the "Error: " every stack starts with.
+      // The scene's trace is part of these words; the player's own would only repeat them.
+      const failure = new Error(`${layer.clip.src} [${layer.clip.id}]: ${String(message.message).replace(/^Error: /, '')}`);
+      failure.stack = '';
+      if (request) request.reject(failure); else report(failure, layer.clip);
     } else if (request && request.layer === layer) {
       if (message.type === 'initialized') propDefinitions[layer.clip.id] = message.propDefinitions || {};
       request.resolve(message);

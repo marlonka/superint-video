@@ -1120,7 +1120,12 @@ impl ApiError {
     /// user's language (`error.<code>` in its catalogs); `message` is the same in English for
     /// everyone else.
     pub(crate) fn told(code: &'static str, message: &str) -> Self {
-        Self(StatusCode::BAD_REQUEST, message.into(), Some(code))
+        Self::bad(message).coded(code)
+    }
+    /// The same for a failure with a status of its own.
+    pub(crate) fn coded(mut self, code: &'static str) -> Self {
+        self.2 = Some(code);
+        self
     }
 }
 impl<E: Into<anyhow::Error>> From<E> for ApiError {

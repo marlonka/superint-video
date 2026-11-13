@@ -1025,7 +1025,10 @@ fn film_root(state: &AppState, id: &str) -> ApiResult<PathBuf> {
         .map(|film| film.path)
         .chain(state.project.clone())
         .find(|path| film_id(path) == id)
-        .ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, "This film is not on the list"))
+        .ok_or_else(|| {
+            ApiError::new(StatusCode::NOT_FOUND, "This film is not on the list")
+                .coded("film-not-listed")
+        })
 }
 
 /// The picture that stands for a film: its thumbnail, else a style frame, else a still from the

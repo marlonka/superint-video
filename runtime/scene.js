@@ -206,6 +206,8 @@ if (typeof window !== 'undefined' && window.parent !== window) {
   const parentOrigin = new URL(document.URL).origin;
   const loaded = document.readyState === 'complete' ? Promise.resolve() : new Promise(resolve => window.addEventListener('load', resolve, { once: true }));
   const post = message => parent.postMessage({ source: 'superint-scene', nonce, ...message }, parentOrigin);
+  // The preview server's address says nothing to the reader: a project file reads as its path.
+  const plain = text => String(text).replaceAll(`${parentOrigin}/asset/`, '').replaceAll(parentOrigin, '');
   let serial = Promise.resolve();
   window.addEventListener('message', event => {
     if (event.source !== parent || event.origin !== parentOrigin || event.data?.source !== 'superint-player') return;
@@ -241,11 +243,11 @@ if (typeof window !== 'undefined' && window.parent !== window) {
         const texts = context.texts ? textBoxes(document.body, definition?.props, props) : [];
         post({ type: 'frame', requestId: message.requestId, frame: context.frame, actors, texts });
       } catch (error) {
-        post({ type: 'error', requestId: message.requestId, message: error?.stack || String(error) });
+        post({ type: 'error', requestId: message.requestId, message: plain(error?.stack || error) });
       }
     });
   });
-  const recordError = message => { if (!nonce) startupErrors.push(message); else post({ type: 'error', message }); };
+  const recordError = text => { const message = plain(text); if (!nonce) startupErrors.push(message); else post({ type: 'error', message }); };
   window.addEventListener('error', event => recordError(`${event.message} (${event.filename}:${event.lineno})`));
   window.addEventListener('unhandledrejection', event => recordError(String(event.reason?.stack || event.reason)));
 }
