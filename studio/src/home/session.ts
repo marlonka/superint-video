@@ -36,17 +36,17 @@ export function announce(message: string) {
   toastTimer = setTimeout(() => toast.set(''), 3200);
 }
 
-export function fail(cause: unknown) {
-  // That the app is gone is said by the page itself, until it is back.
-  if (cause instanceof Unreachable) return;
-  problem.set(cause instanceof Error ? cause.message : String(cause));
-}
-
 /** The app did not answer at all: it is not running any more. */
 class Unreachable extends Error {
   constructor() {
     super(get(t)('common.unreachable'));
   }
+}
+
+export function fail(cause: unknown) {
+  // That the app is gone is said by the page itself, until it is back.
+  if (cause instanceof Unreachable) return;
+  problem.set(cause instanceof Error ? cause.message : String(cause));
 }
 
 /**

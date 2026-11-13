@@ -238,7 +238,7 @@ struct Job {
 const IDLE_LIMIT: Duration = Duration::from_secs(2 * 60 * 60);
 
 /// How long nobody has been watching, in time the computer was awake. A night in standby is
-/// not hours without a viewer: the page is still open and asks again the moment it wakes.
+/// not hours without a viewer: an open page asks again the moment the computer wakes.
 struct Unwatched {
     awake: Duration,
     looked: std::time::Instant,
@@ -260,11 +260,11 @@ impl Unwatched {
         self.count(watched, passed)
     }
     fn count(&mut self, watched: bool, passed: Duration) -> Duration {
-        self.awake = if watched || passed > Self::LONGEST_LOOK {
-            Duration::ZERO
-        } else {
-            self.awake + passed
-        };
+        if watched {
+            self.awake = Duration::ZERO;
+        } else if passed <= Self::LONGEST_LOOK {
+            self.awake += passed;
+        }
         self.awake
     }
 }
@@ -1155,9 +1155,9 @@ mod tests {
         let mut unwatched = Unwatched::new();
         assert_eq!(unwatched.count(false, minute), minute);
         assert_eq!(unwatched.count(false, minute), 2 * minute);
-        // The computer slept for three hours: nobody could have looked, so nothing counts.
-        assert_eq!(unwatched.count(false, 180 * minute), Duration::ZERO);
-        assert_eq!(unwatched.count(false, minute), minute);
+        // The computer slept for three hours: nobody could have looked, so they do not count.
+        assert_eq!(unwatched.count(false, 180 * minute), 2 * minute);
+        assert_eq!(unwatched.count(false, minute), 3 * minute);
         // Someone looks: the time starts again.
         assert_eq!(unwatched.count(true, minute), Duration::ZERO);
         // Two hours awake and alone add up.
