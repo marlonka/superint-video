@@ -126,7 +126,9 @@ export function htmlCanvas(canvas) {
    * Makes every picture below `root` one the canvas draws: an `<img>` is asked for with CORS,
    * a CSS image (background, mask, border, list marker) and an SVG `<image>` become blobs.
    * `ready` does it once for the HTML the scene starts with; call it again for HTML built
-   * later. A picture set in a stylesheet for `::before` or `::after` is not reached.
+   * later. A CSS image is written into the element's own style, so a class that names another
+   * picture no longer changes it: set the new picture in `element.style` and call this again.
+   * A picture set in a stylesheet for `::before` or `::after` is not reached.
    */
   async function adopt(root = canvas) {
     if (!supported) return;
@@ -253,6 +255,7 @@ export function htmlCanvas(canvas) {
     };
   }
 
-  const ready = supported ? adopt() : Promise.resolve(showPlain(canvas));
+  // After the scene's own script has run, so HTML it builds right after this call counts too.
+  const ready = Promise.resolve().then(() => (supported ? adopt() : showPlain(canvas)));
   return { canvas, supported, ready, adopt, paint, texture, shader, get gl() { return context(); } };
 }

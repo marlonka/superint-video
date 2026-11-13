@@ -191,6 +191,35 @@ defineScene({ready: stage.ready, render: () => stage.paint(() => {})});
 
 #[tokio::test]
 #[ignore = "requires local Chromium and FFmpeg"]
+async fn a_scene_failure_names_the_scene_and_the_project_file_in_plain_words() -> Result<()> {
+    // The picture is missing, and the HTML that names it is built after `htmlCanvas()`.
+    let result = check_scene(
+        r#"<!doctype html><style>.tile{width:100px;height:100px;background:url('../assets/gone.png')}</style>
+<canvas id="stage"></canvas><script type="module">
+import {defineScene} from '/runtime/scene.js';
+import {htmlCanvas} from '/runtime/html-in-canvas.js';
+const stage = htmlCanvas(document.querySelector('#stage'));
+stage.canvas.innerHTML = '<div drawable><div class="tile"></div></div>';
+defineScene({ready: stage.ready, render: () => stage.paint(() => {})});
+</script>"#,
+    )
+    .await?;
+    let said = result["diagnostics"][0]["message"]
+        .as_str()
+        .context("no diagnostic")?;
+    ensure!(
+        said.starts_with("scenes/markers.html [first]: Image failed: assets/gone.png (404)"),
+        "expected the scene and the file, got {said}"
+    );
+    ensure!(
+        !said.contains("http://") && !said.contains("ExceptionDetails"),
+        "the message carries the server's address or the browser's record: {said}"
+    );
+    Ok(())
+}
+
+#[tokio::test]
+#[ignore = "requires local Chromium and FFmpeg"]
 async fn encoder_failure_leaves_existing_output_unchanged() -> Result<()> {
     let directory = project()?;
     let output = directory.path().join("existing.mp4");

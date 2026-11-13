@@ -49,7 +49,7 @@ Three rules make every frame right:
 
 1. **Change the HTML first, then `await stage.paint(draw)`.** The browser lays the HTML out, takes its picture and then calls `draw`. The frame is finished when the promise resolves, so `render` must await it (and may return `{actors}` after it).
 2. **Everything that reads the HTML happens inside `draw`**: `drawElementImage`, `stage.texture`, a shader's `draw`. Outside it there is no current picture.
-3. **`ready: stage.ready`** (with other promises: `Promise.all([stage.ready, fonts])`). It makes the pictures of the HTML drawable, see below.
+3. **`ready: stage.ready`** (with other promises: `Promise.all([stage.ready, fonts])`). It makes the pictures of the HTML drawable, see below. It takes the HTML that is there once the scene's script has run through, so HTML you build right after `htmlCanvas(…)` counts too; HTML built later (after an `await`, in `render`) needs `adopt`.
 
 The frame stays a pure function of time: set every text, class and style from `frame` in each `render`, never add to what the last frame left.
 
@@ -74,7 +74,9 @@ A 2D canvas needs only `paint`: take `stage.canvas.getContext('2d')` and call `c
 - **A WebGL texture is the element's border box.** A `box-shadow`, an outline or a child that reaches outside is cut off: give the drawable padding, or draw the shadow in the shader. Rounded corners come out transparent. A 2D `drawElementImage` draws shadows and overflow too.
 - **Do not put a CSS `transform` on the drawable itself.** In a texture it turns the content inside the unturned box and cuts it. Transform its children, or move the picture in the shader or with `ctx.translate/rotate/scale`.
 - **The first row of the texture is the top of the element**, so `texture(page, uv)` shows it upright. Colours from `stage.texture` are premultiplied by alpha; write premultiplied colours to `color` too (`color = c * alpha`), and the canvas lies correctly over whatever is behind it.
-- **Blur costs one line.** Textures have mipmaps: `textureLod(page, uv, 3.)` reads a copy an eighth the size, which is a soft picture. Depth of field is a level that grows with the distance from the sharp plane.
+- **Blur is a smaller copy.** Textures have mipmaps: `textureLod(page, uv, 3.)` reads a copy an eighth the size, which is a soft picture. Depth of field is a level that grows with the distance from the sharp plane. One read of level 4 or higher shows squares on an interface; read five times around the point (`soft` in the recipe below) and it is a real blur.
+- **The size of a texture is in the shader:** `textureSize(page, 0)` gives its pixels, which is the element's CSS size times `scale`. No uniform is needed for it.
+- **A texture drawn smaller than it is shimmers in motion** when it is read at level 0: a page far away, or a `scale: 2` texture seen at half size. `texture(page, uv)` picks the fitting level by itself; `textureLod` does not, so add the level the size on screen needs (`fit` in the recipe below) to the blur.
 - A drawable inside another drawable is its own picture and is left out of its parent's.
 - A drawable without a CSS width is only as wide as its content. Give it one: pixels, or `100%` for the width of the canvas. Where a drawable sits in the layout does not matter; only its size and content do.
 - `backdrop-filter`, `mix-blend-mode`, `filter`, `clip-path`, `mask`, inline SVG, a nested 2D `<canvas>`, inputs and buttons are all drawn. `<video>` and `<audio>` stay forbidden in scenes.
@@ -85,6 +87,7 @@ A 2D canvas needs only `paint`: take `stage.canvas.getContext('2d')` and call `c
 A scene runs without an origin of its own, so its project files count as foreign, and a canvas leaves foreign pictures out of what it draws: a plain `<img src="../assets/x.png">` inside a drawable would be an empty box. `stage.ready` repairs this for the HTML the scene starts with: an `<img>` is loaded with CORS, a CSS image (`background-image`, `mask-image`, `border-image`, list markers) and an SVG `<image>` are replaced by a blob of the same file. Fonts need nothing.
 
 - HTML you build later (a list filled in `render`, a new `<img>`): `await stage.adopt(element)` once after building it, before the frame that shows it. An `<img>` added later is taken care of by `paint` itself.
+- `ready` and `adopt` write a CSS image into the element's own `style`. A class that names another picture then no longer changes it: set the new picture with `element.style.backgroundImage = …` and call `adopt(element)` again, or keep one element per picture and show the one you need.
 - A picture set for `::before` or `::after` in a stylesheet is not reached. Use a real element.
 - Pictures from other sites cannot be drawn at all; a scene loads only local files anyway.
 
@@ -133,9 +136,9 @@ await stage.paint(() => wave.draw({before: screenA, after: screenB, progress}));
 const space = stage.shader(`
   uniform sampler2D page;
   uniform vec2 resolution;
-  uniform vec2 size;       // of the page in CSS pixels
   uniform vec3 turn;       // tilt, swing and roll of the page in radians
-  uniform float away;      // how far the page is, in page heights
+  uniform vec2 look;       // the point of the page in the middle of the frame, 0..1
+  uniform float away;      // how far that point is, in page heights
   uniform float focus;     // the distance that is sharp
   mat3 rotate(vec3 a) {
     vec3 s = sin(a), c = cos(a);
@@ -143,27 +146,53 @@ const space = stage.shader(`
                 s.x * s.y * c.z - c.x * s.z, s.x * s.y * s.z + c.x * c.z, s.x * c.y,
                 c.x * s.y * c.z + s.x * s.z, c.x * s.y * s.z - s.x * c.z, c.x * c.y);
   }
+  // The level that fits the size on screen, so a page far away does not shimmer.
+  float fit(sampler2D image, vec2 q) {
+    vec2 texel = q * vec2(textureSize(image, 0));
+    return max(0., .5 * log2(max(dot(dFdx(texel), dFdx(texel)), dot(dFdy(texel), dFdy(texel)))));
+  }
+  // A soft read: one read of a small copy shows squares, five around the point do not.
+  vec4 soft(sampler2D image, vec2 q, float level) {
+    vec2 o = exp2(level) / vec2(textureSize(image, 0)) * .75;
+    return textureLod(image, q, level) * .36
+         + (textureLod(image, q + o * vec2(1., .4), level) + textureLod(image, q - o * vec2(1., .4), level)
+          + textureLod(image, q + o * vec2(-.4, 1.), level) + textureLod(image, q - o * vec2(-.4, 1.), level)) * .16;
+  }
   void main() {
+    vec2 size = vec2(textureSize(page, 0));
     vec2 p = (uv - .5) * vec2(resolution.x / resolution.y, 1.);
     vec3 ray = normalize(vec3(p, 1.4));                    // 1.4 is the lens: larger is longer
     mat3 r = rotate(turn);
     vec3 normal = r[2], centre = vec3(0., 0., away);
     float t = dot(centre, normal) / dot(ray, normal);
-    vec2 q = (transpose(r) * (ray * t - centre)).xy / vec2(size.x / size.y, 1.) + .5;
-    vec4 c = textureLod(page, q, abs(t * ray.z - focus) * 9.);   // further from the sharp plane: softer
-    vec2 border = min(q, 1. - q) / fwidth(q);                    // a clean edge instead of stairs
+    vec2 q = (transpose(r) * (ray * t - centre)).xy / vec2(size.x / size.y, 1.) + look;
+    float blur = abs(t * ray.z - focus) * 9.;              // further from the sharp plane: softer
+    vec4 c = soft(page, q, fit(page, q) + blur);
+    vec2 border = min(q, 1. - q) / fwidth(q);              // a clean edge instead of stairs
     float inside = t > 0. ? clamp(min(border.x, border.y), 0., 1.) : 0.;
     c.rgb *= .8 + .25 * dot(-normal, normalize(vec3(-.5, -.6, -1.)));
     color = c * inside;
   }`);
 await stage.paint(() => space.draw({
-  page: stage.texture(page, {scale: 1.5}),
-  size: [page.offsetWidth, page.offsetHeight],
-  turn: [.18, swing, -.04], away: 1.75, focus: 1.75,
+  page: stage.texture(page, {scale: 2}),
+  turn: [.18, swing, -.04], look: [.5, .5], away: 1.75, focus: 1.75,
 }));
 ```
 
-A glass lens over it bends the rays before they are cast: `vec2 d = p - lensCentre; float glass = smoothstep(.26, .2, length(d)); p -= d * glass * .35 * (1. - length(d) / .26);`.
+- **Aim the camera** with `look` and `away`. `look` is the point of the page that sits in the middle of the frame. With the page facing the camera (`turn` zero), a part of the page that is `h` page heights tall fills the frame's height at `away = 1.4 * h` (1.4 is the lens), so `look` at the middle of a panel and `away = 1.4 * panel.offsetHeight / page.offsetHeight` frames that panel exactly; the whole page fills the frame at `away = 1.4`. Move both with time and the camera travels over the page.
+- **Pull focus** by moving `focus` between the distances of two points. The distance of the looked-at point is `away`; a point `(x, y)` away from it (in page heights, x to the right, y down) lies at `away - sin(swing) * x + sin(tilt) * cos(swing) * y`.
+- **One real page inside another** (a preview that shows a second screen, a picture frame, a phone on a desk): a second drawable read where the first has a hole. Zoom until the hole fills the frame and the film has moved from one real page into the next without a cut:
+
+  ```glsl
+  uniform sampler2D inner; uniform vec4 hole;   // x, y, width, height of the hole on the page, 0..1
+  vec2 qi = (q - hole.xy) / hole.zw;
+  vec2 rim = min(qi, 1. - qi) / fwidth(qi);
+  c = mix(c, soft(inner, qi, fit(inner, qi) + blur), clamp(min(rim.x, rim.y), 0., 1.));
+  ```
+
+  `hole` comes from the layout: `[el.offsetLeft / page.offsetWidth, el.offsetTop / page.offsetHeight, el.offsetWidth / page.offsetWidth, el.offsetHeight / page.offsetHeight]` for an empty element of the first page.
+- **A glass lens** over the page bends the rays before they are cast: `vec2 d = p - lensCentre; float glass = smoothstep(.26, .2, length(d)); p -= d * glass * .35 * (1. - length(d) / .26);`.
+- **Light you add** (a sheen, a glow, a rim) is multiplied by the alpha of what it falls on, `c.rgb += c.a * light`, and best by its brightness too. Added plainly, it paints a hard stripe over the transparent ground around the page.
 
 Plain HTML next to the canvas still works as always: the canvas is one element of the page, transparent wherever the shader writes no alpha, so a headline in plain HTML can lie over it and stay clickable.
 

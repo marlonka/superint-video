@@ -13,6 +13,7 @@ use chromiumoxide::{
         browser_protocol::page::{CaptureScreenshotFormat, CaptureScreenshotParams},
         js_protocol::runtime::EvaluateParams,
     },
+    error::CdpError,
     handler::viewport::Viewport,
     page::{Page, ScreenshotParams},
 };
@@ -178,12 +179,46 @@ pub async fn eval(page: &Page, expression: &str) -> Result<Value> {
         .return_by_value(true)
         .build()
         .map_err(anyhow::Error::msg)?;
-    Ok(
-        tokio::time::timeout(Duration::from_secs(45), page.evaluate(params))
-            .await
-            .context("Scene readiness timed out")??
-            .into_value()?,
-    )
+    let answer = tokio::time::timeout(Duration::from_secs(45), page.evaluate(params))
+        .await
+        .context("Scene readiness timed out")?;
+    match answer {
+        Ok(value) => Ok(value.into_value()?),
+        Err(CdpError::JavascriptException(details)) => {
+            let said = details
+                .exception
+                .as_ref()
+                .and_then(|thrown| thrown.description.as_deref())
+                .unwrap_or(&details.text);
+            bail!("{}", plain_exception(said))
+        }
+        Err(error) => Err(error.into()),
+    }
+}
+
+/// What the page threw, in its own words: without the browser's wrapping, the player's own
+/// stack and the preview server's address, so a project file reads as its path.
+fn plain_exception(said: &str) -> String {
+    let said = said.strip_prefix("Uncaught (in promise) ").unwrap_or(said);
+    let said = said.strip_prefix("Error: ").unwrap_or(said);
+    said.lines()
+        .filter(|line| {
+            !(line.trim_start().starts_with("at ") && line.contains("/runtime/player.js"))
+        })
+        .map(without_server)
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn without_server(line: &str) -> String {
+    const SERVER: &str = "http://127.0.0.1:";
+    let (mut plain, mut rest) = (String::new(), line);
+    while let Some(at) = rest.find(SERVER) {
+        plain.push_str(&rest[..at]);
+        let path = rest[at + SERVER.len()..].trim_start_matches(|c: char| c.is_ascii_digit());
+        rest = path.strip_prefix("/asset/").unwrap_or(path);
+    }
+    plain + rest
 }
 
 /// Video codecs `render` can write. x265 (HEVC) is the default: about half the file size of x264
@@ -840,4 +875,26 @@ pub async fn check(snapshot: ProjectSnapshot) -> Result<Value> {
         "diagnostics": diagnostics,
         "sampledFrames": sampled,
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn what_a_scene_threw_reads_as_its_own_words() {
+        let thrown = "Error: scenes/film.html [film]: Image failed: http://127.0.0.1:50811/asset/assets/strip.jpg (404)
+    at http://127.0.0.1:50811/runtime/html-in-canvas.js:34:31
+    at http://127.0.0.1:50811/runtime/player.js:63:38";
+        assert_eq!(
+            plain_exception(thrown),
+            "scenes/film.html [film]: Image failed: assets/strip.jpg (404)
+    at /runtime/html-in-canvas.js:34:31"
+        );
+        assert_eq!(
+            plain_exception("Uncaught (in promise) TypeError: no such thing"),
+            "TypeError: no such thing"
+        );
+        assert_eq!(without_server("at 127.0.0.1"), "at 127.0.0.1");
+    }
 }

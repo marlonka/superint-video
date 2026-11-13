@@ -301,7 +301,10 @@ pub async fn generate(root: &Path, variants: u32, dry_run: bool) -> Result<Value
             "dryRun": true,
             "ok": errors.is_empty(),
             "model": doc.model,
-            "provider": Provider::of(&doc.model),
+            // The way the real run asks first; without a key, the model's own.
+            "provider": generators
+                .reachable(&doc.model)
+                .unwrap_or_else(|_| Provider::of(&doc.model)),
             "variants": variants,
             "requests": variants as usize - cached,
             "cached": cached,

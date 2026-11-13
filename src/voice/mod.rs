@@ -809,7 +809,10 @@ async fn dry_run(
     Ok(json!({
         "dryRun": true,
         "model": doc.model,
-        "provider": doc.provider(),
+        // The way the real run asks first; without a key, the model's own.
+        "provider": generators
+            .reachable(&doc.model)
+            .unwrap_or_else(|_| doc.provider()),
         "voice": doc.voice,
         "transcription": doc.transcription,
         "paragraphs": selected.iter().map(|p| p.number).collect::<Vec<_>>(),
