@@ -29,7 +29,7 @@ export class Engine {
     this.grade = { exp: 1, sat: 1.06, lift: [0, 0, 0], gain: [1, 1, 1], bloom: .05, vig: .35, fade: 1, grain: .018, ca: 1.2 };
     this.text = { mask: 0, geo: [960, 540, 0, 100], cell: 14, scroll: 0 };
     this.clipY = -1e9; this.refl = 0;
-    this.live = [null, null, null, null];
+    this.live = [null, null, null, null]; this.liveSize = [null, null, null, null];
     this.vao0 = gl.createVertexArray();
     this.emptyTex = this._tex1();
     this._programs();
@@ -187,19 +187,21 @@ export class Engine {
     gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.texA); gl.generateMipmap(gl.TEXTURE_2D_ARRAY);
     gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.texB); gl.generateMipmap(gl.TEXTURE_2D_ARRAY);
   }
-  // Lebende Texturen: was sich jedes Bild aendert. Quelle: Leinwand oder Bild.
+  // Lebende Texturen: was sich jedes Bild aendert. Quelle: Leinwand, Bild oder echtes HTML
+  // (ein Kind der Film-Leinwand mit dem Attribut `drawable`; nur waehrend stage.paint).
   makeLive(slot, w, h, srgb = true) {
     const gl = this.gl, t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
     gl.texStorage2D(gl.TEXTURE_2D, Math.floor(Math.log2(Math.max(w, h))) + 1, srgb ? gl.SRGB8_ALPHA8 : gl.RGBA8, w, h);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     if (this.aniso) gl.texParameterf(gl.TEXTURE_2D, this.aniso.TEXTURE_MAX_ANISOTROPY_EXT, 16);
-    this.live[slot] = t; return t;
+    this.live[slot] = t; this.liveSize[slot] = { width: w, height: h }; return t;
   }
   updateLive(slot, src) {
     const gl = this.gl; gl.bindTexture(gl.TEXTURE_2D, this.live[slot]);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, src);
+    if (src instanceof HTMLCanvasElement || src instanceof HTMLImageElement || src instanceof ImageBitmap) gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, src);
+    else gl.texElementSubImage2D(gl.TEXTURE_2D, 0, 0, 0, src, this.liveSize[slot]);
     gl.generateMipmap(gl.TEXTURE_2D);
   }
 

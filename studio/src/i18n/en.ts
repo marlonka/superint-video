@@ -14,6 +14,22 @@ export const en = {
   'common.retry': 'Retry',
   'common.save': 'Save',
   'common.failed': 'That did not work ({status})',
+  'common.failedBecause': 'That did not work. The app says: {message}',
+  'common.unreachable':
+    'Superint Video is not answering. The app is no longer running, for example because it was closed. Start it again with a double-click on "Superint Video".',
+  'error.tool-not-installable':
+    'This tool cannot be installed from the app on this computer. Install it yourself, then check again.',
+  'error.tool-installed': 'This tool is already installed.',
+  'error.recording-short': 'The recording is too short. Speak a little longer.',
+  'error.recording-long': 'The recording is longer than ten minutes. Dictate in shorter parts.',
+  'error.dictation-needs-key': 'Dictation needs an API key. Add one under Setup.',
+  'error.film-folder-gone': 'The folder of this film is gone. It was moved or deleted.',
+  'error.copy-needs-name': 'The copy needs a name.',
+  'error.agent-not-installed': 'This coding agent is not installed on this computer.',
+  'error.skills-missing':
+    'The skills that belong to the app are missing. The "skills" folder has to lie next to Superint Video, as it came in the download.',
+  'error.studio-not-started':
+    'Studio did not start for this film. Try again; if it stays like this, restart Superint Video.',
   'common.copyBlocked': 'The browser did not allow copying.',
   'theme.toLight': 'Switch to light theme',
   'theme.toDark': 'Switch to dark theme',

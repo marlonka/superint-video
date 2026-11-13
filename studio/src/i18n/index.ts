@@ -23,6 +23,9 @@ const STORAGE = 'superint-language';
 export const isLocale = (value: unknown): value is Locale =>
   LOCALES.some((entry) => entry.code === value);
 
+/** Whether the app has words for this key, as for a failure the server names by a code. */
+export const hasMessage = (key: string): key is MessageKey => Object.hasOwn(en, key);
+
 /** The first language of the browser that the app speaks; English otherwise. */
 function systemLocale(): Locale {
   for (const tag of navigator.languages?.length ? navigator.languages : [navigator.language]) {

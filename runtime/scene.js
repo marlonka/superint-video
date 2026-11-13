@@ -64,7 +64,8 @@ export function validateActors(result) {
  * Where the scene shows its text props, so Studio can let the user click a text and retype it.
  * A text is the element marked data-prop="key", else the innermost element whose text is
  * exactly the prop's value. Hidden and fully transparent elements are left out; each element
- * counts once. Boxes are in scene pixels: [{prop, x, y, w, h}].
+ * counts once. HTML inside a canvas is drawn wherever the scene puts it, so it has no place to
+ * click. Boxes are in scene pixels: [{prop, x, y, w, h}].
  */
 export function textBoxes(root, definitions, props, styleOf = element => getComputedStyle(element)) {
   const keys = Object.entries(definitions || {}).filter(([, prop]) => prop.type === 'text').map(([key]) => key);
@@ -72,7 +73,10 @@ export function textBoxes(root, definitions, props, styleOf = element => getComp
   const plain = text => String(text ?? '').replace(/\s+/g, ' ').trim();
   const elements = [];
   (function walk(element) {
-    for (const child of element.children || []) { elements.push(child); walk(child); }
+    for (const child of element.children || []) {
+      if (child.localName === 'canvas') continue;
+      elements.push(child); walk(child);
+    }
   })(root);
   // The words themselves, not the block around them: a paragraph is as wide as the page.
   const measure = element => {
@@ -112,6 +116,21 @@ export function textBoxes(root, definitions, props, styleOf = element => getComp
   }
   return boxes;
 }
+
+/** What this scene needs and this browser lacks, in words for the person who renders. */
+const missing = [];
+/**
+ * Says that the browser cannot do what the scene is built on. The preview goes on with the
+ * scene's fallback; a snapshot, check or render stops with the message, so no film is made
+ * without its picture.
+ */
+export function reportMissing(message) {
+  if (!missing.includes(message)) missing.push(message);
+}
+
+/** Whether the frame being drawn is for Studio's preview, where someone watches, or for a capture. */
+let preview = false;
+export const previewing = () => preview;
 
 let definition = null;
 function validateProp(key, prop, value) {
@@ -206,6 +225,8 @@ if (typeof window !== 'undefined' && window.parent !== window) {
         }
         const context = message.context;
         if (!context || !Number.isInteger(context.frame) || !Number.isFinite(context.time)) throw new Error('Invalid frame context');
+        preview = context.preview === true;
+        if (!preview && missing.length) throw new Error(missing.join(' '));
         const props = Object.fromEntries(Object.entries(definition?.props || {}).map(([key, value]) => [key, value.default]));
         Object.assign(props, context.props || {});
         for (const [key, prop] of Object.entries(definition?.props || {})) validateProp(key, prop, props[key]);

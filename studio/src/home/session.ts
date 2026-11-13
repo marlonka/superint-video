@@ -3,7 +3,7 @@
  * that change it, and the short messages they leave.
  */
 import { get, writable } from 'svelte/store';
-import { chooseLocale, isLocale, t, type Locale } from '../i18n';
+import { chooseLocale, hasMessage, isLocale, t, type Locale } from '../i18n';
 import type { Film, Overview, Settings } from '../types';
 
 export const overview = writable<Overview | null>(null);
@@ -13,6 +13,8 @@ export const busy = writable('');
 export const problem = writable('');
 /** A confirmation that goes away by itself. */
 export const toast = writable('');
+/** Whether the app answered when it was last asked. The page says so for as long as it does not. */
+export const reachable = writable(true);
 /** The film a new one starts from, chosen in a film's menu; the composer names it in the prompt. */
 export const baseFilm = writable<Film | null>(null);
 /** The film a style is to be made from, chosen in a film's menu; the styles show the form. */
@@ -34,8 +36,30 @@ export function announce(message: string) {
   toastTimer = setTimeout(() => toast.set(''), 3200);
 }
 
+/** The app did not answer at all: it is not running any more. */
+class Unreachable extends Error {
+  constructor() {
+    super(get(t)('common.unreachable'));
+  }
+}
+
 export function fail(cause: unknown) {
+  // That the app is gone is said by the page itself, until it is back.
+  if (cause instanceof Unreachable) return;
   problem.set(cause instanceof Error ? cause.message : String(cause));
+}
+
+/**
+ * A failure in the user's language: by its code where the app has words for it, else what the
+ * server said, introduced so that nobody takes its English for the whole message.
+ */
+function explain(result: { code?: string; message?: string }, status: number) {
+  const say = get(t);
+  const key = `error.${result.code}`;
+  if (hasMessage(key)) return say(key);
+  return result.message
+    ? say('common.failedBecause', { message: result.message })
+    : say('common.failed', { status });
 }
 
 /** Takes a fresh overview. The app's language follows the saved setting whenever that changed. */
@@ -68,22 +92,29 @@ export async function call<T>(
   const file = body instanceof Blob;
   // A form names its own type, with the boundary between its parts.
   const form = body instanceof FormData;
-  const response = await fetch(path, {
-    method,
-    signal,
-    headers: {
-      'X-Superint-Token': token,
-      ...(body === undefined || form
-        ? {}
-        : { 'Content-Type': file ? 'application/octet-stream' : 'application/json' }),
-    },
-    body: body === undefined ? undefined : file || form ? body : JSON.stringify(body),
-  });
+  let response: Response;
+  try {
+    response = await fetch(path, {
+      method,
+      signal,
+      headers: {
+        'X-Superint-Token': token,
+        ...(body === undefined || form
+          ? {}
+          : { 'Content-Type': file ? 'application/octet-stream' : 'application/json' }),
+      },
+      body: body === undefined ? undefined : file || form ? body : JSON.stringify(body),
+    });
+  } catch (cause) {
+    // The caller gave up on the answer: that is no failure of the app.
+    if (signal?.aborted) throw cause;
+    reachable.set(false);
+    throw new Unreachable();
+  }
+  reachable.set(true);
   const result = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const said =
-      result.message || result.error || get(t)('common.failed', { status: response.status });
-    throw Object.assign(new Error(said), { status: response.status });
+    throw Object.assign(new Error(explain(result, response.status)), { status: response.status });
   }
   return result as T;
 }
@@ -95,12 +126,14 @@ export async function refresh(fresh = false): Promise<Overview | null> {
   if (fresh) query.set('fresh', '1');
   try {
     const response = await fetch(`/api/app?${query}`);
+    reachable.set(true);
     if (!response.ok) return null;
     const next: Overview = await response.json();
     accept(next);
     return next;
   } catch {
-    // The app is restarting or the computer was asleep: the next round asks again.
+    // The app is restarting or was closed: the page says so, and the next round asks again.
+    reachable.set(false);
     return null;
   }
 }

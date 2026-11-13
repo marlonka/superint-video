@@ -1,5 +1,16 @@
 # Versionsverlauf
 
+## 0.9.0 — 2026-11-13
+
+- **Echtes HTML im Canvas:** Eine Szene kann echtes HTML durch einen Shader schicken. Ein `<canvas>` zeichnet seine Kinder mit dem Attribut `drawable`: als Bild in einem 2D-Canvas oder als WebGL-Textur, die ein Shader biegt, beleuchtet, weichzeichnet und schneidet. Text, Layout, Schriften und CSS bleiben Sache des Browsers. Damit geht eine echte Produktoberfläche auf einer Fläche im Raum mit Perspektive und Schärfentiefe, eine Glaslinse über einer Seite oder ein Shader-Übergang zwischen zwei echten Bildschirmen. Das nutzt HTML-in-Canvas aus Chrome 157 und braucht keinen Schalter.
+- **Baustein in der Runtime:** `/runtime/html-in-canvas.js` mit `htmlCanvas(canvas)`: `paint(draw)` zeichnet das HTML, wie es für dieses Bild steht, `shader(…)` legt einen Fragment-Shader über den Canvas und nimmt HTML-Elemente direkt als Textur, `texture(…)` gibt die Textur für eigenes WebGL. Jedes Bild kommt in jeder Sprungreihenfolge Byte für Byte gleich heraus.
+- **Bilder aus dem Projektordner erscheinen im Canvas:** Szenen laufen abgeschottet, deshalb ließ der Browser Projektbilder in solchem HTML bisher weg. Der Baustein lädt `<img>` passend und ersetzt CSS-Bilder (Hintergrund, Maske, Rahmen) und SVG-`<image>` durch eine eigene Kopie.
+- **Miniatur aus Code:** Bildschirme, Briefe und Zeitungen in der Miniaturwelt können echtes HTML sein. `E.updateLive(slot, element)` nimmt ein `drawable`-Kind des Film-Canvas als lebende Textur, leuchtend als Bildschirm oder vom Raum beleuchtet als Papier, mit Spiegelung, Schärfentiefe und Korn des Renderers.
+- **Älterer Chrome:** `check`, `snapshot` und `render` halten mit einem klaren Hinweis an, statt einen Film ohne sein Bild zu machen. Die Vorschau zeigt das HTML dann ohne den Effekt.
+- **Für den Coding-Agenten:** Die Skills erklären das Muster, was das Bild eines Elements enthält, die Fallen und drei geprüfte Rezepte (`references/html-in-canvas.md` im Skill `superint-video`). Ein Plugin eines Browser-Herstellers ist dafür nicht nötig.
+- **Verständliche Fehlermeldungen:** Antwortet die App nicht mehr, sagt die Startseite das in klaren Worten und in der Sprache der App, statt „Failed to fetch“ zu zeigen, und nennt den nächsten Schritt. Sobald die App wieder läuft, verschwindet der Hinweis von selbst. Häufige Fehler der Startseite (fehlender Filmordner, zu kurze Aufnahme, fehlende Skills und andere) stehen jetzt auf Deutsch und Englisch da; bei allen anderen steht davor, dass der Schritt nicht geklappt hat.
+- **Behoben: Die App beendete sich nach dem Ruhezustand.** War der Computer länger als zwei Stunden im Ruhezustand, hielt die App das für zwei Stunden ohne Zuschauer und beendete sich; die offene Seite lief dann ins Leere. Der Ruhezustand zählt jetzt nicht mehr mit, auch nicht für das Studio eines Films.
+
 ## 0.8.0 — 2026-11-13
 
 - **Ohne API-Schlüssel:** Ein Film braucht nur noch einen Coding-Agenten, Chrome und FFmpeg. Die Einrichtung hält niemanden mehr wegen eines fehlenden API-Schlüssels auf und sagt, was ohne ihn geht (Bild, Text im Bild, Soundeffekte, die eigene Stimme) und was er dazubringt (KI-Stimme mit exakten Wort-Zeitpunkten, erzeugte Musik, Diktieren, Stile aus Bildern). Das Diktat und „Neuen Stil erstellen“ sagen an Ort und Stelle, dass sie einen brauchen.

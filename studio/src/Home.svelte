@@ -15,6 +15,7 @@
     call,
     needs,
     problem,
+    reachable,
     refresh,
     run,
     setLanguage,
@@ -155,7 +156,9 @@
   </header>
 
   <main class="home-page" bind:this={page}>
-    {#if $problem}<div class="home-problem" role="alert">
+    {#if !$reachable}<div class="home-problem" role="alert">
+        <Icon name="alert" /><span>{$t('common.unreachable')}</span>
+      </div>{:else if $problem}<div class="home-problem" role="alert">
         <Icon name="alert" /><span>{$problem}</span><button
           class="icon-button"
           aria-label={$t('common.dismiss')}

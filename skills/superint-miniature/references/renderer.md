@@ -117,6 +117,23 @@ New material: add a number in `MAT`, a function `matX(inout S s, vec3 p)` and a 
 - Text paint helpers: `canvas(w, h, fn)`, `paperGround(x, w, h, colour, seed)`, `wrap(x, text, maxW)`. Fonts must be awaited in `main.js`.
 - Images: the scene runs in a sandboxed iframe, so an image from a URL taints the canvas and WebGL refuses it. Bake images as `data:` URIs into a module (`tools/bake_images.py` in the example) and load them with `new Image()`.
 - Live textures change per frame: `E.makeLive(slot, w, h, srgb)` and `E.updateLive(slot, canvas)`, used through layers 200–203. Slot 0 is the picture in picture (undoes the film curve), slot 3 the mirror. Mipmaps are rebuilt per update, so repaint only when the content's key changed.
+- **Real HTML in the world** (a screen, a letter, a newspaper, a sign): write it as HTML and let the browser set the type, instead of painting it into a canvas by hand. Put it into the film's canvas in `film.html` as a child that carries `drawable`, with its size in CSS pixels, and hand it to a live texture. Needs Chrome 157 or newer; the rules for such HTML (project pictures, what is cut off) are in `references/html-in-canvas.md` of the superint-video skill.
+
+  ```html
+  <canvas id="film">
+    <div drawable id="screen" style="width:1280px;height:800px">…the page, with fonts, layout, <img>…</div>
+  </canvas>
+  ```
+
+  ```js
+  E.makeLive(1, 1280, 800);                       // once, while the room is built; the element's size
+  g.with({ c: '#ffffff', mat: MAT.screen, tex: 201, flag: 8, e: 1.5 }, () => g.at(pos, () => g.card(.576, .36)));       // a screen that glows
+  g.with({ c: '#ffffff', mat: MAT.paper, r: .85, tex: 201, flag: 4 }, () => g.at(pos, [0, a, 0], () => g.sheet(.32, .2)));   // paper lit by the room
+  // in the room's frame(t): the HTML of this moment, then its picture
+  clock.textContent = t.toFixed(1); E.updateLive(1, document.getElementById('screen'));
+  ```
+
+  `main.js` sees the `drawable` child and draws each frame once the browser has laid the HTML out; nothing else changes. Use slots 1 and 2 (0 and 3 are taken, see above). The card has the element's aspect. The HTML is flat colour: the world's light, the pixel grid of `screen`, depth of field and grain come from the renderer.
 
 ## Lights
 

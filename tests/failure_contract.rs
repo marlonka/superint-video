@@ -168,6 +168,29 @@ async fn failed_fonts_exceptions_and_readiness_timeouts_are_actionable() -> Resu
 
 #[tokio::test]
 #[ignore = "requires local Chromium and FFmpeg"]
+async fn a_browser_without_html_in_canvas_stops_the_capture_and_names_what_it_needs() -> Result<()>
+{
+    // An older Chrome, made here by taking the feature away before the scene looks for it.
+    let result = check_scene(
+        r#"<!doctype html><script>delete HTMLCanvasElement.prototype.content</script>
+<canvas id="stage"><p drawable>Text</p></canvas><script type="module">
+import {defineScene} from '/runtime/scene.js';
+import {htmlCanvas} from '/runtime/html-in-canvas.js';
+const stage = htmlCanvas(document.querySelector('#stage'));
+defineScene({ready: stage.ready, render: () => stage.paint(() => {})});
+</script>"#,
+    )
+    .await?;
+    ensure!(result["ok"] == false, "the capture went on: {result}");
+    ensure!(
+        result["diagnostics"].to_string().contains("Chrome 157"),
+        "expected the Chrome it needs, got {result}"
+    );
+    Ok(())
+}
+
+#[tokio::test]
+#[ignore = "requires local Chromium and FFmpeg"]
 async fn encoder_failure_leaves_existing_output_unchanged() -> Result<()> {
     let directory = project()?;
     let output = directory.path().join("existing.mp4");

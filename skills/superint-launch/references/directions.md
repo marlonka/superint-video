@@ -11,7 +11,7 @@ Adapted from cinetic's `assets/directions/directions.json` (Leonxlnx, MIT; snaps
 3. Choose one with a reason (what about the product's idea it carries), and write it into `direction.md` with numbers: world and planes, light, the camera's one move per shot, the seam kinds, the signature, the lockup.
 4. A second film for the same product takes another direction. No direction fits? Write your own in the same fields.
 
-Not every direction needs 3D or real light: build it in HTML/CSS/SVG/canvas or WebGL as the scene needs. A direction says *what*, the preset says *how it looks*.
+Not every direction needs 3D or real light: build it in HTML/CSS/SVG/canvas or WebGL as the scene needs. A direction says *what*, the preset says *how it looks*. Where a direction does want depth (the interface on a plane in space, a lens that pulls focus from one panel to the next, a turn from the 3D stack to the flat UI, a seam that is a shader), the interface stays the real HTML you built: a canvas draws it as a texture through a shader (`references/html-in-canvas.md` of the superint-video skill), so the strings stay real and sharp, and nothing is redrawn by hand.
 
 ## The directions
 

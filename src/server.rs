@@ -140,7 +140,7 @@ async fn asset_file(
     }
     let source = safe_path(&state.root, &path)?;
     if !source.is_file() {
-        return Err(ApiError(StatusCode::NOT_FOUND, "Asset not found".into()));
+        return Err(ApiError::new(StatusCode::NOT_FOUND, "Asset not found"));
     }
     let mut bytes = tokio::fs::read(&source).await?;
     if media::kind(&source) == "scene" {
@@ -237,6 +237,38 @@ struct Job {
 /// A companion Studio without a viewer and without a render ends itself after this long.
 const IDLE_LIMIT: Duration = Duration::from_secs(2 * 60 * 60);
 
+/// How long nobody has been watching, in time the computer was awake. A night in standby is
+/// not hours without a viewer: an open page asks again the moment the computer wakes.
+struct Unwatched {
+    awake: Duration,
+    looked: std::time::Instant,
+}
+impl Unwatched {
+    /// More than this between two looks means the computer slept in between.
+    const LONGEST_LOOK: Duration = Duration::from_secs(5 * 60);
+
+    fn new() -> Self {
+        Self {
+            awake: Duration::ZERO,
+            looked: std::time::Instant::now(),
+        }
+    }
+    /// Takes note of one look and says how long nobody has been watching.
+    fn look(&mut self, watched: bool) -> Duration {
+        let passed = self.looked.elapsed();
+        self.looked = std::time::Instant::now();
+        self.count(watched, passed)
+    }
+    fn count(&mut self, watched: bool, passed: Duration) -> Duration {
+        if watched {
+            self.awake = Duration::ZERO;
+        } else if passed <= Self::LONGEST_LOOK {
+            self.awake += passed;
+        }
+        self.awake
+    }
+}
+
 pub struct StudioOptions {
     pub open: bool,
     pub detached: bool,
@@ -326,7 +358,7 @@ pub async fn studio(root: PathBuf, port: u16, options: StudioOptions) -> Result<
         let mut last_production = String::new();
         let mut last_render_start = live::read(&watcher.root)["render"]["startedAt"].as_u64();
         let mut last_asked = None;
-        let mut last_viewer = std::time::Instant::now();
+        let mut unwatched = Unwatched::new();
         let mut tick = 0u32;
         loop {
             tokio::select! {
@@ -354,9 +386,8 @@ pub async fn studio(root: PathBuf, port: u16, options: StudioOptions) -> Result<
             }
             last_render_start = start;
             last_asked = asked;
-            if rendering || watcher.events.receiver_count() > 0 {
-                last_viewer = std::time::Instant::now();
-            } else if detached && last_viewer.elapsed() > IDLE_LIMIT {
+            let alone = unwatched.look(rendering || watcher.events.receiver_count() > 0);
+            if detached && alone > IDLE_LIMIT {
                 watcher.shutdown.cancel();
                 break;
             }
@@ -461,9 +492,12 @@ pub async fn app(home: PathBuf, port: u16, options: StudioOptions) -> Result<()>
         let (seen, stop) = (state.seen.clone(), shutdown.clone());
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(60));
+            let mut unwatched = Unwatched::new();
             loop {
                 interval.tick().await;
-                if seen.lock().unwrap().elapsed() > IDLE_LIMIT {
+                // The start page asks every few seconds while it is open.
+                let watched = seen.lock().unwrap().elapsed() < Duration::from_secs(90);
+                if unwatched.look(watched) > IDLE_LIMIT {
                     stop.cancel();
                     break;
                 }
@@ -839,7 +873,7 @@ async fn live_state(State(state): State<StudioState>) -> Json<Value> {
 }
 async fn live_latest(State(state): State<StudioState>) -> ApiResult<Response> {
     let bytes = live::latest_picture(&state.root)
-        .ok_or_else(|| ApiError(StatusCode::NOT_FOUND, "No frame yet".into()))?;
+        .ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, "No frame yet"))?;
     Ok(bytes_response(bytes, "image/png"))
 }
 async fn live_strip(
@@ -847,7 +881,7 @@ async fn live_strip(
     RoutePath(frame): RoutePath<u64>,
 ) -> ApiResult<Response> {
     let bytes = live::strip_picture(&state.root, frame)
-        .ok_or_else(|| ApiError(StatusCode::NOT_FOUND, "No such thumbnail".into()))?;
+        .ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, "No such thumbnail"))?;
     Ok(bytes_response(bytes, "image/jpeg"))
 }
 /// Reads a `Range: bytes=a-b` header against a file length; None serves the whole file.
@@ -864,7 +898,7 @@ fn parse_range(header: Option<&str>, length: u64) -> Option<(u64, u64)> {
 async fn live_video(State(state): State<StudioState>, headers: HeaderMap) -> ApiResult<Response> {
     use tokio::io::{AsyncReadExt, AsyncSeekExt};
     let path = live::finished_video(&state.root)
-        .ok_or_else(|| ApiError(StatusCode::NOT_FOUND, "No finished film".into()))?;
+        .ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, "No finished film"))?;
     let mut file = tokio::fs::File::open(&path).await?;
     let length = file.metadata().await?.len();
     let range = parse_range(
@@ -890,7 +924,7 @@ async fn live_video(State(state): State<StudioState>, headers: HeaderMap) -> Api
 }
 async fn live_open(State(state): State<StudioState>) -> ApiResult<Json<Value>> {
     let path = live::finished_video(&state.root)
-        .ok_or_else(|| ApiError(StatusCode::NOT_FOUND, "No finished film".into()))?;
+        .ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, "No finished film"))?;
     process::open_path(&path)?;
     Ok(Json(json!({"ok":true})))
 }
@@ -953,7 +987,7 @@ struct TakeQuery {
     draft: Option<u8>,
 }
 fn wav_response(path: Option<PathBuf>) -> ApiResult<Response> {
-    let path = path.ok_or_else(|| ApiError(StatusCode::NOT_FOUND, "No recording".into()))?;
+    let path = path.ok_or_else(|| ApiError::new(StatusCode::NOT_FOUND, "No recording"))?;
     Ok(bytes_response(std::fs::read(path)?, "audio/wav"))
 }
 async fn voice_audio(
@@ -1011,9 +1045,9 @@ async fn studio_file(req: Request) -> Response {
             file.contents().to_vec(),
             mime_guess::from_path(path).first_or_octet_stream().as_ref(),
         ),
-        None => ApiError(
+        None => ApiError::new(
             StatusCode::NOT_FOUND,
-            "Studio asset not found; build studio before compiling Rust".into(),
+            "Studio asset not found; build studio before compiling Rust",
         )
         .into_response(),
     }
@@ -1071,16 +1105,22 @@ pub(crate) fn bytes_response(bytes: Vec<u8>, mime: &str) -> Response {
         .unwrap()
 }
 pub(crate) type ApiResult<T> = std::result::Result<T, ApiError>;
-pub struct ApiError(StatusCode, String);
+pub struct ApiError(StatusCode, String, Option<&'static str>);
 impl ApiError {
     pub(crate) fn new(status: StatusCode, message: &str) -> Self {
-        Self(status, message.into())
+        Self(status, message.into(), None)
     }
     pub(crate) fn bad(message: &str) -> Self {
-        Self(StatusCode::BAD_REQUEST, message.into())
+        Self::new(StatusCode::BAD_REQUEST, message)
     }
     fn forbidden(message: &str) -> Self {
-        Self(StatusCode::FORBIDDEN, message.into())
+        Self::new(StatusCode::FORBIDDEN, message)
+    }
+    /// A failure the user can cause from the app. `code` names it, so the app says it in the
+    /// user's language (`error.<code>` in its catalogs); `message` is the same in English for
+    /// everyone else.
+    pub(crate) fn told(code: &'static str, message: &str) -> Self {
+        Self(StatusCode::BAD_REQUEST, message.into(), Some(code))
     }
 }
 impl<E: Into<anyhow::Error>> From<E> for ApiError {
@@ -1092,15 +1132,39 @@ impl<E: Into<anyhow::Error>> From<E> for ApiError {
         } else {
             StatusCode::BAD_REQUEST
         };
-        Self(status, message)
+        Self(status, message, None)
     }
 }
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
-        (
-            self.0,
-            Json(json!({"error":self.0.as_u16(),"message":self.1})),
-        )
-            .into_response()
+        let mut body = json!({"error":self.0.as_u16(),"message":self.1});
+        if let Some(code) = self.2 {
+            body["code"] = json!(code);
+        }
+        (self.0, Json(body)).into_response()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn standby_is_not_time_without_a_viewer() {
+        let minute = Duration::from_secs(60);
+        let mut unwatched = Unwatched::new();
+        assert_eq!(unwatched.count(false, minute), minute);
+        assert_eq!(unwatched.count(false, minute), 2 * minute);
+        // The computer slept for three hours: nobody could have looked, so they do not count.
+        assert_eq!(unwatched.count(false, 180 * minute), 2 * minute);
+        assert_eq!(unwatched.count(false, minute), 3 * minute);
+        // Someone looks: the time starts again.
+        assert_eq!(unwatched.count(true, minute), Duration::ZERO);
+        // Two hours awake and alone add up.
+        let mut alone = Duration::ZERO;
+        for _ in 0..121 {
+            alone = unwatched.count(false, minute);
+        }
+        assert!(alone > IDLE_LIMIT);
     }
 }
