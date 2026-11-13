@@ -131,8 +131,11 @@ async function load() {
   stage.style.background = manifest.background || '#101113'; fit();
   const ordered = manifest.clips.filter(clip => clip.type !== 'audio').map((clip, index) => ({ clip, index }))
     .sort((a, b) => manifest.tracks.findIndex(track => track.id === a.clip.track) - manifest.tracks.findIndex(track => track.id === b.clip.track) || a.index - b.index);
-  // Create in paint order; iframe readiness is independent.
-  await Promise.all(ordered.map(({ clip }) => makeLayer(clip).catch(error => { report(error, clip); throw error; })));
+  // Create in paint order; iframe readiness is independent. When several fail, as when one scene
+  // is used by many clips, the first in paint order names the failure, not whichever came first.
+  const settled = await Promise.allSettled(ordered.map(({ clip }) => makeLayer(clip).catch(error => { report(error, clip); throw error; })));
+  const failed = settled.find(result => result.status === 'rejected');
+  if (failed) throw failed.reason;
 }
 async function evaluate(at, expectedGeneration) {
   await Promise.all(layers.map(async layer => {
