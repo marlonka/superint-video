@@ -2,6 +2,13 @@
 
 Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. Das Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Nummern folgen [Semantic Versioning](https://semver.org/lang/de/). Jede Version zum Herunterladen steht unter [Releases](https://github.com/marlonka/superint-video/releases).
 
+## [0.9.3] – 2026-11-13
+
+### Behoben
+
+- Benutzen mehrere Clips dieselbe Szene und scheitern alle, nennt die Meldung jetzt immer den ersten Clip, nicht den, der zufällig zuerst fertig war.
+- Ein Fehler, den eine Szene schon beim Laden meldet, beginnt nicht mehr mit einem doppelten „Error:“.
+
 ## [0.9.2] – 2026-11-13
 
 ### Neu
@@ -140,6 +147,7 @@ Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. 
 
 - Erste Version: eine Rust-CLI und Studio im Browser für HTML-Szenen, Timeline, Prüfen, Snapshots und MP4-Export über Chromium und FFmpeg.
 
+[0.9.3]: https://github.com/marlonka/superint-video/releases/tag/v0.9.3
 [0.9.2]: https://github.com/marlonka/superint-video/releases/tag/v0.9.2
 [0.9.1]: https://github.com/marlonka/superint-video/releases/tag/v0.9.1
 [0.9.0]: https://github.com/marlonka/superint-video/releases/tag/v0.9.0

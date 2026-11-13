@@ -218,7 +218,12 @@ if (typeof window !== 'undefined' && window.parent !== window) {
     serial = serial.then(async () => {
       try {
         await deadline(loaded, 'Document loading');
-        if (startupErrors.length) throw new Error(startupErrors.join('\n'));
+        // What went wrong before the player asked, as it was recorded: wrapped in a new Error, it
+        // would read "Error: Error: …".
+        if (startupErrors.length) {
+          const recorded = startupErrors.join('\n');
+          throw Object.assign(new Error(recorded), { stack: recorded });
+        }
         await deadline(definition?.ready, 'Scene initialization');
         if (message.action === 'initialize') {
           await assetReadiness();
