@@ -74,10 +74,10 @@ export const de: Catalog = {
   'setup.films.opening': 'Öffnen',
   'setup.films.follow': 'Zu einem neuen Film wechseln, sobald der Coding-Agent ihn beginnt',
   'setup.films.window': 'In einem eigenen Fenster öffnen statt in einem Browser-Tab',
-  'setup.polish.title': 'Feinschliff vor dem Render',
+  'setup.polish.title': 'Visueller Qualitäts-Feinschliff vor dem Render',
   'setup.polish.why':
     'Ein Sub-Agent deines Coding-Agents sieht jedes Bild mit frischen Augen an und bessert nach, bevor der Film gerendert wird.',
-  'setup.polish.choice': 'Runden vor jedem Render',
+  'setup.polish.choice': 'Visueller Qualitätsloop vor jedem Render',
   'setup.polish.rounds': { one: '{count} Runde', other: '{count} Runden' },
   'setup.polish.what1':
     'Frische Augen prüfen jedes Standbild, jeden Schnitt und jede Bewegung und bessern nach. Die übliche Wahl.',
@@ -97,6 +97,8 @@ export const de: Catalog = {
   'setup.part.soundEffects': 'Soundeffekte',
   'setup.skip': 'Ohne Einrichtung fortfahren',
   'setup.checkAgain': 'Erneut prüfen',
+  'setup.checkAgainHint':
+    'Sucht Chrome, FFmpeg, Earshot, die Coding-Agenten und die Verknüpfung sofort neu, etwa nach einer Installation.',
   'setup.done': 'Erledigt',
   'setup.todo': 'Offen',
   'setup.banner.title': 'Die Einrichtung ist nicht abgeschlossen',
@@ -106,7 +108,8 @@ export const de: Catalog = {
   'setup.effect.picture': 'Ohne Chrome und FFmpeg wird kein Film gerendert.',
 
   'setup.agent.title': 'Coding-Agent',
-  'setup.agent.why': 'Macht den Film: schreibt, zeichnet, prüft und rendert ihn. Einer genügt.',
+  'setup.agent.why':
+    'Baut deine Filme mit Superint Video: schreibt, zeichnet, prüft und rendert. Einer genügt.',
   'setup.agent.absent': 'Nicht installiert',
   'setup.agent.ready': 'Hat die Superint-Skills',
   'setup.agent.missing': '{count} von {total} Skills fehlen',
@@ -193,6 +196,17 @@ export const de: Catalog = {
   'setup.cloud.hint':
     'Mit Projekt entstehen Stimme, Wort-Zeitpunkte und Diktat in der Region. Ohne Projekt verarbeitet Google einen Schlüssel aus dem Express-Modus global. Musik (Lyria 3) gibt es nur global.',
   'setup.cloud.saved': 'Google Cloud: gespeichert',
+  'setup.cloud.refused': 'Google hat deine Anmeldung für das Projekt {project} nicht angenommen.',
+  'setup.cloud.refused.project':
+    'Die Projekt-ID stammt aus deiner Google-Anmeldung (dem Kontingentprojekt), nicht aus einem API-Schlüssel, und dein Google-Konto kommt an dieses Projekt nicht heran.',
+  'setup.cloud.refused.apiOff':
+    'In diesem Projekt ist die Agent Platform API (früher Vertex AI API) noch ausgeschaltet.',
+  'setup.cloud.refused.said': 'Google sagt: {detail}',
+  'setup.cloud.usable': 'Mit deiner Anmeldung funktioniert es in: {projects}.',
+  'setup.cloud.noUsable':
+    'Unter „Projekt und Region“ ein Google-Cloud-Projekt eintragen, in dem die Agent Platform API eingeschaltet ist.',
+  'setup.cloud.use': '{project} verwenden',
+  'setup.cloud.enableApi': 'Agent Platform API einschalten',
   'setup.openai.eu': 'In der EU verarbeiten (eu.api.openai.com)',
   'setup.openai.euHint':
     'Nur wenn auf platform.openai.com unter Settings, Project bei „Project Residency“ Europa steht. Die meisten Projekte sind Global, dann bleibt das aus.',
@@ -230,6 +244,9 @@ export const de: Catalog = {
     'Der API-Schlüssel funktioniert: Diktat und das Modell für neue Stile sind erreichbar.',
   'setup.key.check.credit': 'Der API-Schlüssel funktioniert. Vom Limit sind noch {amount} übrig.',
   'setup.key.check.partial': 'Der API-Schlüssel funktioniert, erreicht aber {models} nicht.',
+  'setup.key.check.worksSignIn':
+    'Die Anmeldung funktioniert: Stimme, Wort-Zeitpunkte und Diktat sind erreichbar. Musik wird erst gefragt, wenn sie entsteht.',
+  'setup.key.check.partialSignIn': 'Die Anmeldung funktioniert, erreicht aber {models} nicht.',
   'setup.key.check.refused': 'Der Anbieter hat den API-Schlüssel nicht angenommen: {detail}',
   'setup.key.placeholder': 'API-Schlüssel hier einfügen',
   'setup.key.label': 'API-Schlüssel für {provider}',
@@ -359,7 +376,8 @@ export const de: Catalog = {
 
   // Neuer Film
   'compose.title': 'Neuer Film',
-  'compose.lead': 'Beschreib den Film, kopiere den Prompt und füge ihn in {agents} ein.',
+  'compose.lead':
+    'Du beschreibst ihn, dein Coding-Agent baut ihn. Den Prompt dafür kopierst du in {agents}.',
   'compose.placeholder': 'Worum soll es im Film gehen? Ein, zwei Sätze genügen.',
   'compose.lengthIs': 'Also {length}',
   'compose.lengthHelp': 'Zum Beispiel 3 min, 90 s oder 2:30, höchstens 60 min',
@@ -369,7 +387,11 @@ export const de: Catalog = {
   'compose.baseClear': 'Ohne Vorlage',
   'compose.promptLabel': 'Der Prompt für deinen Coding-Agenten',
   'compose.copy': 'Prompt kopieren',
-  'compose.copied': 'Kopiert. Füge ihn in {agents} ein.',
+  'compose.copied': 'Prompt kopiert.',
+  'compose.next':
+    'Jetzt in {agents} einfügen und abschicken. Lass dieses Fenster offen: Sobald dein Coding-Agent loslegt, wechselt es zum neuen Film, und du siehst jeden Schritt. Zuschauen musst du nicht, er arbeitet auch im Hintergrund weiter, bis das MP4 fertig ist.',
+  'compose.nextList':
+    'Jetzt in {agents} einfügen und abschicken. Sobald dein Coding-Agent loslegt, steht der Film unten unter „Erstellte Filme“; dort öffnest du ihn und siehst jeden Schritt. Zuschauen musst du nicht, er arbeitet auch im Hintergrund weiter, bis das MP4 fertig ist.',
   'compose.copyBlocked':
     'Der Browser hat das Kopieren nicht erlaubt. Markiere den Text und kopiere ihn von Hand.',
   'dictate.start': 'Sprechen',

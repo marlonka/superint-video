@@ -11,7 +11,7 @@
 
 <p align="center">
   <img alt="Windows 10 und 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-2f7bf5?style=flat-square">
-  <a href="https://github.com/marlonka/superint-video/releases/latest"><img alt="Version 0.9.3" src="https://img.shields.io/badge/Version-0.9.3-2e8b57?style=flat-square"></a>
+  <a href="https://github.com/marlonka/superint-video/releases/latest"><img alt="Version 0.9.4" src="https://img.shields.io/badge/Version-0.9.4-2e8b57?style=flat-square"></a>
   <img alt="Lizenz: MIT" src="https://img.shields.io/badge/Lizenz-MIT-3a3a3a?style=flat-square">
 </p>
 
@@ -24,6 +24,16 @@
   <br>
   <sub>Das Studio mit einem fertigen Film. Du siehst, was dein Coding-Agent gerade tut, und änderst selbst, was du willst.</sub>
 </p>
+
+## So funktioniert es
+
+Superint Video ist kein Schnittprogramm, in dem du selbst Szenen baust. Es ist die Werkstatt für deinen Coding-Agenten: Claude Code, ChatGPT Codex oder Google Antigravity finden darin alles, was ein Film braucht, und bauen ihn für dich.
+
+1. **Du beschreibst den Film** in Superint Video. Die App schreibt daraus den Prompt für deinen Agenten.
+2. **Du trägst den Prompt hinüber.** Superint Video kann deinem Agenten nichts direkt schicken. Diesen einen Handgriff machst du selbst: kopieren, im Agenten einfügen, abschicken.
+3. **Dein Agent baut den Film** mit den Werkzeugen von Superint Video: Er recherchiert, schreibt, zeichnet, vertont, prüft und rendert.
+
+Lass Superint Video offen, während er arbeitet. Dann wechselt es zum neuen Film, und du siehst jeden Schritt. Ist die App zu, öffnet dein Agent das Studio selbst. Zuschauen musst du aber nicht: Er arbeitet auch im Hintergrund weiter, bis das MP4 fertig ist.
 
 ## Was du brauchst
 
@@ -52,9 +62,9 @@ Danach startest du Superint Video wie jedes andere Programm, über das Symbol au
 
 1. Öffne Superint Video und schreib unter **Neuer Film**, worum es gehen soll. Ein Satz genügt, etwa „Warum Schlaf das Gehirn putzt“.
 2. Klick auf **Prompt kopieren**.
-3. Füge den Prompt in Claude Code, ChatGPT Codex oder Google Antigravity ein und schick ihn ab.
+3. Füge den Prompt in Claude Code, ChatGPT Codex oder Google Antigravity ein und schick ihn ab. Superint Video bleibt dabei offen.
 
-Dein Agent fragt nach, wenn ihm etwas fehlt, und legt dann los: Recherche, Skript, Bilder, Ton, Feinschliff und am Ende das MP4. Im Studio siehst du jeden Schritt, und die Vorschau wächst mit. Texte und Timing änderst du dort jederzeit selbst. Der fertige Film liegt in deinem Ordner `Videos\Superint Video`.
+Dein Agent fragt nach, wenn ihm etwas fehlt, und legt dann los: Recherche, Skript, Bilder, Ton, Feinschliff und am Ende das MP4. Superint Video wechselt von selbst zum neuen Film, du siehst jeden Schritt, und die Vorschau wächst mit. Texte und Timing änderst du dort jederzeit selbst. Der fertige Film liegt in deinem Ordner `Videos\Superint Video`.
 
 <p align="center">
   <img src="docs/images/app-start.jpg" alt="Die Startseite: ein Feld für das Thema des Films, darunter Stil, Länge, Format und Sprache, der fertige Prompt mit dem Knopf „Prompt kopieren“ und vier Filme mit Vorschaubild und Stand" width="100%">

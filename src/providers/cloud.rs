@@ -312,8 +312,78 @@ pub async fn visible(g: &Generators, model: &str) -> Result<bool> {
                 Ok(true)
             }
         }
-        _ => Err(g.failure(Provider::GoogleCloud, response).await),
+        status => {
+            let code = response.status();
+            let body = response.text().await.unwrap_or_default();
+            Err(Refusal {
+                status,
+                reason: reason(&body),
+                error: g.failed(Provider::GoogleCloud, code, &body),
+            }
+            .into())
+        }
     }
+}
+
+/// Google Cloud turning a request away, with the `reason` of its error details: for example
+/// `CONSUMER_INVALID` (the account cannot use the project, seen 2026-11-13 for a sign-in's
+/// quota project the account no longer reaches) or `SERVICE_DISABLED` (the project has the
+/// Agent Platform API switched off).
+#[derive(Debug)]
+pub struct Refusal {
+    pub status: u16,
+    pub reason: Option<String>,
+    error: anyhow::Error,
+}
+
+impl std::fmt::Display for Refusal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.error.fmt(f)
+    }
+}
+
+impl std::error::Error for Refusal {}
+
+/// The first `reason` in the details of a Google error answer.
+fn reason(body: &str) -> Option<String> {
+    let value: Value = serde_json::from_str(body).ok()?;
+    value["error"]["details"]
+        .as_array()?
+        .iter()
+        .find_map(|detail| detail["reason"].as_str())
+        .map(str::to_string)
+}
+
+/// The active projects the user's Google sign-in can see, for a check whose project was
+/// turned away. Empty with a key, or when the list cannot be read.
+pub async fn projects(g: &Generators) -> Vec<String> {
+    let Some(sign_in) = &g.google else {
+        return Vec::new();
+    };
+    let Ok(token) = gauth::token(&g.http, sign_in).await else {
+        return Vec::new();
+    };
+    let answer = g
+        .http
+        .get("https://cloudresourcemanager.googleapis.com/v1/projects?filter=lifecycleState%3AACTIVE&pageSize=50")
+        .bearer_auth(token)
+        .timeout(Duration::from_secs(20))
+        .send()
+        .await;
+    let Ok(answer) = answer else {
+        return Vec::new();
+    };
+    if !answer.status().is_success() {
+        return Vec::new();
+    }
+    let value: Value = answer.json().await.unwrap_or_default();
+    value["projects"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|project| project["projectId"].as_str())
+        .map(str::to_string)
+        .collect()
 }
 
 /// The text of the parts, and the words with their times when they were asked for.
@@ -349,6 +419,19 @@ fn transcript(value: &Value) -> (String, Vec<Word>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_refusal_keeps_googles_reason() {
+        // Google's answer of 2026-11-13 for a sign-in's quota project the account cannot use.
+        let body = r#"{"error": {"code": 403, "status": "PERMISSION_DENIED",
+            "message": "Permission denied on resource project p.",
+            "details": [{"@type": "type.googleapis.com/google.rpc.ErrorInfo",
+                "reason": "CONSUMER_INVALID", "domain": "googleapis.com"},
+                {"@type": "type.googleapis.com/google.rpc.Help", "links": []}]}}"#;
+        assert_eq!(reason(body).as_deref(), Some("CONSUMER_INVALID"));
+        assert_eq!(reason(r#"{"error": {"code": 403}}"#), None);
+        assert_eq!(reason("not json"), None);
+    }
 
     fn place(project: Option<&str>, location: &str) -> Place {
         Place {

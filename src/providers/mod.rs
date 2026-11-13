@@ -909,7 +909,17 @@ impl Generators {
     ) -> anyhow::Error {
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
-        let message = serde_json::from_str::<Value>(&body)
+        self.failed(provider, status, &body)
+    }
+
+    /// `failure` for an answer whose body was already read.
+    pub(crate) fn failed(
+        &self,
+        provider: Provider,
+        status: reqwest::StatusCode,
+        body: &str,
+    ) -> anyhow::Error {
+        let message = serde_json::from_str::<Value>(body)
             .ok()
             .and_then(|value| {
                 value["error"]["message"]
@@ -918,7 +928,7 @@ impl Generators {
                     .or(value["message"].as_str())
                     .map(str::to_string)
             })
-            .unwrap_or(body);
+            .unwrap_or_else(|| body.to_string());
         let message: String = message.chars().take(1500).collect();
         anyhow!(
             "{} returned {status}: {}",
@@ -1208,7 +1218,7 @@ pub async fn try_key(
     if keys.get(name).is_none() && !signed_in {
         return Ok(json!({"ok": false, "state": "none"}));
     }
-    let generators = Generators::new(keys, std::env::temp_dir().join("superint-video-doctor"))?;
+    let mut generators = Generators::new(keys, std::env::temp_dir().join("superint-video-doctor"))?;
     let refused = |error: anyhow::Error| json!({"ok": false, "state": "refused", "detail": error.to_string()});
     let own = |chosen: Option<&str>, provider: Provider, usual: &'static str| -> String {
         chosen
@@ -1278,6 +1288,8 @@ pub async fn try_key(
             models.push(model);
         }
     }
+    // Without a saved key Google Cloud is asked with the sign-in, which the page names so.
+    let sign_in = cloud && generators.keys.get(name).is_none();
     let mut missing = Vec::new();
     for model in models {
         let seen = if cloud {
@@ -1288,10 +1300,53 @@ pub async fn try_key(
         match seen {
             Ok(true) => {}
             Ok(false) => missing.push(model),
+            Err(error) if cloud => {
+                let mut answer = refused_by_cloud(&mut generators, sign_in, &model, error).await;
+                answer["signIn"] = json!(sign_in);
+                return Ok(answer);
+            }
             Err(error) => return Ok(refused(error)),
         }
     }
-    Ok(checked(missing))
+    let mut answer = checked(missing);
+    if cloud {
+        answer["signIn"] = json!(sign_in);
+    }
+    Ok(answer)
+}
+
+/// A Google Cloud check that was turned away, with what the page needs to say why: the
+/// project asked for, Google's reason, and, when the sign-in cannot use that project, the
+/// sign-in's other projects that do serve the model (`usable`), so the user can pick one.
+async fn refused_by_cloud(
+    g: &mut Generators,
+    sign_in: bool,
+    model: &str,
+    error: anyhow::Error,
+) -> Value {
+    let refusal = error.downcast_ref::<cloud::Refusal>();
+    let project = g.cloud.project.clone();
+    let mut answer = json!({
+        "ok": false, "state": "refused", "detail": error.to_string(), "project": project,
+        "reason": refusal.and_then(|refusal| refusal.reason.clone()),
+    });
+    let turned_away = refusal.is_some_and(|refusal| refusal.status == 403) || project.is_none();
+    if sign_in && turned_away {
+        let mut usable = Vec::new();
+        let others = cloud::projects(g).await.into_iter();
+        for other in others
+            .filter(|other| Some(other) != project.as_ref())
+            .take(10)
+        {
+            g.cloud.project = Some(other.clone());
+            if matches!(cloud::visible(g, model).await, Ok(true)) {
+                usable.push(other);
+            }
+        }
+        g.cloud.project = project;
+        answer["usable"] = json!(usable);
+    }
+    answer
 }
 
 /// How long a WAV file plays, or why it is not one the start page could have recorded.
