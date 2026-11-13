@@ -1,5 +1,13 @@
 # Versionsverlauf
 
+## 0.9.1 — 2026-11-13
+
+- **Behoben: Studio und App endeten mit dem Coding-Agenten.** Startete ein Befehl des Coding-Agenten Studio oder die App (etwa `new` oder `render`), gehörten beide unter Windows zur Desktop-App des Agenten. Schloss oder aktualisierte sich diese App, beendete Windows beide mit, und das Fenster, das noch offen war, meldete „antwortet nicht“. Studio und App starten jetzt so, dass sie niemandem gehören, und laufen weiter.
+- **Studio kommt an seiner Adresse zurück:** Wird das Studio eines Films neu gestartet, nimmt es die Adresse von vorher, wenn sie frei ist. Ein Fenster, das noch offen ist, verbindet sich von selbst wieder und lädt Film, Vorschau und Bilder neu. Vorher bekam Studio jedes Mal eine neue Adresse, und das offene Fenster blieb ohne Antwort.
+- **Die App holt verlorene Studios zurück:** Beim Start bringt sie die Studios der Filme wieder, die seit der Anmeldung am Computer von außen beendet wurden (Update, Absturz), ohne neues Fenster. Ein Studio, das mit `studio --stop` beendet wurde oder sich ohne Zuschauer selbst beendet hat, bleibt aus.
+- **`app --stop` beendet auch die Studios der Filme,** damit ein Update das Programm ersetzen kann; vorher blieb `superint-video.exe` gesperrt, solange ein Studio lief. Beim nächsten Start der App sind sie wieder da, und offene Fenster verbinden sich von selbst.
+- **Behoben: Die App beendete sich, obwohl ihre Seite offen war.** Lag die Startseite zwei Stunden hinter anderen Fenstern oder war der Bildschirm so lange abgeschaltet, hielt die App das für zwei Stunden ohne Zuschauer und beendete sich, weil der Browser die Nachfragen einer Seite bremst, die niemand sieht. Eine offene Seite hält jetzt eine Verbindung und die App damit am Leben, sichtbar oder nicht.
+
 ## 0.9.0 — 2026-11-13
 
 - **Echtes HTML im Canvas:** Eine Szene kann echtes HTML durch einen Shader schicken. Ein `<canvas>` zeichnet seine Kinder mit dem Attribut `drawable`: als Bild in einem 2D-Canvas oder als WebGL-Textur, die ein Shader biegt, beleuchtet, weichzeichnet und schneidet. Text, Layout, Schriften und CSS bleiben Sache des Browsers. Damit geht eine echte Produktoberfläche auf einer Fläche im Raum mit Perspektive und Schärfentiefe, eine Glaslinse über einer Seite oder ein Shader-Übergang zwischen zwei echten Bildschirmen. Das nutzt HTML-in-Canvas aus Chrome 157 und braucht keinen Schalter.

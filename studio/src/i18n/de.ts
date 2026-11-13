@@ -12,7 +12,7 @@ export const de: Catalog = {
   'common.failed': 'Das hat nicht geklappt ({status})',
   'common.failedBecause': 'Das hat nicht geklappt. Die App meldet: {message}',
   'common.unreachable':
-    'Superint Video antwortet nicht. Die App läuft nicht mehr, zum Beispiel weil sie beendet wurde. Starte sie neu mit einem Doppelklick auf „Superint Video“.',
+    'Superint Video antwortet nicht. Die App läuft nicht mehr, zum Beispiel weil sie beendet wurde. Starte sie neu mit einem Doppelklick auf „Superint Video“. Diese Seite verbindet sich dann von selbst wieder.',
   'error.tool-not-installable':
     'Dieses Werkzeug lässt sich auf diesem Computer nicht aus der App installieren. Installiere es selbst und prüfe dann erneut.',
   'error.tool-installed': 'Dieses Werkzeug ist schon installiert.',

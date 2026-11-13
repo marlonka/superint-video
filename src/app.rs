@@ -18,9 +18,13 @@ use axum::{
     body::Bytes,
     extract::{DefaultBodyLimit, Multipart, Path as RoutePath, Query, State},
     http::StatusCode,
-    response::Response,
+    response::{
+        Response, Sse,
+        sse::{Event, KeepAlive},
+    },
     routing::{get, post, put},
 };
+use futures::StreamExt;
 use serde::Deserialize;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -81,6 +85,10 @@ pub struct AppState {
     pub token: String,
     /// When a start page last asked: the app ends itself after long without one.
     pub seen: Arc<Mutex<Instant>>,
+    /// One receiver for every start page that is open, in front of the user or not.
+    pub pages: tokio::sync::broadcast::Sender<()>,
+    /// Cancelled when the server ends, so that it does not wait for the open pages.
+    pub closing: CancellationToken,
     tools: Cache,
     styles: Cache,
     agents: Cache,
@@ -94,11 +102,19 @@ impl AppState {
             project,
             token,
             seen: Arc::new(Mutex::new(Instant::now())),
+            pages: tokio::sync::broadcast::channel(1).0,
+            closing: CancellationToken::new(),
             tools: Cache::default(),
             styles: Cache::default(),
             agents: Cache::default(),
             pictures: Default::default(),
         }
+    }
+
+    /// Ends with this signal instead of one of its own.
+    pub fn closing_with(mut self, closing: CancellationToken) -> Self {
+        self.closing = closing;
+        self
     }
 
     /// Where keys are looked for: the project's folder, else the user folder.
@@ -111,6 +127,7 @@ pub fn routes(state: AppState) -> Router {
     Router::new()
         .route("/api/app", get(overview))
         .route("/api/app/ping", get(ping))
+        .route("/api/app/open", get(open_page))
         .route("/api/app/settings", put(save_settings))
         .route("/api/app/keys/{name}", post(save_key).delete(remove_key))
         .route("/api/app/keys/{name}/test", post(test_key))
@@ -149,6 +166,19 @@ pub fn routes(state: AppState) -> Router {
 
 async fn ping(State(state): State<AppState>) -> Json<Value> {
     Json(json!({"app": true, "project": state.project}))
+}
+
+/// A start page holds this open for as long as it is open. While one does, the app stays:
+/// a page behind another window, or on a display that has switched itself off, is asked for
+/// again. Its questions cannot say that, because a browser slows the timers of a page nobody
+/// sees until they come too rarely to count.
+async fn open_page(
+    State(state): State<AppState>,
+) -> Sse<impl futures::Stream<Item = Result<Event, std::convert::Infallible>>> {
+    let stream = tokio_stream::wrappers::BroadcastStream::new(state.pages.subscribe())
+        .take_until(state.closing.clone().cancelled_owned())
+        .filter_map(|_| async { None });
+    Sse::new(stream).keep_alive(KeepAlive::default())
 }
 
 // ------------------------------------------------------------------------------------ overview
@@ -1294,6 +1324,17 @@ async fn reveal_place(
 mod tests {
     use super::*;
     use tempfile::TempDir;
+
+    #[tokio::test]
+    async fn an_open_start_page_counts_until_it_closes() {
+        let home = TempDir::new().unwrap();
+        let state = AppState::new(home.path().into(), None, "token".into());
+        assert_eq!(state.pages.receiver_count(), 0);
+        let held = open_page(State(state.clone())).await;
+        assert_eq!(state.pages.receiver_count(), 1);
+        drop(held);
+        assert_eq!(state.pages.receiver_count(), 0);
+    }
 
     #[test]
     fn a_film_keeps_its_id_and_two_films_differ() {

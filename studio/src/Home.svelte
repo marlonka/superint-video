@@ -101,12 +101,18 @@
     void poll();
     const timer = setInterval(() => {
       now = Date.now();
-      // A hidden page asks rarely: nobody is looking and the app should be able to rest.
+      // A hidden page asks rarely: nobody is looking at what the answer would change.
       if (document.visibilityState === 'visible' || Date.now() % 15000 < 3000) void poll();
     }, 3000);
     const visible = () => document.visibilityState === 'visible' && void poll();
     document.addEventListener('visibilitychange', visible);
+    // Held for as long as this page is open: it tells the app that somebody will come back,
+    // also while the page is hidden and the browser slows its timers. It connects again by
+    // itself, so it is also the first to know that the app is back.
+    const held = new EventSource('/api/app/open');
+    held.onopen = () => void poll();
     return () => {
+      held.close();
       clearInterval(timer);
       document.title = titleBefore;
       document.removeEventListener('visibilitychange', visible);

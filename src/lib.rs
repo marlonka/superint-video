@@ -12,6 +12,7 @@ pub mod mix;
 pub mod model;
 pub mod models;
 pub mod music;
+pub mod outside;
 pub mod polish;
 pub mod preset;
 pub mod process;

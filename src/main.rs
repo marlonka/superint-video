@@ -752,7 +752,21 @@ async fn run() -> Result<()> {
         } => {
             let home = user_home()?;
             if stop {
-                print_json(json!({"stopped": live::Server::app(&home).stop().await}));
+                // The Studios of the films run from this same program, and an update cannot
+                // replace it while they do. They are ended, not stopped: the app brings them
+                // back at their addresses when it starts again.
+                let mut studios = 0;
+                for film in superint_video::home::films(&home) {
+                    if let Ok(root) = film.path.canonicalize()
+                        && live::Server::studio(&root).end().await
+                    {
+                        studios += 1;
+                    }
+                }
+                print_json(json!({
+                    "stopped": live::Server::app(&home).stop().await,
+                    "studios": studios,
+                }));
             } else if detached {
                 server::app(
                     home,
