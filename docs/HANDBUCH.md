@@ -4,7 +4,7 @@ Alles, was in die [README](../README.md) nicht passt: Installation im Detail, St
 
 ## Schnellstart: fertiges Windows-Paket
 
-1. Lade unter [Releases](https://github.com/marlonka/superint-video/releases/latest) die Datei `superint-video-0.8.0-windows-x64.zip` herunter.
+1. Lade unter [Releases](https://github.com/marlonka/superint-video/releases/latest) die Datei `superint-video-0.9.0-windows-x64.zip` herunter.
 2. Entpacke das ZIP in einen beschreibbaren Ordner.
 3. Stelle die Laufzeit-Abhängigkeiten bereit:
 
@@ -42,12 +42,12 @@ $env:SUPERINT_FFPROBE = 'C:\Tools\ffmpeg\bin\ffprobe.exe'
 Das Release enthält `SHA256SUMS.txt` mit den Prüfsummen des ZIPs und der EXE. Vergleiche den ZIP-Hash mit der entsprechenden Zeile:
 
 ```powershell
-Get-FileHash .\superint-video-0.8.0-windows-x64.zip -Algorithm SHA256
+Get-FileHash .\superint-video-0.9.0-windows-x64.zip -Algorithm SHA256
 ```
 
 ## Die App: Startseite und Einrichtung
 
-Ein Doppelklick auf `Superint Video.exe` (oder der Befehl `superint-video app`) öffnet die App in einem eigenen Fenster. Sie läuft im Hintergrund weiter und beendet sich nach zwei Stunden ohne Zuschauer selbst; `superint-video app --stop` beendet sie sofort. Beide Programme gehören in denselben Ordner.
+Ein Doppelklick auf `Superint Video.exe` (oder der Befehl `superint-video app`) öffnet die App in einem eigenen Fenster. Sie läuft im Hintergrund weiter und beendet sich nach zwei Stunden ohne Zuschauer selbst (Zeit im Ruhezustand zählt nicht mit); `superint-video app --stop` beendet sie sofort. Beide Programme gehören in denselben Ordner.
 
 **Sprache.** App und Studio sprechen Deutsch und Englisch. Beim ersten Start gilt die Sprache des Systems; der Globus oben rechts (im Studio: „⋯“) stellt um, und die Wahl bleibt gespeichert (`superint-video settings set uiLanguage de`). Die Namen unten sind die deutschen; auf Englisch heißen die Teile New film, Styles, Your films und Setup. Texte, die der Coding-Agent schreibt (Befunde, Schritte, Notizen), und Fehlermeldungen des Werkzeugs erscheinen so, wie sie geschrieben wurden; die Skills sagen ihm, sie in deiner Sprache zu schreiben.
 
@@ -293,6 +293,8 @@ Mit `init` statt `new` entsteht ein minimales Projekt ohne Preset und Briefing.
 
 Animierte Szenen registrieren sich über `defineScene({ render })`. Die Runtime stellt `interpolate`, `ease`, `spring` und reproduzierbaren Zufall bereit. Jeder Frame muss direkt, rückwärts und nach einem Sprung gleich aussehen: keine akkumulierte Animation, keine Uhrzeit als Animationsquelle und kein unkontrolliertes `Math.random()`.
 
+Echtes HTML kann auch durch einen Shader gehen: Ein `<canvas>` zeichnet seine Kinder mit dem Attribut `drawable`, als Bild in einem 2D-Canvas oder als WebGL-Textur (HTML-in-Canvas). So steht eine echte Oberfläche mit echter Schrift auf einer Fläche im Raum mit Schärfentiefe, hinter einer Glaslinse, in einem Shader-Übergang oder als Bildschirm in der Miniaturwelt. Den Baustein dafür bringt die Runtime mit (`/runtime/html-in-canvas.js`); er sorgt auch dafür, dass Bilder aus dem Projektordner in solchem HTML erscheinen. Das braucht Chrome 157 oder neuer: Mit einem älteren Chrome halten `check`, `snapshot` und `render` mit einem Hinweis an, die Vorschau zeigt das HTML dann ohne den Effekt. Details: [HTML im Canvas](../skills/superint-video/references/html-in-canvas.md).
+
 Fonts, Bilder und Abhängigkeiten werden lokal eingebunden. Zeitgesteuertes Video und Audio gehören in Manifest-Clips; Szenen-HTML mit eigenen `<video>`-/`<audio>`-Elementen wird abgelehnt. Details: [Szenen-API](../skills/superint-video/references/scene-api.md), [Projektformat](FORMAT.md), [JSON Schema](video.schema.json).
 
 ## Aus dem Quellcode bauen
@@ -365,5 +367,7 @@ Was dein Coding-Agent (Claude Code, ChatGPT Codex, Google Antigravity) mit deine
 | Fehlender Font, Asset oder Szenenfehler    | `check --json` und Studio-Diagnosen lesen; Referenzen auf lokale Projektdateien berichtigen   |
 | Ausgabe existiert bereits                  | Neuen Namen wählen oder bewusst `--overwrite` bzw. **Replace existing output file** verwenden |
 | Änderungen kollidieren                     | Recovery herunterladen, danach Projekt neu laden; parallele Schreibvorgänge vermeiden         |
+| Szene meldet „needs Chrome 157 or newer“   | Chrome aktualisieren oder mit `SUPERINT_CHROME` auf einen neueren zeigen; die Szene zeichnet HTML in einen Canvas |
+| Die App meldet „antwortet nicht“           | Die App läuft nicht mehr: `Superint Video.exe` doppelklicken. Die Startseite verbindet sich danach von selbst  |
 | Fester Port belegt                         | Studio ohne `--port` starten oder einen freien Port wählen                                    |
 | Rust kompiliert vor dem Studio-Build nicht | `.\scripts\build.ps1` verwenden; generierte Studio-Dateien werden in Rust eingebettet         |

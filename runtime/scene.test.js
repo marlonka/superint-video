@@ -48,9 +48,9 @@ test('seeded random provides stable indexed values within range', () => {
 });
 
 // A few elements are enough to stand for a scene: children, text, a box and a style.
-function element({ text = '', box = [0, 0, 100, 20], style = {}, prop, children = [] } = {}) {
+function element({ text = '', box = [0, 0, 100, 20], style = {}, prop, children = [], localName = 'div' } = {}) {
   const node = {
-    children, style, parentElement: null,
+    children, style, localName, parentElement: null,
     get textContent() { return children.length ? children.map(child => child.textContent).join('') : text; },
     getAttribute: name => (name === 'data-prop' ? prop ?? null : null),
     getBoundingClientRect: () => ({ left: box[0], top: box[1], width: box[2], height: box[3] }),
@@ -79,4 +79,11 @@ test('hidden, transparent and missing texts give no box', () => {
   const definitions = { a: { type: 'text' }, b: { type: 'text' }, c: { type: 'text' }, d: { type: 'text' } };
   assert.deepEqual(textBoxes(root, definitions, { a: 'Weg', b: 'Später', c: 'Leer', d: 'Nirgends' }, styleOf), []);
   assert.deepEqual(textBoxes(root, {}, {}, styleOf), []);
+});
+
+test('HTML inside a canvas has no place to click', () => {
+  const drawn = element({ text: 'Im Canvas', prop: 'inside' });
+  const root = element({ children: [element({ localName: 'canvas', children: [drawn] }), element({ text: 'Daneben' })] });
+  const definitions = { inside: { type: 'text' }, beside: { type: 'text' } };
+  assert.deepEqual(textBoxes(root, definitions, { inside: 'Im Canvas', beside: 'Daneben' }, styleOf), [{ prop: 'beside', x: 0, y: 0, w: 100, h: 20 }]);
 });

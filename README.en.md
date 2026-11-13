@@ -12,7 +12,7 @@
   <img alt="Rust" src="https://img.shields.io/badge/Rust-CLI%20%2B%20Studio-b7410e?style=flat-square&logo=rust">
   <img alt="Windows x64" src="https://img.shields.io/badge/Windows-x64-2f7bf5?style=flat-square">
   <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-3a3a3a?style=flat-square">
-  <a href="https://github.com/marlonka/superint-video/releases/tag/v0.8.0"><img alt="Release: v0.8.0" src="https://img.shields.io/badge/Release-v0.8.0-2e8b57?style=flat-square"></a>
+  <a href="https://github.com/marlonka/superint-video/releases/tag/v0.9.0"><img alt="Release: v0.9.0" src="https://img.shields.io/badge/Release-v0.9.0-2e8b57?style=flat-square"></a>
 </p>
 
 <br>
@@ -106,7 +106,7 @@ Every command and option is in `superint-video <command> --help` and in the (Ger
 Check the installation from the command line with `.\superint-video.exe doctor --json`. To build from source: `git clone`, then `.\scripts\build.ps1` (Rust 1.100, Node.js 26.13.1 LTS and npm 12.2.2).
 
 > [!IMPORTANT]
-> **Status:** v0.8.0. Only Windows x64 is tested. Short SDR films work well; long projects, HDR and ripple editing do not. Reports from macOS and Linux are welcome.
+> **Status:** v0.9.0. Only Windows x64 is tested. Short SDR films work well; long projects, HDR and ripple editing do not. Reports from macOS and Linux are welcome.
 
 ## Privacy and AI content
 

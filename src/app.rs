@@ -470,9 +470,17 @@ async fn install_tool(
         Some(script) => Some(write_script(&state.home, script.file, script.text)?),
         None => install_command(tool).filter(|_| process::winget()),
     }
-    .ok_or_else(|| ApiError::bad("This tool cannot be installed from here"))?;
+    .ok_or_else(|| {
+        ApiError::told(
+            "tool-not-installable",
+            "This tool cannot be installed from here",
+        )
+    })?;
     if ready(&tools(&state, true).await, tool.id) {
-        return Err(ApiError::bad("This tool is already installed"));
+        return Err(ApiError::told(
+            "tool-installed",
+            "This tool is already installed",
+        ));
     }
     open_terminal(&format!("Superint Video: {}", tool.title), &command)?;
     // The next question about the tools is answered fresh.
@@ -713,10 +721,16 @@ async fn test_key(
 async fn dictate(State(state): State<AppState>, body: Bytes) -> ApiResult<Json<Value>> {
     let seconds = providers::wav_seconds(&body).map_err(|e| ApiError::bad(&e.to_string()))?;
     if seconds < 0.2 {
-        return Err(ApiError::bad("The recording is too short"));
+        return Err(ApiError::told(
+            "recording-short",
+            "The recording is too short",
+        ));
     }
     if seconds > providers::MOST_DICTATION_SECONDS {
-        return Err(ApiError::bad("The recording is longer than ten minutes"));
+        return Err(ApiError::told(
+            "recording-long",
+            "The recording is longer than ten minutes",
+        ));
     }
     let Access {
         keys,
@@ -734,7 +748,8 @@ async fn dictate(State(state): State<AppState>, body: Bytes) -> ApiResult<Json<V
     .into_iter()
     .any(|route| providers::ready(&keys, sign_in.as_ref(), &place, route));
     if !any {
-        return Err(ApiError::bad(
+        return Err(ApiError::told(
+            "dictation-needs-key",
             "Dictation needs an API key: add one under Setup",
         ));
     }
@@ -978,7 +993,10 @@ async fn style_from_film(
 ) -> ApiResult<Json<Value>> {
     let root = film_root(&state, &id)?;
     if !root.join("video.json").is_file() {
-        return Err(ApiError::bad("The folder of this film is gone"));
+        return Err(ApiError::told(
+            "film-folder-gone",
+            "The folder of this film is gone",
+        ));
     }
     let (generators, model, styles) = style_maker(&state)?;
     let name = Some(body.name.trim()).filter(|name| !name.is_empty());
@@ -1126,12 +1144,15 @@ async fn open_film(
 ) -> ApiResult<Json<Value>> {
     let root = film_root(&state, &id)?;
     if !root.join("video.json").is_file() {
-        return Err(ApiError::bad("The folder of this film is gone"));
+        return Err(ApiError::told(
+            "film-folder-gone",
+            "The folder of this film is gone",
+        ));
     }
     let root = crate::project::ProjectStore::open(&root)?.root;
-    let url = live::start_studio(&root, false)
-        .await
-        .context("Studio did not start for this film")?;
+    let url = live::start_studio(&root, false).await.ok_or_else(|| {
+        ApiError::told("studio-not-started", "Studio did not start for this film")
+    })?;
     Ok(Json(json!({"url": url})))
 }
 
@@ -1149,10 +1170,13 @@ async fn duplicate_film(
 ) -> ApiResult<Json<Value>> {
     let root = film_root(&state, &id)?;
     if !root.join("video.json").is_file() {
-        return Err(ApiError::bad("The folder of this film is gone"));
+        return Err(ApiError::told(
+            "film-folder-gone",
+            "The folder of this film is gone",
+        ));
     }
     let Some(name) = home::film_name(&body.name) else {
-        return Err(ApiError::bad("The copy needs a name"));
+        return Err(ApiError::told("copy-needs-name", "The copy needs a name"));
     };
     let settings = Settings::load(&state.home)?;
     let folder = home::films_dir(&settings).context("No films folder is set")?;
@@ -1208,11 +1232,17 @@ async fn install_skills(
 ) -> ApiResult<Json<Value>> {
     let agent = Agent::find(&id).ok_or_else(|| ApiError::bad("Unknown coding agent"))?;
     if !agent.installed() {
-        return Err(ApiError::bad(
+        return Err(ApiError::told(
+            "agent-not-installed",
             "This coding agent is not installed on this computer",
         ));
     }
-    let shipped = skills::shipped().context("The skills folder is not next to superint-video")?;
+    let shipped = skills::shipped().ok_or_else(|| {
+        ApiError::told(
+            "skills-missing",
+            "The skills folder is not next to superint-video",
+        )
+    })?;
     let installed = agent.skills_dir().context("No user folder")?;
     let replaced = state.home.join(REPLACED_SKILLS).join(agent.id);
     let done = tokio::task::spawn_blocking(move || skills::sync(&shipped, &installed, &replaced))

@@ -10,6 +10,24 @@ export const de: Catalog = {
   'common.retry': 'Erneut versuchen',
   'common.save': 'Speichern',
   'common.failed': 'Das hat nicht geklappt ({status})',
+  'common.failedBecause': 'Das hat nicht geklappt. Die App meldet: {message}',
+  'common.unreachable':
+    'Superint Video antwortet nicht. Die App läuft nicht mehr, zum Beispiel weil sie beendet wurde. Starte sie neu mit einem Doppelklick auf „Superint Video“.',
+  'error.tool-not-installable':
+    'Dieses Werkzeug lässt sich auf diesem Computer nicht aus der App installieren. Installiere es selbst und prüfe dann erneut.',
+  'error.tool-installed': 'Dieses Werkzeug ist schon installiert.',
+  'error.recording-short': 'Die Aufnahme ist zu kurz. Sprich etwas länger.',
+  'error.recording-long': 'Die Aufnahme ist länger als zehn Minuten. Diktiere in kürzeren Teilen.',
+  'error.dictation-needs-key':
+    'Zum Diktieren braucht es einen API-Schlüssel. Trag einen unter Einrichtung ein.',
+  'error.film-folder-gone':
+    'Der Ordner dieses Films ist nicht mehr da. Er wurde verschoben oder gelöscht.',
+  'error.copy-needs-name': 'Die Kopie braucht einen Namen.',
+  'error.agent-not-installed': 'Dieser Coding-Agent ist auf diesem Computer nicht installiert.',
+  'error.skills-missing':
+    'Die Skills der App fehlen. Der Ordner „skills“ muss neben Superint Video liegen, so wie er im Download war.',
+  'error.studio-not-started':
+    'Studio ist für diesen Film nicht gestartet. Versuch es noch einmal; wenn es so bleibt, starte Superint Video neu.',
   'common.copyBlocked': 'Der Browser hat das Kopieren nicht erlaubt.',
   'theme.toLight': 'Zum hellen Design wechseln',
   'theme.toDark': 'Zum dunklen Design wechseln',

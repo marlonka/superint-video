@@ -171,6 +171,56 @@ defineScene({{render(){{return new Promise(done=>requestAnimationFrame(()=>done(
     pixel(&png(&result?)?, 100, 100, [0, 255, 0], 2)
 }
 
+#[tokio::test]
+#[ignore = "requires local Chromium and FFmpeg"]
+async fn html_in_a_canvas_reaches_a_shader_with_its_project_pictures() -> Result<()> {
+    let (directory, manifest) = project(Fps { num: 30, den: 1 })?;
+    let assets = directory.path().join("assets");
+    fs::create_dir(&assets)?;
+    RgbImage::from_pixel(2, 2, image::Rgb([255, 0, 0])).save(assets.join("red.png"))?;
+    RgbImage::from_pixel(2, 2, image::Rgb([0, 255, 0])).save(assets.join("green.png"))?;
+    // Red picture, green background picture, a white bar that grows with the frame, on blue.
+    // The shader mirrors the page, so a page that showed as plain HTML would fail every pixel.
+    fs::write(
+        directory.path().join(&manifest.clips[0].src),
+        r#"<!doctype html><style>html,body{margin:0;background:#000}canvas{position:absolute;inset:0;width:100%;height:100%}
+#page{position:relative;width:640px;height:360px;background:#00f}
+#page img{position:absolute;left:0;top:0;width:160px;height:360px}
+#tile{position:absolute;left:160px;top:0;width:160px;height:360px;background:url('../assets/green.png') 0 0/100% 100%}
+#bar{position:absolute;left:320px;top:0;height:180px;background:#fff}</style>
+<canvas id="stage"><div drawable id="page"><img src="../assets/red.png" alt=""><div id="tile"></div><div id="bar"></div></div></canvas>
+<script type="module">
+import {defineScene} from '/runtime/scene.js';
+import {htmlCanvas} from '/runtime/html-in-canvas.js';
+const stage = htmlCanvas(document.querySelector('#stage'));
+const mirror = stage.shader(`uniform sampler2D page; void main() { color = texture(page, vec2(1. - uv.x, uv.y)); }`);
+defineScene({ready: stage.ready, async render({frame}) {
+  document.querySelector('#bar').style.width = frame * 10 + 'px';
+  await stage.paint(() => mirror.draw({page: document.querySelector('#page')}));
+}});
+</script>"#,
+    )?;
+    let capture = Capture::open(directory.path().to_path_buf(), manifest).await?;
+    let result = async {
+        let first = capture.frame(4).await?;
+        let image = png(&first)?;
+        pixel(&image, 560, 300, [255, 0, 0], 2).context("the <img> from the project")?;
+        pixel(&image, 400, 300, [0, 255, 0], 2).context("the CSS background from the project")?;
+        pixel(&image, 300, 90, [255, 255, 255], 2).context("the bar at frame 4")?;
+        pixel(&image, 200, 90, [0, 0, 255], 2).context("left of the bar at frame 4")?;
+        let later = png(&capture.frame(16).await?)?;
+        pixel(&later, 200, 90, [255, 255, 255], 2).context("the bar at frame 16")?;
+        ensure!(
+            capture.frame(4).await? == first,
+            "seeking back gave another picture of the same frame"
+        );
+        Ok(())
+    }
+    .await;
+    capture.close().await;
+    result
+}
+
 async fn decoded_frame(path: &Path, frame: u64) -> Result<RgbImage> {
     let mut command = process::command(process::binary("ffmpeg"));
     command

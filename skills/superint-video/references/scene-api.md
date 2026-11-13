@@ -43,7 +43,7 @@ A text prop the user sees on screen becomes clickable in Studio's preview: the u
 render({props}) { title.textContent = props.title; }
 ```
 
-Without the mark, an element whose text is exactly the prop's value is found too. Text drawn into a canvas or WebGL cannot be clicked; it stays editable on the right of Studio.
+Without the mark, an element whose text is exactly the prop's value is found too. Text drawn into a canvas or WebGL, and HTML a canvas draws, cannot be clicked; it stays editable on the right of Studio.
 
 **The film's font.** The user can give the whole film another main font (Studio: Film → Font; `superint-video fonts <dir> <family>`): one the film's files declare with `@font-face`, or one of the tool's library, which every scene gets through `/runtime/fonts/fonts.css` (Geist, Nunito, Jost, Fraunces, Courier Prime, JetBrains Mono, Caveat). Before each frame the runtime puts it into the `--font` CSS variable on `<html>`, ahead of the style's own `--font` as fallback, and loads all its faces; `context.font` names it (null while the style's applies). So:
 
@@ -106,6 +106,8 @@ render({time}) {
 Report a highlight from the moment it arrives until it leaves, not during its fly-in, and use the box as drawn (with its current scale).
 
 **Check camera.** A scene that declares the number props `camX`, `camY` and `camZ` (`checkCameraProps` in the flat-explainer kit) can be shot in close-up with `review --camera x,y,zoom`: while `camZ` is above 0, the scene centres the point (`camX`, `camY`) at zoom `camZ` instead of following its own camera; at 0 it plays as authored. The point is in the scene's own coordinates: world units for a canvas world that draws through a camera, scene pixels for DOM and SVG scenes, which call `frameCheckCamera(props, width, height)` last in `render`.
+
+**HTML in a canvas.** `htmlCanvas(canvas)` from `/runtime/html-in-canvas.js` lets a canvas draw its `drawable` children: real HTML as a picture in a 2D canvas or as a WebGL texture under a shader (a page in space with depth of field, a lens, a shader transition between two real screens). Change the HTML, then `await stage.paint(draw)` in `render`. It needs Chrome 157 or newer. The pattern, the API, what a picture of an element holds and tested recipes: [html-in-canvas.md](html-in-canvas.md).
 
 Scenes run in opaque sandboxed iframes on the read-only preview server.
 They cannot access Studio's document or mutation token.

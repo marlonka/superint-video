@@ -88,6 +88,7 @@ Presets, their layout, where they live and how to make your own: [references/sty
 - `video.json` is the timing authority. Placement, trims, fades and offsets are integer frames there; scene HTML owns only composition and animation. At 30 fps, 1 s = 30 frames. Format: [references/project.md](references/project.md).
 - Animation is a pure function of `time`/`frame`: no CSS animations, `Math.random()`, wall clock or state accumulated between frames. Seeking backward must look identical to playing forward. See [references/scene-api.md](references/scene-api.md).
 - Timed audio and video belong in the manifest, never as `<audio>`/`<video>` in a scene. Everything a scene loads is local (`../kit/`, `../assets/`).
+- Text, interfaces and documents stay real HTML, also where they need an effect CSS cannot do (a screen in space with depth of field, glass, a shader transition, a page as a lit texture in a 3D world): a canvas draws its `drawable` children through a shader. Never redraw type or an interface by hand in a canvas for that. See [references/html-in-canvas.md](references/html-in-canvas.md); it needs Chrome 157 or newer.
 - No invented facts, statistics, quotes, product features or customer names. What the film claims comes from the brief, the user's material or sources the workflow skill records.
 - Emulate a style through craft: shape, light, colour, motion, pacing. Never copy names, logos, characters or footage of other channels or brands; brand material only from the user for their own brand.
 - Secrets (`GEMINI_API_KEY`, `OPENROUTER_API_KEY`) belong to the user. They add them under Setup in the app, which keeps them encrypted on their computer and never shows them again; a `.env` file works too. Only the tool reads them. Never ask for a key in the chat, never print, log, commit or paste one, and never write one into a file yourself. When a command says a key is missing, take the route that needs none (the user's own voice, no voice, no music) and say once that a key under Setup in the app (`superint-video app`) would add the rest. `doctor --json` shows names only.
@@ -126,6 +127,6 @@ Presets, their layout, where they live and how to make your own: [references/sty
 
 ## Boundaries
 
-Supported: HTML/CSS/SVG/JS scenes (including canvas and WebGL), images, SDR video, audio clips, frame-exact timing, transforms, opacity, fades, gain, mute, typed scene props, PNG snapshots, MP4 with HEVC (x265) or H.264 (x264) and AAC.
+Supported: HTML/CSS/SVG/JS scenes (including canvas, WebGL and real HTML drawn by a canvas through a shader, see [references/html-in-canvas.md](references/html-in-canvas.md)), images, SDR video, audio clips, frame-exact timing, transforms, opacity, fades, gain, mute, typed scene props, PNG snapshots, MP4 with HEVC (x265) or H.264 (x264) and AAC.
 
 Not supported: hosted rendering, accounts, telemetry, speed ramps, optical flow, HDR, alpha video, built-in motion blur. Identical pixels across different browsers, operating systems and font installs are not guaranteed; fonts shipped in the preset keep text stable.
