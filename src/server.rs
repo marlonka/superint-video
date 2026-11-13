@@ -278,7 +278,20 @@ pub async fn studio(root: PathBuf, port: u16, options: StudioOptions) -> Result<
     let store = ProjectStore::open(&root)?;
     let root = store.root.clone();
     let name = store.manifest.name.clone();
-    let listener = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, port)).await?;
+    let local = std::net::Ipv4Addr::LOCALHOST;
+    // Without a wish, the address it had before, if that is free: a window of this film that
+    // is still open asks there and finds it again.
+    let before = match port {
+        0 => live::Server::studio(&root).last_port(),
+        _ => None,
+    };
+    let listener = match before {
+        Some(before) => match TcpListener::bind((local, before)).await {
+            Ok(listener) => listener,
+            Err(_) => TcpListener::bind((local, 0)).await?,
+        },
+        None => TcpListener::bind((local, port)).await?,
+    };
     let origin = format!("http://{}", listener.local_addr()?);
     let preview = start_preview(root.clone(), None, Some(origin.clone())).await?;
     let (event_sender, _) = broadcast::channel(64);
@@ -331,11 +344,10 @@ pub async fn studio(root: PathBuf, port: u16, options: StudioOptions) -> Result<
     let app = match home::dir() {
         Some(home) => {
             home::remember(&home, &state.root, &name, false);
-            app.merge(app::routes(AppState::new(
-                home,
-                Some(state.root.clone()),
-                state.token.clone(),
-            )))
+            app.merge(app::routes(
+                AppState::new(home, Some(state.root.clone()), state.token.clone())
+                    .closing_with(state.shutdown.clone()),
+            ))
         }
         None => app,
     };
@@ -462,6 +474,22 @@ pub async fn studio(root: PathBuf, port: u16, options: StudioOptions) -> Result<
     Ok(())
 }
 
+/// Starts the Studio of every film on the list whose Studio was ended from outside: the
+/// computer restarted, the program that had started it updated itself, or it crashed. Each
+/// comes back at its old address and without a window of its own, for the window that may
+/// still be open. One that was stopped, or ended itself for want of a viewer, stays off.
+async fn bring_back_studios(home: PathBuf) {
+    for film in home::films(&home) {
+        // The folder as a Studio names it, which is how its record is compared.
+        let Ok(root) = film.path.canonicalize() else {
+            continue;
+        };
+        if root.join("video.json").is_file() && live::Server::studio(&root).lost().await {
+            live::start_studio(&root, false).await;
+        }
+    }
+}
+
 /// The app without a project: the start page with setup, defaults, styles and films.
 pub async fn app(home: PathBuf, port: u16, options: StudioOptions) -> Result<()> {
     std::fs::create_dir_all(&home)?;
@@ -487,16 +515,18 @@ pub async fn app(home: PathBuf, port: u16, options: StudioOptions) -> Result<()>
             },
             guard,
         ));
-    let shutdown = CancellationToken::new();
+    let shutdown = state.closing.clone();
     if options.detached {
-        let (seen, stop) = (state.seen.clone(), shutdown.clone());
+        let (seen, pages, stop) = (state.seen.clone(), state.pages.clone(), shutdown.clone());
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(60));
             let mut unwatched = Unwatched::new();
             loop {
                 interval.tick().await;
-                // The start page asks every few seconds while it is open.
-                let watched = seen.lock().unwrap().elapsed() < Duration::from_secs(90);
+                // An open start page holds a connection, and asks every few seconds while
+                // it is in front of the user.
+                let watched = pages.receiver_count() > 0
+                    || seen.lock().unwrap().elapsed() < Duration::from_secs(90);
                 if unwatched.look(watched) > IDLE_LIMIT {
                     stop.cancel();
                     break;
@@ -511,6 +541,9 @@ pub async fn app(home: PathBuf, port: u16, options: StudioOptions) -> Result<()>
     if options.open {
         live::open_browser(&origin);
     }
+    if !live::studio_disabled() {
+        tokio::spawn(bring_back_studios(home.clone()));
+    }
     let signal = shutdown.clone();
     let served = axum::serve(listener, router)
         .with_graceful_shutdown(async move {
@@ -518,6 +551,8 @@ pub async fn app(home: PathBuf, port: u16, options: StudioOptions) -> Result<()>
                 _ = tokio::signal::ctrl_c() => {}
                 _ = signal.cancelled() => {}
             }
+            // Lets go of the start pages that hold a connection, or this would wait for them.
+            signal.cancel();
         })
         .await;
     record.unregister();

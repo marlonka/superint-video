@@ -47,6 +47,8 @@
   /** The setup notice was put aside until this page is loaded again. */
   let setupLater = false;
   let error = '';
+  /** Counts how often the connection to Studio came back. */
+  let connection = 0;
   let conflict = false;
   let recovery = '';
   let selection = '';
@@ -1321,6 +1323,9 @@
     events.onopen = () => {
       if (saveState === 'reconnecting') {
         saveState = 'saved';
+        // Studio is back, maybe as a new process: pictures and the film that failed to load
+        // while it was gone are asked for again.
+        connection += 1;
         void loadProject(true);
       }
     };
@@ -1626,11 +1631,11 @@
       {/if}
 
       <section class="preview-panel" aria-label={$t('preview.label')}>
-        {#if renderViewOpen && liveRender}<RenderLive
-            render={liveRender}
-            onclose={closeRenderView}
-            onopen={openLiveVideo}
-          />{/if}
+        {#if renderViewOpen && liveRender}{#key connection}<RenderLive
+              render={liveRender}
+              onclose={closeRenderView}
+              onopen={openLiveVideo}
+            />{/key}{/if}
         <div
           class="preview-viewport"
           style:display={renderViewOpen ? 'none' : undefined}

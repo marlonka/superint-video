@@ -16,7 +16,7 @@ export const en = {
   'common.failed': 'That did not work ({status})',
   'common.failedBecause': 'That did not work. The app says: {message}',
   'common.unreachable':
-    'Superint Video is not answering. The app is no longer running, for example because it was closed. Start it again with a double-click on "Superint Video".',
+    'Superint Video is not answering. The app is no longer running, for example because it was closed. Start it again with a double-click on "Superint Video". This page then connects again by itself.',
   'error.tool-not-installable':
     'This tool cannot be installed from the app on this computer. Install it yourself, then check again.',
   'error.tool-installed': 'This tool is already installed.',

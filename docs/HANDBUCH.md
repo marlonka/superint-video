@@ -4,7 +4,7 @@ Alles, was in die [README](../README.md) nicht passt: Installation im Detail, St
 
 ## Schnellstart: fertiges Windows-Paket
 
-1. Lade unter [Releases](https://github.com/marlonka/superint-video/releases/latest) die Datei `superint-video-0.9.0-windows-x64.zip` herunter.
+1. Lade unter [Releases](https://github.com/marlonka/superint-video/releases/latest) die Datei `superint-video-0.9.1-windows-x64.zip` herunter.
 2. Entpacke das ZIP in einen beschreibbaren Ordner.
 3. Stelle die Laufzeit-Abhängigkeiten bereit:
 
@@ -22,7 +22,7 @@ Alles, was in die [README](../README.md) nicht passt: Installation im Detail, St
 .\superint-video.exe new .\mein-video --topic "Warum ist der Himmel blau?" --seconds 30
 ```
 
-`new` startet Studio im Hintergrund und öffnet es im Browser. `superint-video studio .\mein-video` holt es später zurück, auch für ein bestehendes Projekt; `--stop` beendet es, und ohne Zuschauer und ohne Render beendet es sich nach zwei Stunden selbst. Wer das nicht will, gibt `new` und `render` `--no-studio` mit (in CI und mit `SUPERINT_NO_STUDIO` ist es von selbst aus). Der Port wird automatisch gewählt. Für einen festen Port kannst du `studio .\mein-video --port 4317` verwenden, sofern er frei ist.
+`new` startet Studio im Hintergrund und öffnet es im Browser. `superint-video studio .\mein-video` holt es später zurück, auch für ein bestehendes Projekt; `--stop` beendet es, und ohne Zuschauer und ohne Render beendet es sich nach zwei Stunden selbst. Wer das nicht will, gibt `new` und `render` `--no-studio` mit (in CI und mit `SUPERINT_NO_STUDIO` ist es von selbst aus). Der Port wird automatisch gewählt und bleibt für den Film derselbe, solange er frei ist: Ein Studio-Fenster, das noch offen ist, findet ein neu gestartetes Studio von selbst wieder. Für einen festen Port kannst du `studio .\mein-video --port 4317` verwenden, sofern er frei ist.
 
 `doctor` prüft die Programm-Erkennung. Danach prüfst du mit `check` echte Frames im Browser; erst damit wird auch das Rendering ausgeführt.
 
@@ -42,12 +42,12 @@ $env:SUPERINT_FFPROBE = 'C:\Tools\ffmpeg\bin\ffprobe.exe'
 Das Release enthält `SHA256SUMS.txt` mit den Prüfsummen des ZIPs und der EXE. Vergleiche den ZIP-Hash mit der entsprechenden Zeile:
 
 ```powershell
-Get-FileHash .\superint-video-0.9.0-windows-x64.zip -Algorithm SHA256
+Get-FileHash .\superint-video-0.9.1-windows-x64.zip -Algorithm SHA256
 ```
 
 ## Die App: Startseite und Einrichtung
 
-Ein Doppelklick auf `Superint Video.exe` (oder der Befehl `superint-video app`) öffnet die App in einem eigenen Fenster. Sie läuft im Hintergrund weiter und beendet sich nach zwei Stunden ohne Zuschauer selbst (Zeit im Ruhezustand zählt nicht mit); `superint-video app --stop` beendet sie sofort. Beide Programme gehören in denselben Ordner.
+Ein Doppelklick auf `Superint Video.exe` (oder der Befehl `superint-video app`) öffnet die App in einem eigenen Fenster. Sie läuft im Hintergrund weiter und beendet sich nach zwei Stunden ohne offene Seite selbst; eine offene Seite zählt auch hinter anderen Fenstern oder bei abgeschaltetem Bildschirm, und Zeit im Ruhezustand zählt nicht mit. `superint-video app --stop` beendet sie sofort, samt den Studios der Filme, damit ein Update das Programm ersetzen kann. Beim Start holt sie diese Studios zurück, und ebenso jedes, das von außen beendet wurde, etwa durch einen Neustart des Computers. Beide Programme gehören in denselben Ordner.
 
 **Sprache.** App und Studio sprechen Deutsch und Englisch. Beim ersten Start gilt die Sprache des Systems; der Globus oben rechts (im Studio: „⋯“) stellt um, und die Wahl bleibt gespeichert (`superint-video settings set uiLanguage de`). Die Namen unten sind die deutschen; auf Englisch heißen die Teile New film, Styles, Your films und Setup. Texte, die der Coding-Agent schreibt (Befunde, Schritte, Notizen), und Fehlermeldungen des Werkzeugs erscheinen so, wie sie geschrieben wurden; die Skills sagen ihm, sie in deiner Sprache zu schreiben.
 
@@ -368,6 +368,6 @@ Was dein Coding-Agent (Claude Code, ChatGPT Codex, Google Antigravity) mit deine
 | Ausgabe existiert bereits                  | Neuen Namen wählen oder bewusst `--overwrite` bzw. **Replace existing output file** verwenden |
 | Änderungen kollidieren                     | Recovery herunterladen, danach Projekt neu laden; parallele Schreibvorgänge vermeiden         |
 | Szene meldet „needs Chrome 157 or newer“   | Chrome aktualisieren oder mit `SUPERINT_CHROME` auf einen neueren zeigen; die Szene zeichnet HTML in einen Canvas |
-| Die App meldet „antwortet nicht“           | Die App läuft nicht mehr: `Superint Video.exe` doppelklicken. Die Startseite verbindet sich danach von selbst  |
+| Die App meldet „antwortet nicht“           | Die App läuft nicht mehr: `Superint Video.exe` doppelklicken. Startseite und Studio-Fenster verbinden sich danach von selbst |
 | Fester Port belegt                         | Studio ohne `--port` starten oder einen freien Port wählen                                    |
 | Rust kompiliert vor dem Studio-Build nicht | `.\scripts\build.ps1` verwenden; generierte Studio-Dateien werden in Rust eingebettet         |

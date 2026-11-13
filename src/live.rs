@@ -443,17 +443,50 @@ impl Server {
         let _ = crate::project::atomic_write(&self.record, record.to_string().as_bytes());
     }
 
+    /// Notes that it has stopped, and keeps where it was: started again it takes the same
+    /// address, and a window that is still open finds it there.
     pub fn unregister(&self) {
-        let _ = fs::remove_file(&self.record);
+        match self
+            .record()
+            .and_then(|record| record["url"].as_str().map(str::to_owned))
+        {
+            Some(url) => {
+                let record = json!({"url": url, "stoppedAt": now_ms()});
+                let _ = crate::project::atomic_write(&self.record, record.to_string().as_bytes());
+            }
+            None => {
+                let _ = fs::remove_file(&self.record);
+            }
+        }
     }
 
     fn record(&self) -> Option<Value> {
         serde_json::from_slice(&fs::read(&self.record).ok()?).ok()
     }
 
+    /// The port it had the last time it ran.
+    pub fn last_port(&self) -> Option<u16> {
+        let url = loopback(self.record()?["url"].as_str()?)?;
+        url.rsplit(':').next()?.parse().ok()
+    }
+
+    /// It was running and never said that it stopped: it was ended from outside, by a restart
+    /// of the computer, an update of the program that started it, or a crash. A window of it
+    /// may still be open.
+    pub async fn lost(&self) -> bool {
+        self.record()
+            .is_some_and(|record| record["pid"].is_u64() && record["stoppedAt"].is_null())
+            && self.running().await.is_none()
+    }
+
     /// Its address, if it still answers.
     pub async fn running(&self) -> Option<String> {
-        let url = loopback(self.record()?["url"].as_str()?)?;
+        let record = self.record()?;
+        // One that said it stopped is not asked: nobody answers there, and that takes a while.
+        if !record["stoppedAt"].is_null() {
+            return None;
+        }
+        let url = loopback(record["url"].as_str()?)?;
         let client = reqwest::Client::builder()
             .no_proxy()
             .timeout(Duration::from_secs(2))
@@ -484,11 +517,18 @@ impl Server {
 
     /// Stops it. Returns whether it was running.
     pub async fn stop(&self) -> bool {
+        let alive = self.end().await;
+        self.unregister();
+        alive
+    }
+
+    /// Ends it without a word, the way an update or a restart of the computer would: it counts
+    /// as lost, and the app brings it back. Returns whether it was running.
+    pub async fn end(&self) -> bool {
         let alive = self.running().await.is_some();
         if alive && let Some(pid) = self.record().and_then(|r| r["pid"].as_u64()) {
             process::kill_tree(pid as u32).await;
         }
-        self.unregister();
         alive
     }
 }
@@ -551,7 +591,20 @@ fn spawn_detached(arguments: &[&OsStr], open: bool) -> Result<()> {
         const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
         const CREATE_BREAKAWAY_FROM_JOB: u32 = 0x0100_0000;
         keep_stdio_from_children();
-        // Outside the caller's job when allowed, so Studio outlives the shell that ran `new`.
+        // A coding agent's desktop app keeps its commands in a job and takes the whole job with
+        // it when it closes or updates itself. As a child of the desktop shell the server
+        // belongs to nobody and stays for the window the user has open.
+        if crate::outside::in_job() {
+            let mut all = arguments.to_vec();
+            all.push("--detached".as_ref());
+            if !open {
+                all.push("--no-open".as_ref());
+            }
+            if crate::outside::spawn(&exe, &all).is_ok() {
+                return Ok(());
+            }
+        }
+        // Else outside the caller's job when the job allows it.
         let flags = CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP;
         if build()
             .creation_flags(flags | CREATE_BREAKAWAY_FROM_JOB)
@@ -658,6 +711,39 @@ fn app_window(chrome: &Path, url: &str) -> bool {
 mod tests {
     use super::*;
     use tempfile::TempDir;
+
+    #[tokio::test]
+    async fn a_server_keeps_its_address_when_it_stops_and_is_lost_only_when_it_never_said_so() {
+        let root = TempDir::new().unwrap();
+        // A port nobody listens on.
+        let port = std::net::TcpListener::bind("127.0.0.1:0")
+            .unwrap()
+            .local_addr()
+            .unwrap()
+            .port();
+        let studio = Server::studio(root.path());
+        assert_eq!(studio.last_port(), None);
+        assert!(!studio.lost().await);
+
+        // It ran and is gone without a word: ended from outside.
+        studio.register(&format!("http://127.0.0.1:{port}"));
+        assert_eq!(studio.last_port(), Some(port));
+        assert!(studio.lost().await);
+
+        // It said that it stopped: where it was is still known, and nobody asks there.
+        studio.unregister();
+        assert_eq!(studio.last_port(), Some(port));
+        assert!(!studio.lost().await);
+        assert!(studio.running().await.is_none());
+
+        // An address from somewhere else is never taken.
+        fs::write(
+            root.path().join(STUDIO),
+            r#"{"url":"http://example.com:80","pid":1}"#,
+        )
+        .unwrap();
+        assert_eq!(studio.last_port(), None);
+    }
 
     #[test]
     fn durations_read_like_speech() {
