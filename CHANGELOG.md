@@ -2,6 +2,13 @@
 
 Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. Das Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Nummern folgen [Semantic Versioning](https://semver.org/lang/de/). Jede Version zum Herunterladen steht unter [Releases](https://github.com/marlonka/superint-video/releases).
 
+## [Unveröffentlicht]
+
+### Sicherheit
+
+- „Film öffnen“ in Studio öffnet nur noch eine MP4-Datei. Ein Projekt aus fremder Hand konnte dort bisher eine beliebige Datei eintragen, auch ein Programm, das der Klick dann gestartet hätte.
+- Eine fremde Website kann Studio und die App nicht mehr im Hintergrund ansprechen, etwa um eine Prüfung des Films anzustoßen.
+
 ## [0.11.0] – 2026-11-14
 
 ### Neu
