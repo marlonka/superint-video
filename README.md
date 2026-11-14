@@ -12,7 +12,7 @@
 <p align="center">
   <img alt="Windows 10 und 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-2f7bf5?style=flat-square">
   <img alt="macOS ab 11" src="https://img.shields.io/badge/macOS-ab%2011-6e6e73?style=flat-square">
-  <a href="https://github.com/marlonka/superint-video/releases/latest"><img alt="Version 0.10.0" src="https://img.shields.io/badge/Version-0.10.0-2e8b57?style=flat-square"></a>
+  <a href="https://github.com/marlonka/superint-video/releases/latest"><img alt="Version 0.11.0" src="https://img.shields.io/badge/Version-0.11.0-2e8b57?style=flat-square"></a>
   <img alt="Lizenz: MIT" src="https://img.shields.io/badge/Lizenz-MIT-3a3a3a?style=flat-square">
 </p>
 
