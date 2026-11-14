@@ -56,7 +56,7 @@ Ohne Ordner landet ein neuer Film im Speicherort für Filme. Alle Befehle und Op
 | Programm (Setup) | `%LOCALAPPDATA%\Programs\Superint Video`, dieser Ordner steht im PATH des Benutzers |
 | Programm (ZIP) | wo du es entpackt hast |
 | Einstellungen, Filmliste, eigene Stile | `%USERPROFILE%\.superint-video` (`SUPERINT_HOME`) |
-| API-Schlüssel aus der App | `%USERPROFILE%\.superint-video\keys.dat`, mit Windows DPAPI für dein Benutzerkonto verschlüsselt |
+| API-Schlüssel aus der App | `%USERPROFILE%\.superint-video\keys.dat`, mit Windows DPAPI für dein Benutzerkonto und für diese App verschlüsselt; auf dem Mac eine Datei, die nur du lesen kannst |
 | Filme | `Videos\Superint Video` (`SUPERINT_FILMS` oder Einrichtung) |
 | Skills des Agenten | `%USERPROFILE%\.claude\skills\`, `%USERPROFILE%\.codex\skills\` oder `%USERPROFILE%\.gemini\config\skills\` |
 

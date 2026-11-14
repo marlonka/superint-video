@@ -31,6 +31,11 @@ impl Secret {
         &self.0
     }
 }
+impl Drop for Secret {
+    fn drop(&mut self) {
+        crate::home::wipe_text(&mut self.0);
+    }
+}
 impl fmt::Debug for Secret {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("[redacted]")
