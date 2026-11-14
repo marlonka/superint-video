@@ -66,7 +66,7 @@ pub fn reveal_file(path: &Path) -> Result<()> {
 }
 
 /// Moves a file to the recycle bin, from where the user can bring it back. Without one, as on
-/// other systems than Windows, nothing happens and the answer says so.
+/// a Mac before macOS 15 or on Linux, nothing happens and the answer says so.
 #[cfg(windows)]
 pub fn recycle(path: &Path) -> Result<()> {
     use std::{ffi::c_void, os::windows::ffi::OsStrExt};
@@ -111,7 +111,27 @@ pub fn recycle(path: &Path) -> Result<()> {
     }
     Ok(())
 }
-#[cfg(not(windows))]
+/// macOS 15 and later ship `trash`, which moves a file to the Trash the way the Finder does.
+#[cfg(target_os = "macos")]
+pub fn recycle(path: &Path) -> Result<()> {
+    const TRASH: &str = "/usr/bin/trash";
+    if !Path::new(TRASH).is_file() {
+        bail!("There is no trash command on this Mac");
+    }
+    let path = path.canonicalize().context("The file is not there")?;
+    let done = std::process::Command::new(TRASH)
+        .arg(&path)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .context("The file could not be moved to the Trash")?;
+    if !done.success() || path.exists() {
+        bail!("The file could not be moved to the Trash");
+    }
+    Ok(())
+}
+#[cfg(all(not(windows), not(target_os = "macos")))]
 pub fn recycle(_path: &Path) -> Result<()> {
     bail!("There is no recycle bin here")
 }
@@ -333,6 +353,49 @@ pub fn winget() -> bool {
 #[cfg(not(windows))]
 pub fn winget() -> bool {
     false
+}
+
+/// Homebrew, the package manager most Macs install tools with.
+#[cfg(target_os = "macos")]
+pub fn brew() -> bool {
+    find_command("brew").is_some()
+}
+#[cfg(not(target_os = "macos"))]
+pub fn brew() -> bool {
+    false
+}
+
+/// Whether this computer's package manager can be asked to install a tool: winget on Windows,
+/// Homebrew on a Mac.
+pub fn package_manager() -> bool {
+    winget() || brew()
+}
+
+/// A Mac program opened from the Finder or the Dock gets only the system's search path
+/// (`/usr/bin:/bin:/usr/sbin:/sbin`), not the one a terminal has. Homebrew's two folders and the
+/// one uv puts its tools in are added at the end, so ffmpeg, Earshot and gcloud are found there
+/// too, also by the programs this one starts. Called first thing in `main`.
+#[cfg(target_os = "macos")]
+pub fn widen_search_path() {
+    let mut folders: Vec<PathBuf> = std::env::var_os("PATH")
+        .map(|path| std::env::split_paths(&path).collect())
+        .unwrap_or_default();
+    let home = std::env::var_os("HOME").map(PathBuf::from);
+    let wanted = [
+        Some(PathBuf::from("/opt/homebrew/bin")),
+        Some(PathBuf::from("/usr/local/bin")),
+        home.map(|home| home.join(".local/bin")),
+    ];
+    for folder in wanted.into_iter().flatten() {
+        if !folders.contains(&folder) {
+            folders.push(folder);
+        }
+    }
+    if let Ok(path) = std::env::join_paths(folders) {
+        // SAFETY: `main` calls this before it starts any thread, so nothing reads the
+        // environment at the same time.
+        unsafe { std::env::set_var("PATH", path) };
+    }
 }
 
 pub fn chrome() -> Result<PathBuf> {

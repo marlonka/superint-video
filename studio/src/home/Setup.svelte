@@ -88,6 +88,8 @@
   };
 
   $: setup = overview.setup;
+  // A Mac keeps the keys readable for the user only, not encrypted, and installs in Terminal.
+  $: mac = overview.system === 'macos';
   $: settings = overview.settings;
   $: missing = needs(overview);
   $: required = setup.tools.filter((tool) => !tool.optional);
@@ -373,7 +375,8 @@
       {/each}
     </dl>
     {#if google}<span>{$t('setup.cloud.signInWhy')}</span>
-      {#if signingIn}<span class="setup-note" role="status">{$t('setup.cloud.signingIn')}</span
+      {#if signingIn}<span class="setup-note" role="status"
+          >{$t(mac ? 'setup.cloud.signingInMac' : 'setup.cloud.signingIn')}</span
         >{/if}
       {#if !cloudByKey}<button class="text-link" onclick={() => (cloudByKey = true)}
           >{$t('setup.cloud.useKey')}</button
@@ -669,15 +672,29 @@
     {/if}
 
     <section class="setup-group" aria-labelledby="setup-keys">
-      {@render heading(null, 'setup-keys', $t('setup.key.title'), $t('setup.key.why'))}
+      {@render heading(
+        null,
+        'setup-keys',
+        $t('setup.key.title'),
+        $t(mac ? 'setup.key.whyMac' : 'setup.key.why'),
+      )}
       <div class="setup-keys">
         {#if setup.envFile}
           <ul class="setup-list">
             <SetupItem title={$t('setup.env.title')} done={false}>
               <span
-                >{$t(envKept ? 'setup.env.kept' : 'setup.env.why', {
-                  file: setup.envFile,
-                })}</span
+                >{$t(
+                  envKept
+                    ? mac
+                      ? 'setup.env.keptMac'
+                      : 'setup.env.kept'
+                    : mac
+                      ? 'setup.env.whyMac'
+                      : 'setup.env.why',
+                  {
+                    file: setup.envFile,
+                  },
+                )}</span
               >
               <svelte:fragment slot="action">
                 {#if !envKept}<button

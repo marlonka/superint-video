@@ -68,7 +68,7 @@ Die App speichert Schlüssel verschlüsselt. Eine `.env`-Datei (Vorlage: [`.env.
 
 ## Aus dem Quellcode bauen
 
-Du brauchst Windows x64, Rust 1.100 mit den MSVC-Buildtools, Node.js 26.13.1 LTS und npm 12.2.2. Für den Installer zusätzlich [Inno Setup 6](https://jrsoftware.org/isinfo.php):
+Du brauchst Windows x64 (für den Mac siehe unten), Rust 1.100 mit den MSVC-Buildtools, Node.js 26.13.1 LTS und npm 12.2.2. Für den Installer zusätzlich [Inno Setup 6](https://jrsoftware.org/isinfo.php):
 
 ```powershell
 winget install --id JRSoftware.InnoSetup --exact --scope user
@@ -86,4 +86,8 @@ cd superint-video
 | `Superint Video.exe`, `superint-video.exe` | der Starter und die CLI, zum Ausprobieren direkt aus `dist\` |
 | `SHA256SUMS.txt` | Prüfsummen |
 
-Ältere Pakete räumt der Build aus `dist\` weg; sie liegen auf der Release-Seite. Läuft die App aus `dist\`, sperrt Windows die EXE: vorher `.\dist\superint-video.exe app --stop`. Das Installer-Skript ist [`packaging/setup.iss`](https://github.com/marlonka/superint-video/blob/main/packaging/setup.iss). Mehr zu Tests, Projektformat und Releases steht in [CONTRIBUTING.md](../CONTRIBUTING.md), das Format in [FORMAT.md](FORMAT.md), die Schnittstellen in [INTERFACES.md](INTERFACES.md).
+Ältere Pakete räumt der Build aus `dist\` weg; sie liegen auf der Release-Seite. Läuft die App aus `dist\`, sperrt Windows die EXE: vorher `.\dist\superint-video.exe app --stop`. Das Installer-Skript ist [`packaging/setup.iss`](https://github.com/marlonka/superint-video/blob/main/packaging/setup.iss).
+
+Auf einem Mac (Rust über rustup, Node.js mit npm, Xcode Command Line Tools) baut `./scripts/build-mac.sh` dasselbe für Apple-Chip und Intel, je Programm eine Datei für beide (`lipo`). Es legt `dist/Superint Video.app` ab (Starter und CLI in `Contents/MacOS`, Skills, Prompts und Dokumentation in `Contents/Resources`, ad hoc signiert), dazu `dist/Superint-Video-macOS.zip` und `dist/SHA256SUMS-macos.txt`. Die Vorlage für `Info.plist` und das Symbol liegen in [`packaging/macos`](https://github.com/marlonka/superint-video/tree/main/packaging/macos). Ohne Mac baut der Workflow „macOS build“ bei jedem Pull Request das ZIP, startet die App aus dem Bundle und rendert das Starterprojekt; das ZIP liegt dort als Artefakt.
+
+Mehr zu Tests, Projektformat und Releases steht in [CONTRIBUTING.md](../CONTRIBUTING.md), das Format in [FORMAT.md](FORMAT.md), die Schnittstellen in [INTERFACES.md](INTERFACES.md).

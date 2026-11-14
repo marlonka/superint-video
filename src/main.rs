@@ -551,6 +551,8 @@ enum PresetCommand {
 const STACK: usize = 32 * 1024 * 1024;
 
 fn main() {
+    #[cfg(target_os = "macos")]
+    superint_video::process::widen_search_path();
     #[cfg(windows)]
     home::move_in();
     let result = std::thread::Builder::new()
@@ -666,7 +668,11 @@ async fn open_app(home: &std::path::Path, port: u16, open: bool) -> Result<Value
     if let Some((url, ping)) = app.answer().await {
         let theirs = ping["exe"].as_str().map(PathBuf::from);
         let ours = superint_video::app::own_exe();
-        if theirs.is_some() && same_program(theirs.as_deref(), ours.as_deref()) {
+        // A Mac app replaced in Applications has the old one's path but not its version.
+        if theirs.is_some()
+            && same_program(theirs.as_deref(), ours.as_deref())
+            && ping["version"] == env!("CARGO_PKG_VERSION")
+        {
             if open {
                 live::open_browser(&url);
             }

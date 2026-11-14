@@ -1,0 +1,86 @@
+name: macOS build
+
+# Runs ./scripts/build-mac.sh on a Mac for every pull request, every push to main and release
+# tags, then tries the built app the way a Mac user would: it starts from the bundle, answers,
+# and renders a film. Documentation-only changes skip it.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths-ignore: ["**.md", "docs/images/**", ".github/ISSUE_TEMPLATE/**"]
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths-ignore: ["**.md", "docs/images/**", ".github/ISSUE_TEMPLATE/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26.13.1"
+          cache: npm
+          cache-dependency-path: studio/package-lock.json
+
+      - name: npm
+        run: npm install --global npm@12.2.2
+
+      - name: Rust
+        run: |
+          rustup toolchain install 1.100.0 --profile minimal --component rustfmt --target aarch64-apple-darwin,x86_64-apple-darwin
+          rustup override set 1.100.0
+
+      - name: Build and checks
+        run: ./scripts/build-mac.sh
+
+      - name: FFmpeg
+        run: command -v ffmpeg || brew install ffmpeg
+
+      - name: The app starts from its bundle
+        run: |
+          app="dist/Superint Video.app/Contents/MacOS"
+          export SUPERINT_HOME="$RUNNER_TEMP/superint-home"
+          file "$app/superint-video" | tee /dev/stderr | grep -q "arm64"
+          file "$app/superint-video" | grep -q "x86_64"
+          test -f "dist/Superint Video.app/Contents/Resources/skills/superint-video/SKILL.md"
+          # The launcher, as a double-click starts it: it starts the app and ends.
+          "$app/superint-video-app"
+          answer="$("$app/superint-video" app --no-open)"
+          echo "$answer"
+          echo "$answer" | grep -q '"alreadyRunning": true'
+          url="$(echo "$answer" | sed -n 's/.*"url": "\(.*\)".*/\1/p')"
+          curl --fail --silent --show-error --output /dev/null "$url"
+          "$app/superint-video" app --stop
+
+      - name: A film renders on a Mac
+        run: |
+          tool="dist/Superint Video.app/Contents/MacOS/superint-video"
+          export SUPERINT_HOME="$RUNNER_TEMP/superint-home"
+          "$tool" doctor --json
+          cp -R examples/starter "$RUNNER_TEMP/starter"
+          "$tool" render "$RUNNER_TEMP/starter" --output "$RUNNER_TEMP/starter.mp4" --no-studio
+          ffprobe -v error -show_entries format=duration -of csv=p=0 "$RUNNER_TEMP/starter.mp4"
+
+      - name: macOS package
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: superint-video-macos
+          path: |
+            dist/Superint-Video-macOS.zip
+            dist/SHA256SUMS-macos.txt
+          if-no-files-found: error
+          retention-days: 14

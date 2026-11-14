@@ -16,7 +16,7 @@ A preset is only the look. How a film is planned, written and cut comes from the
 ## Where presets come from
 
 1. A path (`--preset ./my-style` or an absolute path): that folder.
-2. The user preset folder: `%USERPROFILE%\.superint-video\presets\<name>`, or `$SUPERINT_PRESETS\<name>` when that variable is set.
+2. The user preset folder: `%USERPROFILE%\.superint-video\presets\<name>` (on a Mac `~/.config/superint-video/presets/<name>`), or `$SUPERINT_PRESETS\<name>` when that variable is set.
 3. Built in (embedded in the executable).
 
 User presets with the same name shadow built-in ones.

@@ -148,11 +148,13 @@ export const en = {
   'setup.tool.taskCopied': 'Copied. Paste the task into your coding agent.',
   'setup.tool.project': 'Project page',
   'setup.tool.earshot.task':
-    'Please install Earshot for Superint Video: the sound effects tool from {url}, not the PyPI package of the same name. Its README says: {command}. If uv is missing, install it first (on Windows: winget install --id astral-sh.uv). Then check with earshot sfx list --json that it runs.',
+    'Please install Earshot for Superint Video: the sound effects tool from {url}, not the PyPI package of the same name. Its README says: {command}. If uv is missing, install it first (on Windows: winget install --id astral-sh.uv, on a Mac: brew install uv). Then check with earshot sfx list --json that it runs.',
 
   'setup.key.title': 'API key (optional)',
   'setup.key.why':
     'Not needed for a film. One API key from your own account is enough. It stays on this computer, encrypted.',
+  'setup.key.whyMac':
+    'Not needed for a film. One API key from your own account is enough. It stays on this computer, in a file only your user account can read.',
   'setup.without.title': 'Without an API key',
   'setup.without.what':
     'Picture, on-screen text, sound effects and your own voice: you record yourself in the app or bring an audio file. A film can also go without a voice.',
@@ -177,6 +179,8 @@ export const en = {
     'Recommended: sign in to Google Cloud with your Google account (ADC, Application Default Credentials) instead of an API key. A window brings the Google Cloud CLI if needed and opens the sign-in in your browser.',
   'setup.cloud.signingIn':
     'A window walks you through the sign-in; installing the Google Cloud CLI takes a minute or two. If Windows asks for administrator rights, that sometimes only flashes in the taskbar. The app notices the sign-in by itself.',
+  'setup.cloud.signingInMac':
+    'A Terminal window walks you through the sign-in; if the Google Cloud CLI is missing, it brings it with Homebrew, which takes a minute or two. The app notices the sign-in by itself.',
   'setup.cloud.useKey': 'Use an API key instead',
   'setup.cloud.needsProject':
     'The sign-in still needs the project ID: enter it under "Project and region".',
@@ -258,6 +262,10 @@ export const en = {
     'Your API keys are stored unencrypted in {file}, readable by any program and any coding agent in that folder. The app keeps them encrypted for your Windows account and moves the file to the recycle bin.',
   'setup.env.kept':
     'The API keys are now also encrypted in the app. {file} holds other entries too, so it stays. Take the keys out of it, or the ones in the file keep counting.',
+  'setup.env.whyMac':
+    'Your API keys are in {file}, readable by any coding agent working in that folder. The app keeps them outside your projects, readable only by your user account, and moves the file to the Trash.',
+  'setup.env.keptMac':
+    'The API keys are now also in the app. {file} stays where it is: take the keys out of it, or the ones in the file keep counting.',
   'setup.env.adopt': 'Move into the app',
   'setup.env.moved': 'API keys moved into the app. The .env file is in the recycle bin.',
   'setup.shortcut.title': 'Desktop and Start menu',

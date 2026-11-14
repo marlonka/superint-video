@@ -86,7 +86,25 @@ fn fail(message: &str) {
     }
 }
 
-#[cfg(not(windows))]
+/// An app opened from the Finder has no terminal to print to: the message comes as an alert.
+#[cfg(target_os = "macos")]
+fn fail(message: &str) {
+    eprintln!("{message}");
+    // AppleScript reads the text as a string of its own: backslashes and quotes are escaped.
+    let text = message.replace('\\', "\\\\").replace('"', "\\\"");
+    let _ = Command::new("osascript")
+        .arg("-e")
+        .arg(format!(
+            "display alert \"Superint Video\" message \"{text}\" as critical"
+        ))
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+    std::process::exit(1);
+}
+
+#[cfg(all(not(windows), not(target_os = "macos")))]
 fn fail(message: &str) {
     eprintln!("{message}");
     std::process::exit(1);

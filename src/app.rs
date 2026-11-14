@@ -289,6 +289,8 @@ async fn payload(state: &AppState, fresh: bool) -> Result<Value> {
                 "agents": agents(&state, fresh),
             },
             "cli": cli(),
+            // Where a text differs by system, as where the keys are kept.
+            "system": std::env::consts::OS,
             "filmsFolder": home::films_dir(&settings),
             "films": films(&state, &settings),
             "settings": settings,
@@ -367,7 +369,11 @@ struct Tool {
     optional: bool,
     get: &'static str,
     /// What winget calls it, when winget can install it.
+    #[cfg_attr(not(windows), allow(dead_code))]
     winget: Option<&'static str>,
+    /// What Homebrew calls it on a Mac, with `--cask` for an app.
+    #[cfg_attr(windows, allow(dead_code))]
+    brew: Option<&'static str>,
     /// The command that installs it outside winget, for the user or a coding agent to run.
     command: Option<&'static str>,
     /// A script that installs it in a window of its own.
@@ -375,19 +381,29 @@ struct Tool {
 }
 
 /// An installer the app writes into its folder and runs in a terminal window. It needs one
-/// command first, which it fetches through winget when it is missing.
+/// command first, which it fetches through winget or Homebrew when it is missing.
 #[derive(Clone, Copy)]
 struct Script {
-    file: &'static str,
+    /// The file's name without its ending, which is the system's.
+    name: &'static str,
     text: &'static str,
     needs: &'static str,
 }
 
-/// Writes an installer script into the app's folder, with Windows line ends, and gives its path.
-fn write_script(home: &Path, file: &str, text: &str) -> Result<String> {
+/// Writes an installer script into the app's folder and gives its path: a `.cmd` with Windows
+/// line ends, elsewhere a `.command` that Terminal runs when it opens it.
+fn write_script(home: &Path, name: &str, text: &str) -> Result<String> {
     std::fs::create_dir_all(home)?;
-    let path = home.join(file);
-    std::fs::write(&path, text.replace('\n', "\r\n"))?;
+    #[cfg(windows)]
+    let (path, text) = (home.join(format!("{name}.cmd")), text.replace('\n', "\r\n"));
+    #[cfg(not(windows))]
+    let (path, text) = (home.join(format!("{name}.command")), text.to_string());
+    std::fs::write(&path, text)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755))?;
+    }
     Ok(path.display().to_string())
 }
 
@@ -401,6 +417,7 @@ macro_rules! earshot_source {
 pub(crate) const EARSHOT_INSTALL: &str = concat!("uv tool install ", earshot_source!());
 /// The window that installs Earshot: uv first through winget when it is missing, then
 /// Earshot. Nothing is agreed to for the user; winget asks in the window.
+#[cfg(windows)]
 const EARSHOT_SCRIPT: &str = concat!(
     r#"@echo off
 echo Superint Video installs Earshot, the sound effects tool (github.com/Leonxlnx/earshot).
@@ -434,6 +451,30 @@ if not defined UV for /d %%D in ("%LOCALAPPDATA%\Microsoft\WinGet\Packages\astra
 exit /b 0
 "#
 );
+/// The same on a Mac: uv first through Homebrew when it is missing, then Earshot.
+#[cfg(not(windows))]
+const EARSHOT_SCRIPT: &str = concat!(
+    r#"#!/bin/sh
+echo "Superint Video installs Earshot, the sound effects tool (github.com/Leonxlnx/earshot)."
+echo
+PATH="$PATH:/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin"
+if ! command -v uv >/dev/null 2>&1; then
+  if command -v brew >/dev/null 2>&1; then
+    echo "First uv, which installs Python tools:"
+    brew install uv
+  fi
+fi
+if ! command -v uv >/dev/null 2>&1; then
+  echo "uv could not be installed. See https://docs.astral.sh/uv/"
+  exit 1
+fi
+uv tool install --force "#,
+    earshot_source!(),
+    r#" || exit 1
+echo
+echo 'Done. Close this window and choose "Check again" in Superint Video.'
+"#
+);
 
 const TOOLS: &[Tool] = &[
     Tool {
@@ -443,6 +484,7 @@ const TOOLS: &[Tool] = &[
         optional: false,
         get: "https://www.google.com/chrome/",
         winget: Some("Google.Chrome"),
+        brew: Some("--cask google-chrome"),
         command: None,
         script: None,
     },
@@ -453,6 +495,7 @@ const TOOLS: &[Tool] = &[
         optional: false,
         get: "https://ffmpeg.org/download.html",
         winget: Some("Gyan.FFmpeg"),
+        brew: Some("ffmpeg"),
         command: None,
         script: None,
     },
@@ -463,9 +506,10 @@ const TOOLS: &[Tool] = &[
         optional: true,
         get: "https://github.com/Leonxlnx/earshot",
         winget: None,
+        brew: None,
         command: Some(EARSHOT_INSTALL),
         script: Some(Script {
-            file: "install-earshot.cmd",
+            name: "install-earshot",
             text: EARSHOT_SCRIPT,
             needs: "uv",
         }),
@@ -499,7 +543,7 @@ async fn tools(state: &AppState, fresh: bool) -> Value {
     }
     let found = dependencies().await;
     let part = |name: &str| found.iter().find(|d| d["name"] == name);
-    let winget = process::winget();
+    let manager = process::package_manager();
     let tools: Vec<Value> = TOOLS
         .iter()
         .map(|tool| {
@@ -511,10 +555,10 @@ async fn tools(state: &AppState, fresh: bool) -> Value {
                 "optional": tool.optional,
                 "sounds": first.and_then(|d| d["sounds"].as_u64()),
                 "get": tool.get,
-                // A script brings what it needs through winget when that is missing.
+                // A script brings what it needs through winget or Homebrew when that is missing.
                 "install": match tool.script {
-                    Some(script) => winget || process::installed(script.needs),
-                    None => winget && tool.winget.is_some(),
+                    Some(script) => manager || process::installed(script.needs),
+                    None => manager && install_command(tool).is_some(),
                 },
                 "command": tool.command,
             })
@@ -523,11 +567,16 @@ async fn tools(state: &AppState, fresh: bool) -> Value {
     state.tools.put(json!(tools))
 }
 
-/// The command line that installs a tool through winget. No agreement is accepted for the
-/// user: winget asks in its own window.
+/// The command line that installs a tool through winget, on a Mac through Homebrew. No
+/// agreement is accepted for the user: winget asks in its own window.
+#[cfg(windows)]
 fn install_command(tool: &Tool) -> Option<String> {
     tool.winget
         .map(|id| format!("winget install --id {id} --exact --source winget"))
+}
+#[cfg(not(windows))]
+fn install_command(tool: &Tool) -> Option<String> {
+    tool.brew.map(|name| format!("brew install {name}"))
 }
 
 /// Starts the installation in a terminal window of its own, so the user sees what happens and
@@ -541,8 +590,8 @@ async fn install_tool(
         .find(|tool| tool.id == id)
         .ok_or_else(|| ApiError::bad("Unknown tool"))?;
     let command = match tool.script {
-        Some(script) => Some(write_script(&state.home, script.file, script.text)?),
-        None => install_command(tool).filter(|_| process::winget()),
+        Some(script) => Some(write_script(&state.home, script.name, script.text)?),
+        None => install_command(tool).filter(|_| process::package_manager()),
     }
     .ok_or_else(|| {
         ApiError::told(
@@ -556,7 +605,11 @@ async fn install_tool(
             "This tool is already installed",
         ));
     }
-    open_terminal(&format!("Superint Video: {}", tool.title), &command)?;
+    open_terminal(
+        &state.home,
+        &format!("Superint Video: {}", tool.title),
+        &command,
+    )?;
     // The next question about the tools is answered fresh.
     state.tools.clear();
     Ok(Json(json!({"started": true, "command": command})))
@@ -564,7 +617,7 @@ async fn install_tool(
 
 /// Runs one fixed command in a new, visible terminal window that stays open afterwards.
 #[cfg(windows)]
-fn open_terminal(title: &str, command: &str) -> Result<()> {
+fn open_terminal(_home: &Path, title: &str, command: &str) -> Result<()> {
     // `start` gives the new window a console of its own; this process has none. The line is
     // handed to cmd as written, because cmd does not read arguments the way other programs do.
     process::command("cmd.exe")
@@ -574,9 +627,37 @@ fn open_terminal(title: &str, command: &str) -> Result<()> {
         .context("The terminal window did not open")?;
     Ok(())
 }
+/// The same on a Mac, in Terminal. Terminal runs a `.command` file it opens and keeps the window
+/// afterwards; a single command line gets such a file first. `open` asks for no permission, as
+/// steering Terminal by AppleScript would.
+#[cfg(target_os = "macos")]
+fn open_terminal(home: &Path, title: &str, command: &str) -> Result<()> {
+    let script = if command.ends_with(".command") && Path::new(command).is_file() {
+        command.to_string()
+    } else {
+        write_script(home, "install", &terminal_script(title, command))?
+    };
+    process::command("open")
+        .args(["-a", "Terminal"])
+        .arg(script)
+        .kill_on_drop(false)
+        .spawn()
+        .context("The Terminal window did not open")?;
+    Ok(())
+}
+#[cfg(all(not(windows), not(target_os = "macos")))]
+fn open_terminal(_home: &Path, _title: &str, _command: &str) -> Result<()> {
+    bail!("Installing from the app works on Windows and macOS only")
+}
+
+/// A one-command installer for Terminal. Homebrew's folders come along, because a shell whose
+/// profile does not name them would not find `brew`.
 #[cfg(not(windows))]
-fn open_terminal(_title: &str, _command: &str) -> Result<()> {
-    bail!("Installing from the app works on Windows only")
+fn terminal_script(title: &str, command: &str) -> String {
+    format!(
+        "#!/bin/sh\necho '{title}'\necho\nPATH=\"$PATH:/opt/homebrew/bin:/usr/local/bin\"\n{command} || exit 1\necho\necho 'Done. Close this window and choose \"Check again\" in Superint Video.'\n",
+        title = title.replace('\'', ""),
+    )
 }
 
 /// What this computer can reach, read once per request: the keys, the settings, the user's
@@ -696,6 +777,7 @@ fn usual_models(ready: impl Fn(Provider) -> bool) -> Value {
 /// The window that signs the user in to Google Cloud: the Google Cloud CLI first through winget
 /// when it is missing, then `gcloud auth application-default login`, which opens the browser.
 /// Nothing is agreed to for the user; winget and Google ask in their own windows.
+#[cfg(windows)]
 const GOOGLE_SIGN_IN_SCRIPT: &str = r#"@echo off
 echo Superint Video signs you in to Google Cloud with your Google account.
 echo Google calls this Application Default Credentials: no API key, no secret to copy.
@@ -728,11 +810,33 @@ if not defined GCLOUD if exist "%ProgramFiles(x86)%\Google\Cloud SDK\google-clou
 if not defined GCLOUD if exist "%ProgramFiles%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd" set "GCLOUD=%ProgramFiles%\Google\Cloud SDK\google-cloud-sdk\bin\gcloud.cmd"
 exit /b 0
 "#;
+/// The same on a Mac, with the Google Cloud CLI from Homebrew.
+#[cfg(not(windows))]
+const GOOGLE_SIGN_IN_SCRIPT: &str = r#"#!/bin/sh
+echo "Superint Video signs you in to Google Cloud with your Google account."
+echo "Google calls this Application Default Credentials: no API key, no secret to copy."
+echo
+PATH="$PATH:/opt/homebrew/bin:/usr/local/bin"
+if ! command -v gcloud >/dev/null 2>&1; then
+  if command -v brew >/dev/null 2>&1; then
+    echo "First the Google Cloud CLI, which does the sign-in. This takes a minute or two."
+    brew install --cask gcloud-cli
+  fi
+fi
+if ! command -v gcloud >/dev/null 2>&1; then
+  echo "The Google Cloud CLI could not be installed. See https://cloud.google.com/sdk/docs/install"
+  exit 1
+fi
+echo "Your browser opens for the sign-in."
+gcloud auth application-default login || exit 1
+echo
+echo "Done. Close this window; Superint Video sees the sign-in by itself."
+"#;
 
 /// Opens the sign-in window. Google's own CLI keeps the sign-in; the app saves nothing of it.
 async fn google_sign_in(State(state): State<AppState>) -> ApiResult<Json<Value>> {
-    let script = write_script(&state.home, "google-sign-in.cmd", GOOGLE_SIGN_IN_SCRIPT)?;
-    open_terminal("Superint Video: Google sign-in", &script)?;
+    let script = write_script(&state.home, "google-sign-in", GOOGLE_SIGN_IN_SCRIPT)?;
+    open_terminal(&state.home, "Superint Video: Google sign-in", &script)?;
     Ok(Json(json!({"started": true})))
 }
 
@@ -1454,12 +1558,26 @@ mod tests {
     #[test]
     fn tools_are_installed_by_a_fixed_command_only() {
         let command = |id: &str| install_command(TOOLS.iter().find(|t| t.id == id).unwrap());
-        assert_eq!(
-            command("ffmpeg").as_deref(),
-            Some("winget install --id Gyan.FFmpeg --exact --source winget")
-        );
-        assert!(command("chrome").unwrap().contains("Google.Chrome"));
-        // Earshot is not in winget: the page shows its command to copy instead.
+        #[cfg(windows)]
+        {
+            assert_eq!(
+                command("ffmpeg").as_deref(),
+                Some("winget install --id Gyan.FFmpeg --exact --source winget")
+            );
+            assert!(command("chrome").unwrap().contains("Google.Chrome"));
+        }
+        #[cfg(not(windows))]
+        {
+            assert_eq!(command("ffmpeg").as_deref(), Some("brew install ffmpeg"));
+            assert_eq!(
+                command("chrome").as_deref(),
+                Some("brew install --cask google-chrome")
+            );
+            let script = terminal_script("Superint Video: FFmpeg", "brew install ffmpeg");
+            assert!(script.starts_with("#!/bin/sh\n"));
+            assert!(script.contains("\nbrew install ffmpeg || exit 1\n"));
+        }
+        // Earshot is in neither: its script installs it, else the page shows its command.
         assert_eq!(command("earshot"), None);
         // No agreement is accepted on the user's behalf.
         assert!(
