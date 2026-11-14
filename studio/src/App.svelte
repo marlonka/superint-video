@@ -113,6 +113,25 @@
   let output = 'renders/video.mp4';
   let quality: 'draft' | 'final' = 'final';
   let overwrite = false;
+  // The export path follows the film's name, size and quality until the user types their own.
+  let outputEdited = false;
+  const fileSlug = (name: string) => {
+    const slug = name
+      .toLowerCase()
+      .replace(/ä/g, 'ae')
+      .replace(/ö/g, 'oe')
+      .replace(/ü/g, 'ue')
+      .replace(/ß/g, 'ss')
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    if (slug.length <= 48) return slug;
+    const cut = slug.slice(0, 48);
+    return cut.includes('-') ? cut.slice(0, cut.lastIndexOf('-')) : cut;
+  };
+  $: suggestedOutput = `renders/${fileSlug(manifest?.name || '') || 'video'}-${manifest?.height || 1080}p-${quality}.mp4`;
+  $: if (!outputEdited) output = suggestedOutput;
   let job: RenderJob | null = null;
   let exportStarting = false;
   let exportError = '';
@@ -2637,8 +2656,9 @@
         >{$t('export.path')}<input
           type="text"
           bind:value={output}
+          oninput={() => (outputEdited = true)}
           disabled={renderActive}
-          placeholder="renders/video.mp4"
+          placeholder={suggestedOutput}
         /><span class="field-note">{$t('export.pathNote')}</span></label
       >
       <fieldset class="quality-options" disabled={renderActive}>

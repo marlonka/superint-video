@@ -20,6 +20,7 @@ Look at each at full size and scaled to 320 px wide, next to the references at t
    - `review.json`: the same data, plus the actors each scene reported
 2. Read the measurements at the top of the worksheet. The tool samples the whole film every 0.5 s for stretches where the picture barely changes for 3 s, actors that the frame edge cuts to a sliver, and highlights that do not enclose their target. They are hints to look closer, not verdicts. A `no-actors` warning means edges and targets went unchecked: make scenes report actors ([scene-api.md](scene-api.md)).
 3. Look at the contact sheet next to the references at the same size, then at every frame at full size.
+   On the contact sheet, also look for one framing that stays put across three or more neighbouring frames (a hold the measurement misses when something small keeps moving), for props that no line of the voice explains (often left over from an earlier script), and for anything in the sky or the background that sits in another place relative to the ground than in the frame before.
 4. Fill in every row of `review.md` before changing anything: the defect you see against the workflow's rubric, then the concrete change. A frame with no defect gets `ok` and a reason.
 5. Details up close: `--camera x,y,zoom` in scenes that declare the check camera, `--crop x,y,w,h` in any scene. Look at faces, hands, labels, small text, edges of UI.
 6. Motion frame by frame: `--strip a-b` (at most 90 frames) over every exit, transition and fast move; ugly frames hide mid-motion.

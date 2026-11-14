@@ -15,6 +15,15 @@ Reject or change the angle if:
 - the "common belief" is merely put into the viewer's mouth;
 - a single case, a model or an opinion cannot carry the promised generality.
 
+## Films about what may come
+
+When the film is about where something is heading (a technology, a forecast, a scenario someone lays out), it starts at that future point and speculates forward, the way its source does.
+
+- Tell the source's scenario in its own terms ("could", "probably", "so sees it <name>") and argue it by mechanism: what feeds what, why it would speed up or stall, which paths there are. Say once, plainly, that it is a scenario.
+- No status of today: no current statistics, no recent releases, no past milestones, not even as a clause. They date the film and pull it back into the present.
+- The claim register checks that the film reports the source faithfully (its predictions, timeframes, conditions and the spread between its paths), not the state of the world today.
+- Show the future itself as a place where things happen, not progress as a mountain to climb.
+
 ## Evidence rules
 
 - Use primary sources where possible (papers, agencies, official data) and check in the original what was actually measured.
@@ -23,6 +32,7 @@ Reject or change the angle if:
 - Numbers carry unit, baseline, period and honest rounding. Comparisons use compatible system boundaries. Model calculations name their assumptions and a sensible range.
 - Several sites repeating one claim are not independent confirmation.
 - Never cite a source you could not read. Never claim an expert review that did not happen.
+- Every person the film names gets their role in the register with its source (podcaster, economist at …), and the script uses exactly that role.
 
 ## Teaching design
 
