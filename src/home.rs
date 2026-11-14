@@ -593,10 +593,45 @@ mod known {
 
 // ---------------------------------------------------------------------------------------- keys
 
-/// API keys saved in the app. On Windows the file is encrypted for the signed-in user, so it
-/// reads as noise to anything that opens it; elsewhere it is a file only the user can read.
+/// API keys saved in the app. On Windows the file is encrypted for the signed-in user and for
+/// this app, so it reads as noise to anything that opens it; elsewhere it is a file only the
+/// user can read.
 pub struct KeyStore {
     path: PathBuf,
+}
+
+/// Overwrites memory that held a key before it is given back. Not every copy can be reached
+/// (a request to a provider makes its own), but the ones this module makes do not linger.
+pub(crate) fn wipe(bytes: &mut [u8]) {
+    for byte in bytes.iter_mut() {
+        // SAFETY: `byte` is a valid, exclusive reference; volatile so the write is not dropped
+        // as one to memory nobody reads again.
+        unsafe { std::ptr::write_volatile(byte, 0) };
+    }
+    std::sync::atomic::compiler_fence(std::sync::atomic::Ordering::SeqCst);
+}
+
+/// `wipe` for a text, which is left empty.
+pub(crate) fn wipe_text(text: &mut String) {
+    let mut bytes = std::mem::take(text).into_bytes();
+    wipe(&mut bytes);
+}
+
+/// The saved keys by name. Their values are wiped from memory when this goes.
+#[derive(Default)]
+pub struct Saved(BTreeMap<String, String>);
+
+impl std::ops::Deref for Saved {
+    type Target = BTreeMap<String, String>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Drop for Saved {
+    fn drop(&mut self) {
+        self.0.values_mut().for_each(wipe_text);
+    }
 }
 
 impl KeyStore {
@@ -611,43 +646,74 @@ impl KeyStore {
     }
 
     /// Every saved key. A file that cannot be read back counts as empty: the user saves again.
-    pub fn read(&self) -> BTreeMap<String, String> {
-        fs::read(&self.path)
-            .ok()
-            .and_then(|sealed| unseal(&sealed).ok())
-            .and_then(|plain| serde_json::from_slice(&plain).ok())
-            .unwrap_or_default()
+    /// A file as an earlier version sealed it is sealed again the way this one does.
+    pub fn read(&self) -> Saved {
+        let Ok(sealed) = fs::read(&self.path) else {
+            return Saved::default();
+        };
+        self.keep_private();
+        let Ok((mut plain, current)) = unseal(&sealed) else {
+            return Saved::default();
+        };
+        let keys = Saved(serde_json::from_slice(&plain).unwrap_or_default());
+        wipe(&mut plain);
+        if !current && !keys.is_empty() {
+            let _ = self.store(&keys);
+        }
+        keys
     }
 
     pub fn set(&self, name: &str, value: &str) -> Result<()> {
         let value = clean_key(value)?;
         let mut keys = self.read();
-        keys.insert(name.to_string(), value);
+        if let Some(mut replaced) = keys.0.insert(name.to_string(), value) {
+            wipe_text(&mut replaced);
+        }
         self.store(&keys)
     }
 
     /// Returns whether the key was there.
     pub fn remove(&self, name: &str) -> Result<bool> {
         let mut keys = self.read();
-        let was = keys.remove(name).is_some();
-        if was {
-            self.store(&keys)?;
-        }
-        Ok(was)
+        let Some(mut removed) = keys.0.remove(name) else {
+            return Ok(false);
+        };
+        wipe_text(&mut removed);
+        self.store(&keys)?;
+        Ok(true)
     }
 
-    fn store(&self, keys: &BTreeMap<String, String>) -> Result<()> {
+    fn store(&self, keys: &Saved) -> Result<()> {
         if keys.is_empty() {
             let _ = fs::remove_file(&self.path);
             return Ok(());
         }
-        write(&self.path, &seal(&serde_json::to_vec(keys)?)?)?;
+        let mut plain = serde_json::to_vec(&keys.0)?;
+        let sealed = seal(&plain);
+        wipe(&mut plain);
+        let mut sealed = sealed?;
+        // The file is made for the user alone and then put in place: it is never there half
+        // written or open to others.
+        let written = write(&self.path, &sealed);
+        // Where the system has nothing to seal with, the sealed bytes are the keys themselves.
+        wipe(&mut sealed);
+        written?;
+        self.keep_private();
+        Ok(())
+    }
+
+    /// A key file that others on this computer could read, as a copy or a backup brought back
+    /// may be, becomes the user's alone again. Windows keeps it sealed instead.
+    fn keep_private(&self) {
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
-            fs::set_permissions(&self.path, fs::Permissions::from_mode(0o600))?;
+            let open =
+                fs::metadata(&self.path).is_ok_and(|file| file.permissions().mode() & 0o077 != 0);
+            if open {
+                let _ = fs::set_permissions(&self.path, fs::Permissions::from_mode(0o600));
+            }
         }
-        Ok(())
     }
 }
 
@@ -701,23 +767,33 @@ mod dpapi {
     /// Never show a dialog: this runs in background processes.
     const UI_FORBIDDEN: u32 = 1;
 
-    pub fn run(input: &[u8], protect: bool) -> Result<Vec<u8>> {
-        let source = Blob {
-            len: u32::try_from(input.len())?,
-            data: input.as_ptr().cast_mut(),
+    /// Seals or opens `input` for the signed-in user. `purpose` is mixed into the seal: what
+    /// was sealed with one opens only with the same one.
+    pub fn run(input: &[u8], purpose: Option<&[u8]>, protect: bool) -> Result<Vec<u8>> {
+        let blob = |bytes: &[u8]| -> Result<Blob> {
+            Ok(Blob {
+                len: u32::try_from(bytes.len())?,
+                data: bytes.as_ptr().cast_mut(),
+            })
         };
+        let source = blob(input)?;
+        let purpose = purpose.map(blob).transpose()?;
+        let entropy = purpose
+            .as_ref()
+            .map_or(std::ptr::null(), |blob| blob as *const Blob);
         let mut out = Blob {
             len: 0,
             data: std::ptr::null_mut(),
         };
-        // SAFETY: `source` points at `input` for the whole call and is only read; `out` is
-        // filled by Windows with memory it allocated, which is copied and freed below.
+        // SAFETY: `source` and `entropy` point at `input` and `purpose` for the whole call and
+        // are only read; `out` is filled by Windows with memory it allocated, which is copied
+        // and freed below.
         let ok = unsafe {
             if protect {
                 CryptProtectData(
                     &source,
                     std::ptr::null(),
-                    std::ptr::null(),
+                    entropy,
                     std::ptr::null_mut(),
                     std::ptr::null(),
                     UI_FORBIDDEN,
@@ -727,7 +803,7 @@ mod dpapi {
                 CryptUnprotectData(
                     &source,
                     std::ptr::null_mut(),
-                    std::ptr::null(),
+                    entropy,
                     std::ptr::null_mut(),
                     std::ptr::null(),
                     UI_FORBIDDEN,
@@ -738,29 +814,47 @@ mod dpapi {
         if ok == 0 || out.data.is_null() {
             bail!("Windows could not protect the saved keys for this user");
         }
-        // SAFETY: on success `out.data` holds `out.len` bytes owned by this process until freed.
-        let bytes = unsafe { std::slice::from_raw_parts(out.data, out.len as usize).to_vec() };
+        // SAFETY: on success `out.data` holds `out.len` bytes owned by this process until freed,
+        // and nothing else refers to them.
+        let answer = unsafe { std::slice::from_raw_parts_mut(out.data, out.len as usize) };
+        let bytes = answer.to_vec();
+        // Opened keys do not stay behind in memory Windows gets back.
+        super::wipe(answer);
         // SAFETY: the buffer came from the call above and is not used after this.
         unsafe { LocalFree(out.data.cast()) };
         Ok(bytes)
     }
 }
 
+/// How a key file sealed by this version begins. One without it is from a version up to 0.11.0.
+#[cfg(windows)]
+const SEALED: &[u8] = b"superint-video keys 2\n";
+/// What the seal is made for. A program that asks Windows to open whatever this user has
+/// sealed, as password stealers do with every file they find, gets nothing without it.
+#[cfg(windows)]
+const PURPOSE: &[u8] = b"superint-video: the API keys saved in the app";
+
 #[cfg(windows)]
 fn seal(plain: &[u8]) -> Result<Vec<u8>> {
-    dpapi::run(plain, true)
+    let mut file = SEALED.to_vec();
+    file.extend(dpapi::run(plain, Some(PURPOSE), true)?);
+    Ok(file)
 }
+/// The keys in a key file, and whether it was sealed the way this version does.
 #[cfg(windows)]
-fn unseal(sealed: &[u8]) -> Result<Vec<u8>> {
-    dpapi::run(sealed, false)
+fn unseal(sealed: &[u8]) -> Result<(Vec<u8>, bool)> {
+    match sealed.strip_prefix(SEALED) {
+        Some(sealed) => Ok((dpapi::run(sealed, Some(PURPOSE), false)?, true)),
+        None => Ok((dpapi::run(sealed, None, false)?, false)),
+    }
 }
 #[cfg(not(windows))]
 fn seal(plain: &[u8]) -> Result<Vec<u8>> {
     Ok(plain.to_vec())
 }
 #[cfg(not(windows))]
-fn unseal(sealed: &[u8]) -> Result<Vec<u8>> {
-    Ok(sealed.to_vec())
+fn unseal(sealed: &[u8]) -> Result<(Vec<u8>, bool)> {
+    Ok((sealed.to_vec(), true))
 }
 
 // --------------------------------------------------------------------------------------- films
@@ -1216,12 +1310,53 @@ mod tests {
             let needle = b"test-key-0123456789";
             assert!(!raw.windows(needle.len()).any(|w| w == needle));
         }
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mode = |path: &Path| fs::metadata(path).unwrap().permissions().mode() & 0o777;
+            assert_eq!(mode(store.path()), 0o600);
+            // A copy that others could read is the user's alone again once it is read.
+            fs::set_permissions(store.path(), fs::Permissions::from_mode(0o644)).unwrap();
+            assert_eq!(store.read().len(), 2);
+            assert_eq!(mode(store.path()), 0o600);
+        }
         assert!(store.set("GEMINI_API_KEY", "two words").is_err());
         assert!(store.set("GEMINI_API_KEY", "  ").is_err());
         assert!(store.remove("GEMINI_API_KEY").unwrap());
         assert!(!store.remove("GEMINI_API_KEY").unwrap());
         assert!(store.remove("OPENROUTER_API_KEY").unwrap());
         assert!(!store.path().exists());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn keys_are_sealed_for_this_app_and_an_earlier_file_is_sealed_again() {
+        let home = TempDir::new().unwrap();
+        let store = KeyStore::at(home.path());
+        // As versions up to 0.11.0 wrote it: sealed for the user, for no purpose.
+        let earlier = dpapi::run(br#"{"GEMINI_API_KEY":"earlier-key-0123"}"#, None, true).unwrap();
+        fs::write(store.path(), &earlier).unwrap();
+        assert_eq!(store.read()["GEMINI_API_KEY"], "earlier-key-0123");
+        let raw = fs::read(store.path()).unwrap();
+        let sealed = raw.strip_prefix(SEALED).expect("sealed again on reading");
+        // Whoever asks Windows to open it without saying what for gets nothing.
+        assert!(dpapi::run(sealed, None, false).is_err());
+        assert!(dpapi::run(sealed, Some(b"something else"), false).is_err());
+        assert_eq!(store.read()["GEMINI_API_KEY"], "earlier-key-0123");
+        // A file that is not a seal counts as empty and is left as it is.
+        fs::write(store.path(), b"superint-video keys 2\nnoise").unwrap();
+        assert!(store.read().is_empty());
+        assert!(store.path().is_file());
+    }
+
+    #[test]
+    fn wiped_memory_holds_nothing() {
+        let mut bytes = b"test-key-0123456789".to_vec();
+        wipe(&mut bytes);
+        assert!(bytes.iter().all(|&byte| byte == 0));
+        let mut text = String::from("test-key-0123456789");
+        wipe_text(&mut text);
+        assert!(text.is_empty());
     }
 
     #[test]

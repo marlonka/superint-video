@@ -8,6 +8,8 @@ Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. 
 
 - „Film öffnen“ in Studio öffnet nur noch eine MP4-Datei. Ein Projekt aus fremder Hand konnte dort bisher eine beliebige Datei eintragen, auch ein Programm, das der Klick dann gestartet hätte.
 - Eine fremde Website kann Studio und die App nicht mehr im Hintergrund ansprechen, etwa um eine Prüfung des Films anzustoßen.
+- Gespeicherte API-Schlüssel sind unter Windows jetzt zusätzlich an Superint Video gebunden: Ein Programm, das Windows einfach bittet, alles zu entschlüsseln, was dein Konto verschlüsselt hat, bekommt sie nicht mehr. Deine Schlüssel werden beim ersten Start von selbst umgestellt. Eine ältere Version liest sie danach nicht mehr.
+- Die App überschreibt die Kopien der Schlüssel, die sie selbst im Arbeitsspeicher hält, sobald sie sie nicht mehr braucht. Auf dem Mac macht sie eine Schlüsseldatei, die andere Benutzer lesen könnten, wieder nur für dich lesbar.
 
 ## [0.11.0] – 2026-11-14
 

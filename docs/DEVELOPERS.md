@@ -56,7 +56,7 @@ Without a folder, a new film goes into the films folder. Every command and optio
 | Program (setup) | `%LOCALAPPDATA%\Programs\Superint Video`; this folder is on the user's PATH |
 | Program (ZIP) | wherever you unpacked it |
 | Settings, film list, own styles | `%USERPROFILE%\.superint-video` (`SUPERINT_HOME`) |
-| API keys saved in the app | `%USERPROFILE%\.superint-video\keys.dat`, encrypted for your Windows account with DPAPI |
+| API keys saved in the app | `%USERPROFILE%\.superint-video\keys.dat`, encrypted with DPAPI for your Windows account and for this app; on a Mac a file only you can read |
 | Films | `Videos\Superint Video` (`SUPERINT_FILMS` or Setup) |
 | The agent's skills | `%USERPROFILE%\.claude\skills\`, `%USERPROFILE%\.codex\skills\` or `%USERPROFILE%\.gemini\config\skills\` |
 
