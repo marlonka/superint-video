@@ -1109,6 +1109,15 @@ async fn guard(State(state): State<Guard>, req: Request, next: Next) -> Response
     {
         return ApiError::forbidden("Foreign Origin").into_response();
     }
+    // A picture or a frame on another website asks without an `Origin` and cannot read the
+    // answer, but the question alone starts work here. The browser says where it comes from.
+    if req.uri().path().starts_with("/api/")
+        && let Some(site) = req.headers().get("Sec-Fetch-Site")
+        && site != "same-origin"
+        && site != "none"
+    {
+        return ApiError::forbidden("Foreign page").into_response();
+    }
     if req.method() != axum::http::Method::GET
         && req.method() != axum::http::Method::HEAD
         && req
@@ -1193,6 +1202,54 @@ impl IntoResponse for ApiError {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Serves `app` at an address of its own, which `app` is built from, and gives the address.
+    async fn serve(app: impl FnOnce(&str) -> Router) -> String {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let origin = format!("http://{}", listener.local_addr().unwrap());
+        let app = app(&origin);
+        tokio::spawn(async move { axum::serve(listener, app).await });
+        origin
+    }
+    async fn status(url: &str, headers: &[(&str, &str)]) -> StatusCode {
+        let mut request = reqwest::Client::new().get(url);
+        for (name, value) in headers {
+            request = request.header(*name, *value);
+        }
+        request.send().await.unwrap().status()
+    }
+
+    #[tokio::test]
+    async fn another_website_cannot_ask_the_api() {
+        let origin = serve(|origin| {
+            Router::new()
+                .route("/api/thing", get(|| async { "ok" }))
+                .route("/", get(|| async { "page" }))
+                .layer(middleware::from_fn_with_state(
+                    Guard {
+                        origin: origin.into(),
+                        token: "t".into(),
+                        preview: None,
+                    },
+                    guard,
+                ))
+        })
+        .await;
+        let api = format!("{origin}/api/thing");
+        assert_eq!(status(&api, &[]).await, StatusCode::OK);
+        for (site, expected) in [
+            ("same-origin", StatusCode::OK),
+            ("none", StatusCode::OK),
+            ("same-site", StatusCode::FORBIDDEN),
+            ("cross-site", StatusCode::FORBIDDEN),
+        ] {
+            let headers = [("Sec-Fetch-Site", site)];
+            assert_eq!(status(&api, &headers).await, expected, "{site}");
+        }
+        // A link from elsewhere still opens the page.
+        let link = [("Sec-Fetch-Site", "cross-site")];
+        assert_eq!(status(&origin, &link).await, StatusCode::OK);
+    }
 
     #[test]
     fn standby_is_not_time_without_a_viewer() {

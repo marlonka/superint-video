@@ -402,7 +402,12 @@ pub fn finished_video(root: &Path) -> Option<PathBuf> {
     } else {
         output.to_path_buf()
     };
-    path.is_file().then_some(path)
+    // The record lies in the project, and a project may come from someone else. What it names
+    // is served to Studio and opened the way a double-click would: a film, never a program.
+    let film = path
+        .extension()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("mp4"));
+    (film && path.is_file()).then_some(path)
 }
 
 // ---------------------------------------------------------------- Studio as a companion process
@@ -788,6 +793,29 @@ mod tests {
         assert_eq!(state["render"]["status"], "completed");
         assert_eq!(state["render"]["result"]["frames"], 100);
         assert!(finished_video(root).is_some());
+    }
+
+    #[test]
+    fn only_a_film_counts_as_the_finished_video() {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path();
+        fs::create_dir_all(root.join(DIR)).unwrap();
+        fs::write(root.join("film.mp4"), b"x").unwrap();
+        fs::write(root.join("run.cmd"), b"x").unwrap();
+        // A record as a project from someone else could carry it.
+        let record = |output: &str, inside: bool| {
+            fs::write(
+                root.join(DIR).join(RENDER),
+                json!({"status": "completed", "output": output, "outputInProject": inside})
+                    .to_string(),
+            )
+            .unwrap();
+            finished_video(root)
+        };
+        assert!(record("film.mp4", true).is_some());
+        assert!(record("run.cmd", true).is_none());
+        let outside = root.join("run.cmd").display().to_string();
+        assert!(record(&outside, false).is_none());
     }
 
     #[tokio::test]
