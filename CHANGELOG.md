@@ -2,6 +2,21 @@
 
 Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. Das Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Nummern folgen [Semantic Versioning](https://semver.org/lang/de/). Jede Version zum Herunterladen steht unter [Releases](https://github.com/marlonka/superint-video/releases).
 
+## [0.11.0] – 2026-11-14
+
+### Neu
+
+- **Superint Video für den Mac:** `Superint-Video-macOS.zip` enthält die App für Apple-Chip und Intel (macOS 11 oder neuer). Die README erklärt in vier Schritten, wie du sie öffnest.
+- Auf dem Mac holt „Installieren“ in der Einrichtung Chrome, FFmpeg, Earshot und die Google Cloud CLI über Homebrew in einem Terminal-Fenster.
+
+### Geändert
+
+- Eine neue Version löst beim Start eine noch laufende ältere ab, auch wenn sie am selben Ort liegt.
+
+### Behoben
+
+- Mit einem FFmpeg ohne `zscale`, etwa dem von Homebrew, schlug jeder Render fehl. Jetzt rechnet Superint Video die Farben dann selbst um, auf eine Stufe genau wie mit `zscale`.
+
 ## [0.10.0] – 2026-11-14
 
 ### Neu
@@ -195,6 +210,7 @@ Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. 
 
 - Erste Version: eine Rust-CLI und Studio im Browser für HTML-Szenen, Timeline, Prüfen, Snapshots und MP4-Export über Chromium und FFmpeg.
 
+[0.11.0]: https://github.com/marlonka/superint-video/releases/tag/v0.11.0
 [0.10.0]: https://github.com/marlonka/superint-video/releases/tag/v0.10.0
 [0.9.5]: https://github.com/marlonka/superint-video/releases/tag/v0.9.5
 [0.9.4]: https://github.com/marlonka/superint-video/releases/tag/v0.9.4

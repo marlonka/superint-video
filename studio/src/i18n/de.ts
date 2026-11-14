@@ -150,11 +150,13 @@ export const de: Catalog = {
   'setup.tool.taskCopied': 'Kopiert. Füge den Auftrag in deinen Coding-Agenten ein.',
   'setup.tool.project': 'Projektseite',
   'setup.tool.earshot.task':
-    'Installiere bitte Earshot für Superint Video: das Werkzeug für Soundeffekte von {url}, nicht das gleichnamige Paket auf PyPI. Laut Anleitung: {command}. Fehlt uv, installiere es vorher (unter Windows mit winget install --id astral-sh.uv). Prüfe danach mit earshot sfx list --json, dass es läuft.',
+    'Installiere bitte Earshot für Superint Video: das Werkzeug für Soundeffekte von {url}, nicht das gleichnamige Paket auf PyPI. Laut Anleitung: {command}. Fehlt uv, installiere es vorher (unter Windows mit winget install --id astral-sh.uv, auf dem Mac mit brew install uv). Prüfe danach mit earshot sfx list --json, dass es läuft.',
 
   'setup.key.title': 'API-Schlüssel (freiwillig)',
   'setup.key.why':
     'Für einen Film nicht nötig. Ein API-Schlüssel aus deinem eigenen Konto genügt. Er bleibt verschlüsselt auf diesem Rechner.',
+  'setup.key.whyMac':
+    'Für einen Film nicht nötig. Ein API-Schlüssel aus deinem eigenen Konto genügt. Er bleibt auf diesem Rechner, in einer Datei, die nur dein Benutzerkonto lesen kann.',
   'setup.without.title': 'Ohne API-Schlüssel',
   'setup.without.what':
     'Bild, Text im Bild, Soundeffekte und deine eigene Stimme: Du nimmst dich in der App auf oder bringst eine Audiodatei mit. Ein Film geht auch ganz ohne Stimme.',
@@ -179,6 +181,8 @@ export const de: Catalog = {
     'Empfohlen: die Anmeldung bei Google Cloud mit deinem Google-Konto (ADC, Application Default Credentials) statt eines API-Schlüssels. Ein Fenster holt dafür bei Bedarf die Google Cloud CLI und öffnet die Anmeldung im Browser.',
   'setup.cloud.signingIn':
     'Ein Fenster führt durch die Anmeldung; das Installieren der Google Cloud CLI dauert ein, zwei Minuten. Fragt Windows nach Administratorrechten, blinkt das manchmal nur in der Taskleiste. Die App bemerkt die Anmeldung von selbst.',
+  'setup.cloud.signingInMac':
+    'Ein Terminal-Fenster führt durch die Anmeldung; fehlt die Google Cloud CLI, holt es sie über Homebrew, das dauert ein, zwei Minuten. Die App bemerkt die Anmeldung von selbst.',
   'setup.cloud.useKey': 'Stattdessen einen API-Schlüssel eintragen',
   'setup.cloud.needsProject':
     'Für die Anmeldung fehlt noch die Projekt-ID: unter „Projekt und Region“ eintragen.',
@@ -260,6 +264,10 @@ export const de: Catalog = {
     'Deine API-Schlüssel liegen unverschlüsselt in {file}, lesbar für jedes Programm und jeden Coding-Agenten in diesem Ordner. Die App speichert sie verschlüsselt für dein Benutzerkonto und legt die Datei in den Papierkorb.',
   'setup.env.kept':
     'Die API-Schlüssel sind jetzt auch verschlüsselt in der App. {file} enthält noch andere Einträge und bleibt deshalb liegen. Nimm die Schlüssel dort heraus, sonst gelten weiter die aus der Datei.',
+  'setup.env.whyMac':
+    'Deine API-Schlüssel liegen in {file}, lesbar für jeden Coding-Agenten in diesem Ordner. Die App bewahrt sie außerhalb deiner Projekte auf, nur für dein Benutzerkonto lesbar, und legt die Datei in den Papierkorb.',
+  'setup.env.keptMac':
+    'Die API-Schlüssel sind jetzt auch in der App. {file} bleibt liegen: Nimm die Schlüssel dort heraus, sonst gelten weiter die aus der Datei.',
   'setup.env.adopt': 'In die App übernehmen',
   'setup.env.moved': 'API-Schlüssel übernommen. Die .env-Datei liegt im Papierkorb.',
   'setup.shortcut.title': 'Desktop und Startmenü',

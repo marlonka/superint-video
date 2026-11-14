@@ -121,14 +121,14 @@ impl Agent {
     }
 }
 
-/// The skills that ship next to the executable (`dist/skills`) or in the repository it was
-/// built in.
+/// The skills that ship next to the executable (`dist/skills`), in a Mac app's resources
+/// (`Superint Video.app/Contents/Resources/skills`) or in the repository it was built in.
 pub fn shipped() -> Option<PathBuf> {
     let exe = std::env::current_exe().ok()?;
     exe.ancestors()
         .skip(1)
         .take(4)
-        .map(|dir| dir.join("skills"))
+        .flat_map(|dir| [dir.join("skills"), dir.join("Resources").join("skills")])
         .find(|dir| dir.join("superint-video/SKILL.md").is_file())
 }
 

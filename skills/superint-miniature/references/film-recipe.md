@@ -89,7 +89,7 @@ superint-video render . --output renders/<slug>.mp4 --audio audio/master.wav --c
 
 - H.264 for showing on work computers without an HEVC extension. `--workers 2`: the GPU limits, not PNG encoding. 3 or 4 browsers give the same speed and cost memory.
 - Studio shows it live: the frame being rendered, time left and the strip of what is done. At this length the render is the longest wait of the whole film, so name the URL when you start it.
-- Windows must not sleep during it. `tools/render_awake.py <log> <result> render . --output …` asks the OS for that for its own process only and changes no settings.
+- The computer must not sleep during it. `tools/render_awake.py <log> <result> render . --output …` asks the OS for that for its own process only and changes no settings: Windows through SetThreadExecutionState, a Mac through `caffeinate -i`. When `superint-video` is not on the search path, set `SUPERINT_VIDEO` to its path. On a Mac, Python is `python3`.
 - There is no resume. Don't edit `scenes/`, `video.json` or `audio/` until it is done, and keep the GPU otherwise free.
 - Verify: frames from the MP4 at a few points, loudness (`earshot measure`), length, then hand over. Report, thumbnail and cleanup after the user has accepted.
 

@@ -31,7 +31,7 @@ Die Demo unter `examples/demo` braucht einmal `.\scripts\generate-demo-assets.ps
 
 ## Prüfungen
 
-`build.ps1` führt Schema- und Svelte-Prüfung, Szenen-Tests, Rustfmt, Rust-Tests, Release-Build und HTTP-API-Prüfung aus. Die CI führt dasselbe bei jedem Pull Request aus. Vor Änderungen an Studio zusätzlich die Formatierung prüfen:
+`build.ps1` führt Schema- und Svelte-Prüfung, Szenen-Tests, Rustfmt, Rust-Tests, Release-Build und HTTP-API-Prüfung aus. Die CI führt dasselbe bei jedem Pull Request aus, unter Windows und mit `scripts/build-mac.sh` auf einem Mac; dort startet sie zusätzlich die App aus dem Bundle und rendert das Starterprojekt. Vor Änderungen an Studio zusätzlich die Formatierung prüfen:
 
 ```powershell
 Push-Location studio
@@ -71,7 +71,7 @@ Lies die [Designregeln](docs/design.md); produktbezogene Entscheidungen stehen i
 
 ## Releases
 
-`dist/`, `target/`, npm-Abhängigkeiten, Renderausgaben und lokale Caches sind ausgeschlossen. `build.ps1` erzeugt `Superint-Video-Setup.exe` (mit [`packaging/setup.iss`](packaging/setup.iss)), das Windows-ZIP und `SHA256SUMS.txt`. Ein Release enthält das Setup, das ZIP, die CLI-EXE und die Prüfsummen. Das Setup heißt in jeder Version gleich, damit der Download-Link der README immer zur neuesten führt. Die Versionsnummer stammt aus `Cargo.toml` und muss zur Studio-Version, zum CHANGELOG und zum Versions-Badge der beiden READMEs passen.
+`dist/`, `target/`, npm-Abhängigkeiten, Renderausgaben und lokale Caches sind ausgeschlossen. `build.ps1` erzeugt `Superint-Video-Setup.exe` (mit [`packaging/setup.iss`](packaging/setup.iss)), das Windows-ZIP und `SHA256SUMS.txt`. Ein Release enthält das Setup, das ZIP, die CLI-EXE und die Prüfsummen, dazu `Superint-Video-macOS.zip` aus dem Workflow „macOS build“ des Release-Tags (`gh run download`), dessen Prüfsumme in `SHA256SUMS.txt` mit hinein kommt. Das Setup heißt in jeder Version gleich, damit der Download-Link der README immer zur neuesten führt. Die Versionsnummer stammt aus `Cargo.toml` und muss zur Studio-Version, zum CHANGELOG und zum Versions-Badge der beiden READMEs passen.
 
 ## Lizenz
 

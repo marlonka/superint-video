@@ -11,12 +11,14 @@
 
 <p align="center">
   <img alt="Windows 10 and 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-2f7bf5?style=flat-square">
-  <a href="https://github.com/marlonka/superint-video/releases/latest"><img alt="Version 0.10.0" src="https://img.shields.io/badge/Version-0.10.0-2e8b57?style=flat-square"></a>
+  <img alt="macOS 11 and later" src="https://img.shields.io/badge/macOS-11%2B-6e6e73?style=flat-square">
+  <a href="https://github.com/marlonka/superint-video/releases/latest"><img alt="Version 0.11.0" src="https://img.shields.io/badge/Version-0.11.0-2e8b57?style=flat-square"></a>
   <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-3a3a3a?style=flat-square">
 </p>
 
 <p align="center">
   <a href="https://github.com/marlonka/superint-video/releases/latest/download/Superint-Video-Setup.exe"><b>Download Superint Video for Windows</b></a>
+  · <a href="https://github.com/marlonka/superint-video/releases/latest/download/Superint-Video-macOS.zip">for Mac</a>
 </p>
 
 <p align="center">
@@ -37,7 +39,7 @@ Keep Superint Video open while it works. It then switches to the new film, and y
 
 ## What you need
 
-- **A Windows PC** with Windows 10 or 11 (64-bit).
+- **A Windows PC** with Windows 10 or 11 (64-bit) **or a Mac** with macOS 11 or later (Apple chip or Intel).
 - **A coding agent:** [Claude Code](https://claude.com/product/claude-code), [ChatGPT Codex](https://openai.com/codex/) or [Google Antigravity](https://antigravity.google/), with your account there. It does the actual work on the film.
 - **Chrome and FFmpeg.** If either is missing, the app installs it for you.
 - **Optional: an API key** from Google AI Studio or OpenRouter, for an AI voice and music. Without one you narrate the film yourself, or it goes without a voice.
@@ -54,6 +56,13 @@ Keep Superint Video open while it works. It then switches to the new film, and y
 
 From then on you start Superint Video like any other program, from the desktop icon or the Start menu.
 
+### On a Mac
+
+1. **Download:** [`Superint-Video-macOS.zip`](https://github.com/marlonka/superint-video/releases/latest/download/Superint-Video-macOS.zip). Safari usually unpacks it by itself; otherwise double-click it.
+2. **Drag it into Applications:** drag "Superint Video" from Downloads into the Applications folder.
+3. **Open it:** double-click. The first time, macOS says it cannot verify the app because it has no Apple signature yet. Click **Done**, open **System Settings** → **Privacy & Security**, scroll down and click **Open Anyway** next to "Superint Video".
+4. **Set up** as above. "Install" gets Chrome and FFmpeg through [Homebrew](https://brew.sh) in a Terminal window, so install Homebrew first. The API key is kept in a file only your user account can read.
+
 <p align="center">
   <img src="docs/images/app-setup.jpg" alt="Setup: coding agent, tools, voice and music with the models per provider, and one button per row on the right" width="80%">
 </p>
@@ -64,7 +73,7 @@ From then on you start Superint Video like any other program, from the desktop i
 2. Click **Copy prompt**.
 3. Paste the prompt into Claude Code, ChatGPT Codex or Google Antigravity and send it. Keep Superint Video open.
 
-Your agent asks if something is missing, then gets going: research, script, pictures, sound, polish and finally the MP4. Superint Video switches to the new film by itself, you see every step, and the preview grows as it works. You can change text and timing there yourself at any time. The finished film ends up in your `Videos\Superint Video` folder.
+Your agent asks if something is missing, then gets going: research, script, pictures, sound, polish and finally the MP4. Superint Video switches to the new film by itself, you see every step, and the preview grows as it works. You can change text and timing there yourself at any time. The finished film ends up in your `Videos\Superint Video` folder (on a Mac `Movies/Superint Video`).
 
 <p align="center">
   <img src="docs/images/app-start.jpg" alt="The start page: a field for the film's topic, style, length, format and language below it, the finished prompt with the Copy prompt button, and four films with a picture and their status" width="100%">
@@ -78,15 +87,17 @@ For more ideas, see the [starter prompts](prompts/README.md). To see a result, w
 
 **What films can I make?** Explainers, launch and update films for a product, short clips and loops. Three styles come with it: flat vector art, a photographic miniature world made in code, and a launch look. Under "Styles" you make a new one from your own pictures.
 
-**Where are my films?** In `Videos\Superint Video`, each film in a folder of its own. You can choose another place in Setup.
+**Where are my films?** In `Videos\Superint Video` (on a Mac `Movies/Superint Video`), each film in a folder of its own. You can choose another place in Setup.
 
-**How do I update?** Download the setup again and install it over the old one. Films, settings and API keys stay. If Setup then offers "Update the skills", click it.
+**How do I update?** Download the setup again and install it over the old one. On a Mac, replace the app in Applications with the new one. Films, settings and API keys stay. If Setup then offers "Update the skills", click it.
 
 **How do I uninstall it?** In Windows Settings under **Apps** → **Installed apps** → **Superint Video** → **Uninstall**. Your films and settings stay.
 
 **Can I use it without installing?** Yes. Download the ZIP from [Releases](https://github.com/marlonka/superint-video/releases/latest), unpack it (right-click → **Extract all**) and start `Superint Video.exe` inside. In Setup, "Add to desktop" puts the icon there. The other file, `superint-video.exe`, is the tool for your coding agent; you never need to open it yourself.
 
-**What doesn't work yet?** Only Windows is tested. Short films work well; very long projects, HDR and ripple editing do not yet. More in the (German) [manual](docs/HANDBUCH.md#grenzen).
+**My coding agent says `superint-video` cannot be opened on my Mac.** macOS is still holding on to the downloaded app. Type this once in Terminal: `xattr -dr com.apple.quarantine "/Applications/Superint Video.app"`.
+
+**What doesn't work yet?** Windows is the most tested; the Mac version is new. Short films work well; very long projects, HDR and ripple editing do not yet. More in the (German) [manual](docs/HANDBUCH.md#grenzen).
 
 **Something doesn't work?** See [troubleshooting](docs/HANDBUCH.md#fehler-beheben) in the manual or open an [issue](https://github.com/marlonka/superint-video/issues/new/choose).
 

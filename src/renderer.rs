@@ -402,6 +402,53 @@ const PROVENANCE: [&str; 4] = [
     "description=Contains AI-generated or AI-assisted content (Superint Video)",
 ];
 
+/// Browser pixels are full-range sRGB; the film is limited-range BT.709, tagged as such. zscale
+/// (zimg) undoes the sRGB curve and puts BT.1886's in its place, gamma 2.4.
+const COLOUR: &str = concat!(
+    "format=gbrp,zscale=matrixin=gbr:transferin=iec61966-2-1:primariesin=709:rangein=full",
+    ":matrix=709:transfer=709:primaries=709:range=limited,format=yuv420p"
+);
+
+/// One channel from the sRGB curve to gamma 2.4, as zscale converts it, for `lutrgb`.
+macro_rules! srgb_to_bt1886 {
+    () => {
+        "'st(0,val/255);st(1,if(lte(ld(0),0.04045),ld(0)/12.92,pow((ld(0)+0.055)/1.055,2.4)));255*pow(ld(1),1/2.4)'"
+    };
+}
+
+/// The same for an FFmpeg built without zimg, such as Homebrew's on a Mac: the curve through a
+/// table, then FFmpeg's own scaler for the matrix and the range. Within one level of zscale.
+const COLOUR_WITHOUT_ZSCALE: &str = concat!(
+    "format=rgb24,lutrgb=r=",
+    srgb_to_bt1886!(),
+    ":g=",
+    srgb_to_bt1886!(),
+    ":b=",
+    srgb_to_bt1886!(),
+    ",scale=out_color_matrix=bt709:out_range=tv,format=yuv420p"
+);
+
+/// Whether this FFmpeg has the zscale filter. Asked once a run.
+async fn has_zscale() -> bool {
+    static ANSWER: tokio::sync::OnceCell<bool> = tokio::sync::OnceCell::const_new();
+    *ANSWER
+        .get_or_init(|| async {
+            process::command(process::binary("ffmpeg"))
+                .args(["-hide_banner", "-filters"])
+                .output()
+                .await
+                .is_ok_and(|output| lists_zscale(&String::from_utf8_lossy(&output.stdout)))
+        })
+        .await
+}
+
+/// `ffmpeg -filters` writes a filter's flags, then its name: ` ... zscale  V->V  Apply …`.
+fn lists_zscale(filters: &str) -> bool {
+    filters
+        .lines()
+        .any(|line| line.split_whitespace().nth(1) == Some("zscale"))
+}
+
 #[allow(clippy::too_many_arguments)]
 async fn encode(
     captures: &[Capture],
@@ -444,12 +491,12 @@ async fn encode(
             "log-level=error",
         ],
     };
+    let colour = if has_zscale().await {
+        COLOUR
+    } else {
+        COLOUR_WITHOUT_ZSCALE
+    };
     let mut cmd = process::command(process::binary("ffmpeg"));
-    // Browser pixels are full-range sRGB; the film is limited-range BT.709, tagged as such.
-    let colour = concat!(
-        "format=gbrp,zscale=matrixin=gbr:transferin=iec61966-2-1:primariesin=709:rangein=full",
-        ":matrix=709:transfer=709:primaries=709:range=limited,format=yuv420p"
-    );
     cmd.args([
         "-v",
         "error",
@@ -896,5 +943,52 @@ mod tests {
             "TypeError: no such thing"
         );
         assert_eq!(without_server("at 127.0.0.1"), "at 127.0.0.1");
+    }
+
+    /// One frame of a fixed colour ramp through a filter, as raw 4:2:0 bytes. None without FFmpeg.
+    fn through(filter: &str) -> Option<Vec<u8>> {
+        let output = std::process::Command::new(process::binary("ffmpeg"))
+            .args(["-v", "error", "-f", "lavfi", "-i"])
+            .arg("color=black:size=320x180:rate=1,format=rgb24,geq=r='255*X/W':g='255*Y/H':b='255*(W-X)/W'")
+            .args(["-frames:v", "1", "-vf", filter, "-f", "rawvideo", "-"])
+            .stdin(Stdio::null())
+            .output()
+            .ok()?;
+        assert!(
+            output.status.success(),
+            "{filter}: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        Some(output.stdout)
+    }
+
+    #[test]
+    fn films_have_the_same_colours_without_zscale() {
+        assert!(lists_zscale(
+            " ... zscale            V->V       Apply resizing."
+        ));
+        assert!(!lists_zscale(
+            " ... scale             V->V       Scale the input video."
+        ));
+        // A machine without FFmpeg has nothing to compare.
+        let Some(without) = through(COLOUR_WITHOUT_ZSCALE) else {
+            return;
+        };
+        assert_eq!(without.len(), 320 * 180 * 3 / 2);
+        let filters = std::process::Command::new(process::binary("ffmpeg"))
+            .args(["-hide_banner", "-filters"])
+            .output()
+            .unwrap();
+        if !lists_zscale(&String::from_utf8_lossy(&filters.stdout)) {
+            return;
+        }
+        let with = through(COLOUR).unwrap();
+        let worst = with
+            .iter()
+            .zip(&without)
+            .map(|(a, b)| a.abs_diff(*b))
+            .max()
+            .unwrap();
+        assert!(worst <= 2, "the colours differ by up to {worst} levels");
     }
 }
