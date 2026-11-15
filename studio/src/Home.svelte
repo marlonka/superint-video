@@ -55,7 +55,8 @@
   $: attention = missing.length > 0 || skillsBehind(overview.setup).length > 0;
   $: if (!overview.project || onclose) document.title = 'Superint Video';
   // An update is being installed: the app is away for a moment and comes back by itself.
-  $: restarting = $updating || overview.update.progress?.phase === 'installing';
+  // Only while it can still be true: an app that stays away is said to be away.
+  $: restarting = $updating || ($reachable && overview.update.progress?.phase === 'installing');
   $: if ($updating && $reachable && !overview.update.progress) updating.set(false);
   $: outcome = overview.update.outcome;
 

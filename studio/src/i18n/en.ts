@@ -105,6 +105,7 @@ export const en = {
   'error.update-none': 'This is already the newest version.',
   'error.update-verify':
     'The installer of this release could not be checked, so nothing was installed.',
+  'error.update-limit': 'GitHub is taking no more questions for the moment. Try again in an hour.',
   'error.update-check': 'GitHub could not be reached. Check the internet connection and try again.',
   'setup.updates.title': 'Updates',
   'setup.updates.why': 'New versions of Superint Video come from its releases on GitHub.',

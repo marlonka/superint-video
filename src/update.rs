@@ -563,6 +563,10 @@ async fn fetch(source: &Source, etag: Option<&str>) -> Result<Answer> {
             release: None,
             etag: None,
         }),
+        // GitHub's request limit: 429, or 403 with nothing left. Any other 403 is an error.
+        403 if header("x-ratelimit-remaining").as_deref() != Some("0") => {
+            bail!("GitHub answered {status}")
+        }
         403 | 429 => {
             let now = now_ms();
             let until = header("x-ratelimit-reset")

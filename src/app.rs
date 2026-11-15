@@ -982,9 +982,14 @@ async fn dictate(State(state): State<AppState>, body: Bytes) -> ApiResult<Json<V
 
 /// Asks GitHub now, for someone who clicked.
 async fn check_update(State(state): State<AppState>) -> ApiResult<Json<Value>> {
-    update::check(&state.home, true)
-        .await
-        .map_err(|error| ApiError::told("update-check", &format!("{error:#}")))?;
+    update::check(&state.home, true).await.map_err(|error| {
+        let message = format!("{error:#}");
+        let code = match message.contains("limit for requests") {
+            true => "update-limit",
+            false => "update-check",
+        };
+        ApiError::told(code, &message)
+    })?;
     let settings = Settings::load(&state.home)?;
     Ok(Json(
         json!({"update": update::status(&state.home, &settings)}),

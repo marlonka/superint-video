@@ -282,6 +282,8 @@ export function installUpdate() {
   return run('update-install', async () => {
     await call('/api/app/update/install');
     updating.set(true);
+    // An update takes a minute or two; an app still away after five is not coming back.
+    setTimeout(() => updating.set(false), 5 * 60 * 1000);
     await refresh();
   });
 }

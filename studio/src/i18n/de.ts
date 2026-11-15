@@ -106,6 +106,8 @@ export const de: Catalog = {
   'error.update-none': 'Das ist schon die neueste Version.',
   'error.update-verify':
     'Der Installer dieses Releases ließ sich nicht prüfen, darum wurde nichts installiert.',
+  'error.update-limit':
+    'GitHub nimmt gerade keine weiteren Anfragen an. Versuch es in einer Stunde noch einmal.',
   'error.update-check':
     'GitHub war nicht erreichbar. Prüf die Internetverbindung und versuch es noch einmal.',
   'setup.updates.title': 'Updates',
