@@ -1,6 +1,6 @@
 ---
 name: superint-launch
-description: Workflow for short product films with Superint Video - launch films, update videos ("v2 is out"), product and feature videos, UI walkthroughs, feature loops, logo stings and social ads, 4-90 s, music-led, with plain-word copy, the product's real UI built in code, one element carried through every scene change, and a brand kit or an invented brand. Use with the superint-video skill when the user wants to launch, announce, promote or demo a product, app, feature or release, in any style preset (launch plus a brand kit is the usual start). Adapted from Leon's cinetic (MIT).
+description: Workflow for short product films with Superint Video - launch and update videos, feature demos, UI walkthroughs, logo stings and social ads, 4-90 s, music-led, with the product's real UI built in code. Use with superint-video when the user wants to launch, announce, promote or demo a product, feature or release. Adapted from Leon's cinetic (MIT).
 ---
 
 # Launch and product film workflow

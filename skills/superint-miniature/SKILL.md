@@ -1,6 +1,6 @@
 ---
 name: superint-miniature
-description: Make films in the code-rendered miniature look with Superint Video - a photographic world computed entirely in code by its own WebGL2 renderer, with true depth of field, motion blur, soft shadows, reflections and film grain; rooms of a cut-open building at night, objects that act by themselves, no people, one continuous camera journey synced to the voice's word times. Use with the superint-video and superint-explainer skills when the user wants a film like "Videos aus Code", a 3D, photoreal, miniature or model-set look, or the preset miniature-3d. Holds the renderer's API, modelling and light recipes for photographic close-ups, the production order, render times and every known trap.
+description: Films in the code-rendered miniature look with Superint Video - a photographic world from its own WebGL2 renderer, rooms of a cut-open building at night, objects that act, one camera journey on the voice. Use with superint-video when the user wants a film like "Videos aus Code", a 3D, photoreal or miniature look, or the preset miniature-3d.
 ---
 
 # Code-rendered miniature

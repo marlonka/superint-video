@@ -1,6 +1,6 @@
 ---
 name: superint-explainer
-description: Workflow for narrated explainer films with Superint Video - research with a claim register, a message the film argues, three concepts, scripts, beats, style frames, build, review passes and delivery with thumbnail and YouTube package; 30 s shorts to 10-minute films. Use with the superint-video skill when the user wants an explainer, an "Erklärvideo", a science or concept video, or a film that argues a position ("why X is not a good idea"), in any style preset (flat-explainer is made for it).
+description: Workflow for narrated explainer films with Superint Video - research, the message the film argues, concepts, script, style frames, build, polish and delivery, 30 s to 10 min. Use with superint-video when the user wants an explainer, an "Erklärvideo", a science or concept video, or a film that argues a position.
 ---
 
 # Explainer workflow
