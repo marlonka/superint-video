@@ -16,6 +16,8 @@ Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. 
   - Höhepunkt-Zeilen bekommen ihre Pausen von Anfang an.
   - Musik wird nach ihrem gemessenen Höhepunkt gesetzt.
   - Der Polish-Auftrag verlangt ausdrücklich, jedes Bild von einfach zu schön zu heben.
+  - Lange Kamerafahrten dauern 2 bis 3 Sekunden statt eines Sprungs, Bezugslinien sind durchgehend statt gestrichelt, und Beschriftungen nennen genau, womit verglichen wird.
+  - Kein Geräusch für Handlungen, die sich ständig wiederholen, etwa eine Nadel, die jedes Wort stickt.
 
 ## [0.11.1] – 2026-11-14
 

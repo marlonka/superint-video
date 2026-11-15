@@ -66,5 +66,8 @@ Scale it to the length the voice needs. Narration runs at about 150 words per mi
 - **Sliding sky:** parallax in a flat look (an embroidery, a paper cut, a flat illustration on one cloth). When the camera moves, clouds, stars and the sky's hero objects slide against the ground and against their own parts. Keep everything on one plane unless the look is really built in layers.
 - **Text at the edge:** a text group stays inside the frame with a margin in every frame, including the last camera drift on the end card. Check the first and the last frame of every camera move that carries text.
 - **Centred lists:** a checklist or any list is one left-aligned column with a fixed gap after its boxes; centred labels run into their boxes.
+- **Jump moves:** a camera move across most of the picture in about a second reads as a jolt. Give a long move 2–3 s and start it as the sentence before ends.
+- **Flickering hairlines:** a thin dashed line on a textured ground shimmers as the camera moves. A line the picture measures against is one solid line with some weight.
+- **Vague labels:** a mark names exactly what is compared, in the words the argument uses ("human AI researcher", not "human").
 
 Visual devices that work inside this grammar (persistent instruments, scale insets, reveal with light, before and after …) are in [visual-devices.md](visual-devices.md).
