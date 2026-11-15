@@ -23,7 +23,8 @@ Superint Video läuft lokal. Besonders interessant sind:
 - die lokalen Server von Studio und App (gedacht nur für `127.0.0.1`),
 - Pfade in Projekten und Stil-Dateien (`.superint-style.zip`), die aus ihrem Ordner herausführen,
 - der Umgang mit API-Schlüsseln (verschlüsselt in der App, `.env`),
-- Befehle, die die App startet (etwa `winget`).
+- Befehle, die die App startet (etwa `winget`),
+- das Update: Die App lädt nur den Installer aus den Releases dieses Repositorys über HTTPS, prüft ihn gegen die SHA-256-Prüfsumme, die GitHub für die Datei führt, und installiert ihn erst nach einem Klick.
 
 Szenen sind HTML und JavaScript, die in Chrome laufen. Öffne nur Projekte und Stile, deren Herkunft du vertraust, so wie du auch keine fremde Website-Datei ungeprüft öffnen würdest.
 

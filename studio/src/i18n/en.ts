@@ -56,6 +56,64 @@ export const en = {
   'home.back': 'Back to {name}',
   'home.backToFilm': 'Back to the film',
 
+  // Updates
+  'update.button': 'Update',
+  'update.buttonTitle': 'Version {version} is out',
+  'update.versionTitle': 'Version and updates',
+  'update.dialog': 'Updates',
+  'update.title': 'Version {version}',
+  'update.published': 'Released {date}',
+  'update.current': 'Version {version} is the newest.',
+  'update.checked': 'Last checked {when}.',
+  'update.neverChecked': 'Not checked yet.',
+  'update.checkNow': 'Check now',
+  'update.checking': 'Checking…',
+  'update.off': 'The app does not check by itself. You can turn that on under Setup.',
+  'update.install': 'Update and restart',
+  'update.download': 'Download',
+  'update.hint.installed':
+    'The app and open Studios close for a moment and come back by themselves.',
+  'update.hint.portable':
+    'This copy was unpacked from the zip and does not update itself. The installed version does.',
+  'update.hint.dev':
+    'This copy was built from the source code. Update it with git and the build script.',
+  'update.hint.mac': 'Download the new app and drag it into Applications, over the old one.',
+  'update.hint.failed':
+    'Installing it failed last time. The installer from the release page works the usual way.',
+  'update.skip': 'Skip this version',
+  'update.skipped': 'Skipped. The next version is shown again.',
+  'update.allChanges': 'All changes',
+  'update.busyRender': '{name} is rendering. Update when the render is done.',
+  'update.busyRunning': 'The coding agent is working on {name}. Update when it is done.',
+  'update.preparing': 'Getting ready…',
+  'update.downloading': 'Downloading… {percent}',
+  'update.installing': 'Installing. The app is back in a moment.',
+  'update.restarting': 'Superint Video is updating and comes back by itself in a moment.',
+  'update.done': 'Updated to version {version}.',
+  'update.whatsNew': "What's new",
+  'update.updateSkills': 'Update the skills',
+  'update.failed':
+    'The update to version {version} could not be installed. Your version works as before.',
+  'update.failedInUse':
+    'The update to version {version} was not installed: something still ran from the program, such as a command of the coding agent. Your version works as before.',
+  'update.downloadInstaller': 'Download the installer',
+  'update.showLog': 'Show the log',
+  'error.update-busy': 'Work is running in a film. Update when it is done.',
+  'error.update-not-installable':
+    'Only the installed app updates itself. Download the new version from the release page.',
+  'error.update-running': 'An update is already running.',
+  'error.update-none': 'This is already the newest version.',
+  'error.update-verify':
+    'The installer of this release could not be checked, so nothing was installed.',
+  'error.update-check': 'GitHub could not be reached. Check the internet connection and try again.',
+  'setup.updates.title': 'Updates',
+  'setup.updates.why': 'New versions of Superint Video come from its releases on GitHub.',
+  'setup.updates.version': 'Version {version}',
+  'setup.updates.newest': 'This is the newest version.',
+  'setup.updates.auto': 'Check for new versions by itself',
+  'setup.updates.note':
+    'The app asks GitHub every few hours. Nothing is installed until you click.',
+
   // Setup
   'setup.title': 'Setup',
   'setup.first.title': 'Set up Superint Video',

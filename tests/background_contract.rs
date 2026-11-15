@@ -35,7 +35,8 @@ fn tool_at(program: &std::path::Path, home: &TempDir) -> tokio::process::Command
         .env("SUPERINT_HOME", home.path())
         .env("SUPERINT_ENV", home.path().join("none.env"))
         .env("SUPERINT_FILMS", home.path().join("films"))
-        .env("SUPERINT_NO_STUDIO", "1");
+        .env("SUPERINT_NO_STUDIO", "1")
+        .env("SUPERINT_NO_UPDATE_CHECK", "1");
     command
 }
 
@@ -56,7 +57,8 @@ async fn the_app_outlives_the_job_of_the_program_that_started_it() -> Result<()>
         .env("SUPERINT_HOME", home.path())
         .env("SUPERINT_ENV", home.path().join("none.env"))
         .env("SUPERINT_FILMS", home.path().join("films"))
-        .env("SUPERINT_NO_STUDIO", "1");
+        .env("SUPERINT_NO_STUDIO", "1")
+        .env("SUPERINT_NO_UPDATE_CHECK", "1");
     let started = shell.status().await?;
     ensure!(started.success(), "the app did not start: {started}");
 

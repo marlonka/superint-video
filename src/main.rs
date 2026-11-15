@@ -46,6 +46,25 @@ enum Commands {
         #[arg(long, hide = true)]
         detached: bool,
     },
+    /// Whether a newer Superint Video is out: asks GitHub and prints the version, what is new and
+    /// whether this copy can update itself. Only the copy the installer put on this computer can.
+    Update {
+        /// Download the new version and install it. The app and the Studios close for a moment
+        /// and come back. Only when the user asked for it, and never while a film renders.
+        #[arg(long)]
+        install: bool,
+        /// The helper that installs an update after the app has closed.
+        #[arg(long, hide = true, requires_all = ["setup", "sha256", "to", "app_dir"])]
+        finish: bool,
+        #[arg(long, hide = true)]
+        setup: Option<PathBuf>,
+        #[arg(long, hide = true)]
+        sha256: Option<String>,
+        #[arg(long, hide = true)]
+        to: Option<String>,
+        #[arg(long, hide = true)]
+        app_dir: Option<PathBuf>,
+    },
     /// The user's choices on this computer: the default style, the films folder, how the app
     /// opens, the models. Without a subcommand: print them.
     Settings {
@@ -760,7 +779,7 @@ fn settings_report(home: &std::path::Path) -> Result<Value> {
         "settings": settings,
         "file": home.join("settings.json"),
         "keys": home::setting_keys(),
-        "note": "`preset` is the style `new` takes when none is given; `filmsFolder` is where `new` puts a film when no folder is given (projectsDir, else Superint Video in the user's Videos folder); `polishRounds` (1 to 3) is how many rounds of polish, each by fresh eyes, a film gets before its render unless its brief.md sets polishRounds. The user changes these in the app (`superint-video app`) or with `settings set <key> <value>`. For the models, `superint-video models` says what each job uses and checks a model before `models set`.",
+        "note": "`preset` is the style `new` takes when none is given; `filmsFolder` is where `new` puts a film when no folder is given (projectsDir, else Superint Video in the user's Videos folder); `polishRounds` (1 to 3) is how many rounds of polish, each by fresh eyes, a film gets before its render unless its brief.md sets polishRounds; `checkForUpdates` lets the app ask GitHub now and then for a newer version. The user changes these in the app (`superint-video app`) or with `settings set <key> <value>`. For the models, `superint-video models` says what each job uses and checks a model before `models set`.",
     }))
 }
 
@@ -786,21 +805,8 @@ async fn run() -> Result<()> {
         } => {
             let home = user_home()?;
             if stop {
-                // The Studios of the films run from this same program, and an update cannot
-                // replace it while they do. They are ended, not stopped: the app brings them
-                // back at their addresses when it starts again.
-                let mut studios = 0;
-                for film in superint_video::home::films(&home) {
-                    if let Ok(root) = film.path.canonicalize()
-                        && live::Server::studio(&root).end().await
-                    {
-                        studios += 1;
-                    }
-                }
-                print_json(json!({
-                    "stopped": live::Server::app(&home).stop().await,
-                    "studios": studios,
-                }));
+                let (stopped, studios) = live::stop_all(&home).await;
+                print_json(json!({"stopped": stopped, "studios": studios}));
             } else if detached {
                 server::app(
                     home,
@@ -813,6 +819,46 @@ async fn run() -> Result<()> {
                 .await?;
             } else {
                 print_json(open_app(&home, port, !no_open).await?);
+            }
+        }
+        Commands::Update {
+            install,
+            finish,
+            setup,
+            sha256,
+            to,
+            app_dir,
+        } => {
+            use superint_video::update;
+            let home = user_home()?;
+            if finish {
+                let job = update::install::Finish {
+                    setup: setup.context("--setup is missing")?,
+                    sha256: sha256.context("--sha256 is missing")?,
+                    to: to.context("--to is missing")?,
+                    app_dir: app_dir.context("--app-dir is missing")?,
+                };
+                print_json(update::install::finish(&home, job).await?);
+            } else if install {
+                let ready = update::install::prepare(&home).await?;
+                eprintln!("update: downloading version {}", ready.version());
+                let mut said = 0;
+                let value = update::install::run(&home, ready, |received, total| {
+                    let percent = (received * 100).checked_div(total).unwrap_or(0);
+                    if percent >= said + 10 || received == total {
+                        said = percent;
+                        eprintln!("update: {percent} %");
+                    }
+                })
+                .await?;
+                print_json(value);
+            } else {
+                let checked = update::check(&home, true).await;
+                let mut report = update::report(&home);
+                if let Err(error) = checked {
+                    report["error"] = json!(format!("{error:#}"));
+                }
+                print_json(report);
             }
         }
         Commands::Settings { command } => {

@@ -549,6 +549,8 @@ pub async fn app(home: PathBuf, port: u16, options: StudioOptions) -> Result<()>
     if !live::studio_disabled() {
         tokio::spawn(bring_back_studios(home.clone()));
     }
+    crate::update::tidy(&home);
+    tokio::spawn(crate::update::watch(home.clone(), shutdown.clone()));
     let signal = shutdown.clone();
     let served = axum::serve(listener, router)
         .with_graceful_shutdown(async move {

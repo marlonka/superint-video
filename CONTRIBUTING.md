@@ -59,7 +59,7 @@ Generierte Manifest-Typen nicht von Hand bearbeiten. Bestehende Projektdateien, 
 
 ## Studio und App
 
-Lies die [Designregeln](docs/design.md); produktbezogene Entscheidungen stehen in [REDESIGN.md](docs/REDESIGN.md). Prüfe beide Themes, schmale Fenster, Tastaturbedienung, Fokus und ungespeicherte Eingaben. Jeder sichtbare Text steht in beiden Sprachkatalogen (`studio/src/i18n/de.ts` und `en.ts`). Keine Remote-Fonts, keine Telemetrie, keine Aufrufe an Dienste, die der Nutzer nicht selbst eingerichtet hat.
+Lies die [Designregeln](docs/design.md); produktbezogene Entscheidungen stehen in [REDESIGN.md](docs/REDESIGN.md). Prüfe beide Themes, schmale Fenster, Tastaturbedienung, Fokus und ungespeicherte Eingaben. Jeder sichtbare Text steht in beiden Sprachkatalogen (`studio/src/i18n/de.ts` und `en.ts`). Keine Remote-Fonts, keine Telemetrie, keine Aufrufe an Dienste, die der Nutzer nicht selbst eingerichtet hat. Die einzige Ausnahme ist die Frage nach einer neuen Version bei GitHub, die sich unter Einrichtung abschalten lässt.
 
 ## Pull Requests
 
@@ -72,6 +72,15 @@ Lies die [Designregeln](docs/design.md); produktbezogene Entscheidungen stehen i
 ## Releases
 
 `dist/`, `target/`, npm-Abhängigkeiten, Renderausgaben und lokale Caches sind ausgeschlossen. `build.ps1` erzeugt `Superint-Video-Setup.exe` (mit [`packaging/setup.iss`](packaging/setup.iss)), das Windows-ZIP und `SHA256SUMS.txt`. Ein Release enthält das Setup, das ZIP, die CLI-EXE und die Prüfsummen, dazu `Superint-Video-macOS.zip` aus dem Workflow „macOS build“ des Release-Tags (`gh run download`), dessen Prüfsumme in `SHA256SUMS.txt` mit hinein kommt. Das Setup heißt in jeder Version gleich, damit der Download-Link der README immer zur neuesten führt. Die Versionsnummer stammt aus `Cargo.toml` und muss zur Studio-Version, zum CHANGELOG und zum Versions-Badge der beiden READMEs passen.
+
+Die installierte App aktualisiert sich aus dem neuesten Release (`src/update.rs`). Darum:
+
+- Das Release erst als Entwurf anlegen, alle Dateien hochladen und dann mit `--latest` veröffentlichen. So sieht die App nie ein halb hochgeladenes Release.
+- Eine veröffentlichte Datei nie ersetzen. Fehlt die Mac-Zeile in `SHA256SUMS.txt`, wird nur diese Liste neu hochgeladen.
+- Prüfen, dass GitHub für jede Datei eine Prüfsumme führt: `gh api repos/marlonka/superint-video/releases/tags/vX.Y.Z --jq '.assets[]|{name,digest}'`. Ohne sie installiert die App das Update nicht.
+- Der erste Teil der Release-Notizen, bis zur zweiten Überschrift `##`, erscheint in der App unter dem Update-Knopf. Er beginnt mit dem, was für Nutzer neu ist.
+
+Ein Update lässt sich proben, ohne die eigene Installation anzufassen: `ISCC.exe /DTestInstall …` baut einen Installer mit eigener Kennung und eigenem Ordner (Kopfkommentar von [`packaging/setup.iss`](packaging/setup.iss)). `cargo test --test update_contract -- --ignored` spielt den ganzen Ablauf mit einem nachgestellten Release durch.
 
 ## Lizenz
 

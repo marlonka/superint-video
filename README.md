@@ -12,7 +12,7 @@
 <p align="center">
   <img alt="Windows 10 und 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-2f7bf5?style=flat-square">
   <img alt="macOS ab 11" src="https://img.shields.io/badge/macOS-ab%2011-6e6e73?style=flat-square">
-  <a href="https://github.com/marlonka/superint-video/releases/latest"><img alt="Version 0.11.3" src="https://img.shields.io/badge/Version-0.11.3-2e8b57?style=flat-square"></a>
+  <a href="https://github.com/marlonka/superint-video/releases/latest"><img alt="Version 0.12.0" src="https://img.shields.io/badge/Version-0.12.0-2e8b57?style=flat-square"></a>
   <img alt="Lizenz: MIT" src="https://img.shields.io/badge/Lizenz-MIT-3a3a3a?style=flat-square">
 </p>
 
@@ -89,7 +89,7 @@ Mehr Ideen findest du in den [Starter-Prompts](prompts/README.md). Wie ein Ergeb
 
 **Wo liegen meine Filme?** In `Videos\Superint Video` (auf dem Mac `Filme/Superint Video`), jeder Film in einem eigenen Ordner. Einen anderen Ort wählst du in der Einrichtung.
 
-**Wie bekomme ich eine neue Version?** Lade das Setup erneut herunter und installier es einfach drüber. Auf dem Mac ersetzt du die App in „Programme“ durch die neue. Filme, Einstellungen und API-Schlüssel bleiben erhalten. Bietet die Einrichtung danach „Skills aktualisieren“ an, klick darauf.
+**Wie bekomme ich eine neue Version?** Ist eine neue Version da, erscheint oben in der App **Update**. Ein Klick zeigt, was neu ist; die installierte App lädt sie dann mit **Aktualisieren und neu starten** selbst, prüft sie und ist nach einem Moment wieder da. Die ZIP-Version und der Mac bekommen den Download: das Setup drüber installieren oder auf dem Mac die App in „Programme“ ersetzen. Filme, Einstellungen und API-Schlüssel bleiben erhalten. Bietet die Einrichtung danach „Skills aktualisieren“ an, klick darauf. Versionen vor 0.12.0 kennen den Knopf noch nicht: Dort installierst du das Setup einmal von Hand drüber.
 
 **Wie deinstalliere ich es?** In den Windows-Einstellungen unter **Apps** → **Installierte Apps** → **Superint Video** → **Deinstallieren**. Deine Filme und Einstellungen bleiben liegen.
 
@@ -103,7 +103,7 @@ Mehr Ideen findest du in den [Starter-Prompts](prompts/README.md). Wie ein Ergeb
 
 ## Datenschutz und KI-Inhalte
 
-Superint Video sammelt keine Nutzungsdaten und braucht kein Konto. Bilder, Studio und Render bleiben auf deinem PC. Nur wenn du einen API-Schlüssel einträgst, gehen die Texte für KI-Stimme und Musik an diesen Anbieter, zu dessen Bedingungen. Was dein Coding-Agent mit deinen Dateien macht, regelt dessen Anbieter.
+Superint Video sammelt keine Nutzungsdaten und braucht kein Konto. Bilder, Studio und Render bleiben auf deinem PC. Alle paar Stunden fragt die App bei GitHub nach, ob es eine neue Version gibt; dabei geht nichts über dich mit außer dem, was jede Anfrage zeigt (deine IP-Adresse und die Version). Abschalten lässt sich das unter **Einrichtung** → **Updates**. Nur wenn du einen API-Schlüssel einträgst, gehen die Texte für KI-Stimme und Musik an diesen Anbieter, zu dessen Bedingungen. Was dein Coding-Agent mit deinen Dateien macht, regelt dessen Anbieter.
 
 Stimme und Musik kommen meist aus generativen Modellen, und jedes MP4 sagt das in seinen Metadaten. Kennzeichne deine Filme beim Veröffentlichen auch sichtbar als KI-gestützt, und bilde echte Stimmen nur mit Einwilligung nach. Mehr dazu im [Handbuch](docs/HANDBUCH.md#datenschutz-und-ki-kennzeichnung).
 

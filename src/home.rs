@@ -181,6 +181,8 @@ pub struct Settings {
     /// Rounds of polish before a render, 1 to 3, one after the other: each is a new pair of
     /// eyes over the whole film (`polish`). A film's `brief.md` can set its own.
     pub polish_rounds: u8,
+    /// The app asks GitHub now and then whether a newer version is out (`update`).
+    pub check_for_updates: bool,
 }
 
 impl Default for Settings {
@@ -201,6 +203,7 @@ impl Default for Settings {
             google_cloud_location: None,
             open_ai_region: None,
             polish_rounds: crate::polish::DEFAULT_ROUNDS,
+            check_for_updates: true,
         }
     }
 }
@@ -389,6 +392,13 @@ impl Settings {
                     "" | "true" | "yes" | "on" => true,
                     "false" | "no" | "off" => false,
                     _ => bail!("follow is true or false"),
+                }
+            }
+            "checkForUpdates" => {
+                self.check_for_updates = match value {
+                    "" | "true" | "yes" | "on" => true,
+                    "false" | "no" | "off" => false,
+                    _ => bail!("checkForUpdates is true or false"),
                 }
             }
             "uiLanguage" => self.ui_language = text,
@@ -1285,7 +1295,7 @@ mod tests {
         assert_eq!(settings.preset, None);
         // Every field of the file is set by its name, so none can be left out of `set`.
         let keys = setting_keys();
-        assert_eq!(keys.len(), 15);
+        assert_eq!(keys.len(), 16);
         for key in keys {
             Settings::default().set(&key, "").unwrap();
         }

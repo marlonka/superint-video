@@ -110,6 +110,8 @@ export interface Formats {
   percent(share: number): string;
   /** How long ago a moment was: "just now", "5 minutes ago", "yesterday", then the date. */
   ago(moment: number, now: number): string;
+  /** The day of a moment: "Nov 20, 2026" or "20.11.2026". */
+  date(moment: number): string;
   /** The time of day of a moment. */
   clock(moment: number): string;
   /** "a, b and c". */
@@ -144,6 +146,7 @@ function formats(code: Locale): Formats {
       if (days < 7) return known.relative.format(-days, 'day');
       return known.date.format(moment);
     },
+    date: (moment) => known.date.format(moment),
     clock: (moment) => known.clock.format(moment),
     and: (items) => known.and.format(items),
     or: (items) => known.or.format(items),

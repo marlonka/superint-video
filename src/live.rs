@@ -582,6 +582,45 @@ pub async fn start_studio(root: &Path, open: bool) -> Option<String> {
         .ok()
 }
 
+/// Stops the app and ends every film's Studio, which run from this same program: an update
+/// cannot replace it while they do. Studios are ended, not stopped, so the app brings them back
+/// at their addresses when it starts again. Returns whether the app ran and how many Studios.
+pub async fn stop_all(home: &Path) -> (bool, usize) {
+    let mut studios = 0;
+    for film in crate::home::films(home) {
+        if let Ok(root) = film.path.canonicalize()
+            && Server::studio(&root).end().await
+        {
+            studios += 1;
+        }
+    }
+    (Server::app(home).stop().await, studios)
+}
+
+/// Starts `program` so that it outlives this process and whatever ends it. Ending a server
+/// ends its whole process tree (`taskkill /T`), so the program must not be a child: it becomes
+/// one of the desktop shell, or else of a `cmd` that is gone at once.
+#[cfg(windows)]
+pub fn spawn_apart(program: &Path, arguments: &[&OsStr]) -> Result<()> {
+    use std::os::windows::process::CommandExt;
+    use std::process::{Command, Stdio};
+    if crate::outside::spawn(program, arguments).is_ok() {
+        return Ok(());
+    }
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+    keep_stdio_from_children();
+    Command::new("cmd")
+        .args(["/c", "start", "", "/b"])
+        .arg(program)
+        .args(arguments)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .creation_flags(CREATE_NO_WINDOW)
+        .spawn()?;
+    Ok(())
+}
+
 /// Starts this executable again as a background process that outlives the caller.
 fn spawn_detached(arguments: &[&OsStr], open: bool) -> Result<()> {
     use std::process::{Command, Stdio};
