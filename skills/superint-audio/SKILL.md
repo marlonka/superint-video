@@ -1,6 +1,6 @@
 ---
 name: superint-audio
-description: Voice, music, sound effects and mix for Superint Video projects - narration takes with measured word timings, the user's own voice recorded in Studio or brought as a file, films without a voice, generated music, Earshot SFX placed on frames, and a mastered -14 LUFS mix, through the superint-video CLI (voice, transcribe, music, sfx, mix). Use when a Superint Video project needs narration, the user's own voice, a music bed, sound design or a final mix, when no API key is set up, or when switching TTS, transcription or music providers (Google AI Studio or OpenRouter). Read the superint-video skill first.
+description: Voice, music, sound effects and mix for Superint Video - AI narration with word timings, the user's own voice, films without a voice, generated music, Earshot SFX and a mastered mix via the CLI. Use when a project needs any of these, when no API key is set up, or when switching providers (Google AI Studio, OpenRouter). Read superint-video first.
 ---
 
 # Superint Video audio

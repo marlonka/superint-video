@@ -1,6 +1,6 @@
 ---
 name: superint-video
-description: Make and edit videos with the local Superint Video tool - any kind (explainers, launch films, update videos, promos, title cards, loops) in any style, built from HTML scenes and a JSON timeline and rendered to MP4 by the superint-video CLI, with a browser Studio for editing. Read this first for any Superint Video work, when a brief.md or video.json from Superint Video is present, or when the user asks for a video with Superint Video or one of its style presets (blank, flat-explainer, miniature-3d, launch, or their own). Workflow skills (superint-explainer, superint-launch) plan specific kinds of film on top of it; superint-audio adds voice, music and sound.
+description: Make and edit any kind of video with the local Superint Video tool - HTML scenes and a JSON timeline, rendered to MP4 by the superint-video CLI and edited in a browser Studio. Read this first for any Superint Video work, when a brief.md or video.json from it is present, or when the user wants a film in one of its style presets.
 ---
 
 # Superint Video
