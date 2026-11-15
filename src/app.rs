@@ -11,7 +11,7 @@ use crate::{
     server::{ApiError, ApiResult, bytes_response},
     shortcut,
     skills::{self, Agent},
-    style,
+    style, update,
 };
 use anyhow::{Context, Result, bail};
 use axum::{
@@ -166,6 +166,10 @@ pub fn routes(state: AppState) -> Router {
         .route("/api/app/shortcut", post(make_shortcut))
         .route("/api/app/google/sign-in", post(google_sign_in))
         .route("/api/app/reveal/{what}", post(reveal_place))
+        .route("/api/app/update/check", post(check_update))
+        .route("/api/app/update/install", post(install_update))
+        .route("/api/app/update/skip", post(skip_update))
+        .route("/api/app/update/seen", post(seen_update))
         .with_state(state)
 }
 
@@ -253,6 +257,7 @@ async fn payload(state: &AppState, fresh: bool) -> Result<Value> {
             .style_tries(style_model.as_deref())
             .into_iter()
             .next();
+        let films = films(&state, &settings);
         let project = state.project.as_ref().map(|root| {
             let manifest = home::read_json(&root.join("video.json"));
             json!({"name": manifest.and_then(|m| m["name"].as_str().map(str::to_owned))})
@@ -292,9 +297,10 @@ async fn payload(state: &AppState, fresh: bool) -> Result<Value> {
             // Where a text differs by system, as where the keys are kept.
             "system": std::env::consts::OS,
             "filmsFolder": home::films_dir(&settings),
-            "films": films(&state, &settings),
+            "update": update::status_with(&state.home, &settings, update::busy_in(&films)),
             "settings": settings,
             "styles": styles(&state)?,
+            "films": films,
         }))
     })
     .await?
@@ -973,6 +979,68 @@ async fn dictate(State(state): State<AppState>, body: Bytes) -> ApiResult<Json<V
     Ok(Json(json!(dictation)))
 }
 
+// ------------------------------------------------------------------------------------- updates
+
+/// Asks GitHub now, for someone who clicked.
+async fn check_update(State(state): State<AppState>) -> ApiResult<Json<Value>> {
+    update::check(&state.home, true).await.map_err(|error| {
+        let message = format!("{error:#}");
+        let code = match message.contains("limit for requests") {
+            true => "update-limit",
+            false => "update-check",
+        };
+        ApiError::told(code, &message)
+    })?;
+    let settings = Settings::load(&state.home)?;
+    Ok(Json(
+        json!({"update": update::status(&state.home, &settings)}),
+    ))
+}
+
+/// Downloads and installs the new version in the background; the start page follows it in
+/// the overview's `update.progress`. What stands in the way is said before anything starts.
+async fn install_update(State(state): State<AppState>) -> ApiResult<(StatusCode, Json<Value>)> {
+    let ready = update::install::prepare(&state.home)
+        .await
+        .map_err(|refused| {
+            let error = ApiError::told(refused.code, &refused.message);
+            match refused.conflict {
+                true => ApiError::new(StatusCode::CONFLICT, &refused.message).coded(refused.code),
+                false => error,
+            }
+        })?;
+    let version = ready.version().to_string();
+    let home = state.home.clone();
+    tokio::spawn(async move {
+        let _ = update::install::run(&home, ready, |_, _| {}).await;
+    });
+    Ok((StatusCode::ACCEPTED, Json(json!({"installing": version}))))
+}
+
+#[derive(Deserialize)]
+struct Skip {
+    version: String,
+}
+
+async fn skip_update(
+    State(state): State<AppState>,
+    Json(skip): Json<Skip>,
+) -> ApiResult<Json<Value>> {
+    update::skip(&state.home, &skip.version)?;
+    let settings = Settings::load(&state.home)?;
+    Ok(Json(
+        json!({"update": update::status(&state.home, &settings)}),
+    ))
+}
+
+async fn seen_update(State(state): State<AppState>) -> ApiResult<Json<Value>> {
+    update::seen(&state.home)?;
+    let settings = Settings::load(&state.home)?;
+    Ok(Json(
+        json!({"update": update::status(&state.home, &settings)}),
+    ))
+}
+
 // ------------------------------------------------------------------------------------ settings
 
 async fn save_settings(
@@ -1489,6 +1557,12 @@ async fn reveal_place(
         }
         "styles" => {
             let folder = preset::user_dir().context("No user folder")?;
+            std::fs::create_dir_all(&folder)?;
+            folder
+        }
+        // Where the installer's log of the last update is.
+        "update" => {
+            let folder = state.home.join(update::FOLDER);
             std::fs::create_dir_all(&folder)?;
             folder
         }

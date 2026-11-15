@@ -10,6 +10,7 @@
   import Setup from './home/Setup.svelte';
   import SetupBanner from './home/SetupBanner.svelte';
   import Styles from './home/Styles.svelte';
+  import Update from './home/Update.svelte';
   import {
     announce,
     call,
@@ -17,11 +18,16 @@
     problem,
     reachable,
     refresh,
+    releasePage,
+    reveal,
     run,
+    seenUpdate,
     setLanguage,
     setupSkipped,
     skillsBehind,
     skipSetup,
+    updateOpen,
+    updating,
   } from './home/session';
   import { LOCALES, isLocale, locale, t } from './i18n';
   import { theme, toggleTheme } from './theme';
@@ -48,6 +54,11 @@
   // Something in Setup wants a look: a missing part, or skills older than the app.
   $: attention = missing.length > 0 || skillsBehind(overview.setup).length > 0;
   $: if (!overview.project || onclose) document.title = 'Superint Video';
+  // An update is being installed: the app is away for a moment and comes back by itself.
+  // Only while it can still be true: an app that stays away is said to be away.
+  $: restarting = $updating || ($reachable && overview.update.progress?.phase === 'installing');
+  $: if ($updating && $reachable && !overview.update.progress) updating.set(false);
+  $: outcome = overview.update.outcome;
 
   /** Opens a film: the editor underneath when it is this one, its own Studio otherwise. */
   function openFilm(film: Film) {
@@ -124,8 +135,17 @@
 
 <div class="home">
   <header class="app-header">
-    <span class="wordmark"><Logo /><small class="app-version">{overview.version}</small></span>
+    <span class="wordmark"
+      ><Logo /><button
+        class="app-version"
+        title={$t('update.versionTitle')}
+        aria-haspopup="dialog"
+        aria-expanded={$updateOpen}
+        onclick={() => updateOpen.update((open) => !open)}>{overview.version}</button
+      ></span
+    >
     <div class="header-actions">
+      <Update {overview} />
       {#if onclose}<button class="button" onclick={onclose}
           ><Icon name="arrowLeft" /><span
             >{overview.project?.name
@@ -162,13 +182,43 @@
   </header>
 
   <main class="home-page" bind:this={page}>
-    {#if !$reachable}<div class="home-problem" role="alert">
+    {#if !$reachable && restarting}<div class="home-notice" role="status">
+        <Icon name="update" /><span>{$t('update.restarting')}</span>
+      </div>{:else if !$reachable}<div class="home-problem" role="alert">
         <Icon name="alert" /><span>{$t('common.unreachable')}</span>
       </div>{:else if $problem}<div class="home-problem" role="alert">
         <Icon name="alert" /><span>{$problem}</span><button
           class="icon-button"
           aria-label={$t('common.dismiss')}
           onclick={() => problem.set('')}><Icon name="close" /></button
+        >
+      </div>{/if}
+    {#if $reachable && outcome?.status === 'updated'}<div class="home-notice" role="status">
+        <Icon name="check" /><span>{$t('update.done', { version: outcome.version })}</span><a
+          class="text-link"
+          href={releasePage(outcome.version)}
+          target="_blank"
+          rel="noreferrer">{$t('update.whatsNew')}</a
+        >{#if skillsBehind(overview.setup).length}<button
+            class="text-link"
+            onclick={() => toggleSetup(true)}>{$t('update.updateSkills')}</button
+          >{/if}<button class="icon-button" aria-label={$t('common.dismiss')} onclick={seenUpdate}
+          ><Icon name="close" /></button
+        >
+      </div>{:else if $reachable && outcome?.status === 'failed' && !restarting}<div
+        class="home-problem"
+        role="alert"
+      >
+        <Icon name="alert" /><span
+          >{$t(outcome.reason === 'in-use' ? 'update.failedInUse' : 'update.failed', {
+            version: outcome.version,
+          })}</span
+        ><a class="text-link" href={releasePage(outcome.version)} target="_blank" rel="noreferrer"
+          >{$t('update.downloadInstaller')}</a
+        >{#if outcome.log}<button class="text-link" onclick={() => reveal('/api/app/reveal/update')}
+            >{$t('update.showLog')}</button
+          >{/if}<button class="icon-button" aria-label={$t('common.dismiss')} onclick={seenUpdate}
+          ><Icon name="close" /></button
         >
       </div>{/if}
 

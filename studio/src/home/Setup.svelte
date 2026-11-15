@@ -9,6 +9,7 @@
   import SetupFilms from './SetupFilms.svelte';
   import SetupItem from './SetupItem.svelte';
   import SetupPolish from './SetupPolish.svelte';
+  import SetupUpdates from './SetupUpdates.svelte';
   import VoiceChoice from './VoiceChoice.svelte';
   import {
     announce,
@@ -745,6 +746,11 @@
       <section class="setup-group" aria-labelledby="setup-polish">
         {@render heading(null, 'setup-polish', $t('setup.polish.title'), $t('setup.polish.why'))}
         <SetupPolish {overview} />
+      </section>
+
+      <section class="setup-group" aria-labelledby="setup-updates">
+        {@render heading(null, 'setup-updates', $t('setup.updates.title'), $t('setup.updates.why'))}
+        <SetupUpdates {overview} />
       </section>
 
       <section class="setup-group" aria-labelledby="setup-models">

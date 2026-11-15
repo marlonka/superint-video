@@ -20,7 +20,14 @@ export const baseFilm = writable<Film | null>(null);
 /** The film a style is to be made from, chosen in a film's menu; the styles show the form. */
 export const styleFilm = writable<Film | null>(null);
 
+/** The update popover is open; the version beside the name and the Update button both open it. */
+export const updateOpen = writable(false);
+/** An update was started from this page: while the app is away, the page says it comes back. */
+export const updating = writable(false);
+
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
+/** The version of the program this page came from. */
+let pageVersion: string | undefined;
 /** The app's language as the settings last had it; `undefined` before the first overview. */
 let savedLanguage: string | null | undefined;
 /** What every changing call carries; the server says it with its first answer. */
@@ -64,6 +71,12 @@ function explain(result: { code?: string; message?: string }, status: number) {
 
 /** Takes a fresh overview. The app's language follows the saved setting whenever that changed. */
 export function accept(next: Overview) {
+  // The program was updated underneath: this page is its old one, so the new one is loaded.
+  pageVersion ??= next.version;
+  if (next.version !== pageVersion) {
+    location.reload();
+    return;
+  }
   overview.set(next);
   trust(next.token);
   const saved = next.settings.uiLanguage;
@@ -238,5 +251,59 @@ export function skipSetup(skipped: boolean) {
     else sessionStorage.removeItem(SKIPPED);
   } catch {
     /* Without storage the choice holds for this page. */
+  }
+}
+
+/** The page of a Studio that came back reloads when the program is now another version. */
+export async function reloadIfReplaced() {
+  try {
+    const ping: { version?: string } = await (await fetch('/api/app/ping')).json();
+    if (pageVersion && ping.version && ping.version !== pageVersion) location.reload();
+  } catch {
+    /* Not back yet; the next reconnection asks again. */
+  }
+}
+
+/** The release page of a version, built from its number. */
+export function releasePage(version: string) {
+  return `https://github.com/marlonka/superint-video/releases/tag/v${version}`;
+}
+
+/** Asks GitHub now whether a newer version is out. */
+export function checkUpdate() {
+  return run('update-check', async () => {
+    const result = await call<{ update: Overview['update'] }>('/api/app/update/check');
+    patch({ update: result.update });
+  });
+}
+
+/** Downloads and installs the new version; the overview follows it from here. */
+export function installUpdate() {
+  return run('update-install', async () => {
+    await call('/api/app/update/install');
+    updating.set(true);
+    // An update takes a minute or two; an app still away after five is not coming back.
+    setTimeout(() => updating.set(false), 5 * 60 * 1000);
+    await refresh();
+  });
+}
+
+export function skipUpdate(version: string) {
+  return run('update-skip', async () => {
+    const result = await call<{ update: Overview['update'] }>('/api/app/update/skip', 'POST', {
+      version,
+    });
+    patch({ update: result.update });
+    announce(get(t)('update.skipped'));
+  });
+}
+
+/** The user has read how the last update went. */
+export async function seenUpdate() {
+  try {
+    const result = await call<{ update: Overview['update'] }>('/api/app/update/seen');
+    patch({ update: result.update });
+  } catch (cause) {
+    fail(cause);
   }
 }

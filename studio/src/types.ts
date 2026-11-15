@@ -289,6 +289,8 @@ export interface Settings {
   openAiRegion: 'global' | 'eu' | null;
   /** Rounds of polish the coding agent runs before a render, 1 to 3. */
   polishRounds: number;
+  /** The app asks GitHub now and then whether a newer version is out. */
+  checkForUpdates: boolean;
 }
 export interface Style {
   name: string;
@@ -374,4 +376,51 @@ export interface Overview {
   filmsFolder: string | null;
   styles: Style[];
   films: Film[];
+  update: Update;
+}
+/** A block of the release notes, as plain text. */
+export interface ReleaseNote {
+  kind: 'heading' | 'text' | 'item';
+  text: string;
+}
+/** Whether a newer version is out and how far an update has come. */
+export interface Update {
+  /** The version this program counts as. */
+  current: string;
+  /** How this copy came onto the computer; only `installed` updates itself. */
+  kind: 'installed' | 'portable' | 'dev' | 'mac';
+  canInstall: boolean;
+  /** The app looks by itself. */
+  checks: boolean;
+  /** When it last looked, in ms; null before the first look. */
+  checkedAt: number | null;
+  available: {
+    version: string;
+    tag: string;
+    publishedAt: string | null;
+    /** The release page. */
+    url: string;
+    notes: ReleaseNote[];
+    size: number | null;
+    skipped: boolean;
+    /** Installing this version failed before: the release page is offered instead. */
+    failed: boolean;
+  } | null;
+  progress: {
+    phase: 'preparing' | 'downloading' | 'installing';
+    version?: string;
+    received?: number;
+    total?: number;
+  } | null;
+  /** Films whose work an update would end: `render`, or what the coding agent runs. */
+  busy: { name: string; what: string }[];
+  /** How the last update went, while it is worth saying. */
+  outcome: {
+    status: 'updated' | 'failed';
+    version: string;
+    reason: string | null;
+    at: number;
+    /** The installer left a log. */
+    log: boolean;
+  } | null;
 }

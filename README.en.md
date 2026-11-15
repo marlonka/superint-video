@@ -12,7 +12,7 @@
 <p align="center">
   <img alt="Windows 10 and 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-2f7bf5?style=flat-square">
   <img alt="macOS 11 and later" src="https://img.shields.io/badge/macOS-11%2B-6e6e73?style=flat-square">
-  <a href="https://github.com/marlonka/superint-video/releases/latest"><img alt="Version 0.11.3" src="https://img.shields.io/badge/Version-0.11.3-2e8b57?style=flat-square"></a>
+  <a href="https://github.com/marlonka/superint-video/releases/latest"><img alt="Version 0.12.0" src="https://img.shields.io/badge/Version-0.12.0-2e8b57?style=flat-square"></a>
   <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-3a3a3a?style=flat-square">
 </p>
 
@@ -89,7 +89,7 @@ For more ideas, see the [starter prompts](prompts/README.md). To see a result, w
 
 **Where are my films?** In `Videos\Superint Video` (on a Mac `Movies/Superint Video`), each film in a folder of its own. You can choose another place in Setup.
 
-**How do I update?** Download the setup again and install it over the old one. On a Mac, replace the app in Applications with the new one. Films, settings and API keys stay. If Setup then offers "Update the skills", click it.
+**How do I update?** When a new version is out, **Update** appears at the top of the app. A click shows what is new; the installed app then downloads it itself with **Update and restart**, checks it and is back a moment later. The ZIP version and the Mac get the download: install the setup over the old one, or on a Mac replace the app in Applications. Films, settings and API keys stay. If Setup then offers "Update the skills", click it. Versions before 0.12.0 do not have the button yet: install the setup over them once by hand.
 
 **How do I uninstall it?** In Windows Settings under **Apps** → **Installed apps** → **Superint Video** → **Uninstall**. Your films and settings stay.
 
@@ -103,7 +103,7 @@ For more ideas, see the [starter prompts](prompts/README.md). To see a result, w
 
 ## Privacy and AI content
 
-Superint Video collects no usage data and needs no account. Pictures, Studio and renders stay on your PC. Only if you add an API key do the texts for the AI voice and music go to that provider, under its terms. What your coding agent does with your files is governed by its provider.
+Superint Video collects no usage data and needs no account. Pictures, Studio and renders stay on your PC. Every few hours the app asks GitHub whether a new version is out; nothing about you goes with it beyond what any request shows (your IP address and the version). You can turn that off under **Setup** → **Updates**. Only if you add an API key do the texts for the AI voice and music go to that provider, under its terms. What your coding agent does with your files is governed by its provider.
 
 Voice and music usually come from generative models, and every MP4 says so in its metadata. When you publish a film, label it visibly as AI-assisted too, and only recreate a real voice with that person's consent.
 

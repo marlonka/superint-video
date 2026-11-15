@@ -6,7 +6,14 @@
   import RenderLive from './RenderLive.svelte';
   import SetupBanner from './home/SetupBanner.svelte';
   import VoiceView from './voice/VoiceView.svelte';
-  import { announce, call, setLanguage, trust, type SetupNeed } from './home/session';
+  import {
+    announce,
+    call,
+    reloadIfReplaced,
+    setLanguage,
+    trust,
+    type SetupNeed,
+  } from './home/session';
   import { LOCALES, filmClock, format, locale, t, type MessageKey, type Translate } from './i18n';
   import { theme, toggleTheme } from './theme';
   import type {
@@ -1346,6 +1353,8 @@
         // while it was gone are asked for again.
         connection += 1;
         void loadProject(true);
+        // An update brings Studio back as a new version, which needs its own page.
+        void reloadIfReplaced();
       }
     };
     const observer = new ResizeObserver(() => {

@@ -2,6 +2,21 @@
 
 Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. Das Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Nummern folgen [Semantic Versioning](https://semver.org/lang/de/). Jede Version zum Herunterladen steht unter [Releases](https://github.com/marlonka/superint-video/releases).
 
+## [0.12.0] – 2026-11-15
+
+### Neu
+
+- Ist eine neue Version auf GitHub, erscheint oben in der App **Update**; ein Klick zeigt die Version und was in ihr neu ist.
+- Die installierte App aktualisiert sich mit „Aktualisieren und neu starten“ selbst: Sie lädt den Installer, prüft ihn gegen die Prüfsumme, die GitHub für die Datei führt, und ist nach einem Moment an derselben Adresse wieder da, die offenen Studios mit ihr.
+- Während ein Film rendert oder der Coding-Agent an einem Film arbeitet, wartet das Update und sagt, worauf.
+- Unter Einrichtung → Updates stehen die Version und ein Schalter, mit dem die App nicht mehr von selbst bei GitHub nachsieht.
+- `superint-video update` sagt dem Coding-Agenten, ob eine neue Version da ist; `update --install` installiert sie, wenn du es möchtest.
+
+### Geändert
+
+- Ein Klick auf die Versionsnummer neben dem Namen zeigt, ob die App aktuell ist, und prüft auf Wunsch sofort.
+- Ein Studio, das nach einem Update zurückkommt, lädt seine Seite von selbst neu.
+
 ## [0.11.3] – 2026-11-15
 
 ### Geändert
@@ -253,6 +268,7 @@ Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. 
 
 - Erste Version: eine Rust-CLI und Studio im Browser für HTML-Szenen, Timeline, Prüfen, Snapshots und MP4-Export über Chromium und FFmpeg.
 
+[0.12.0]: https://github.com/marlonka/superint-video/releases/tag/v0.12.0
 [0.11.3]: https://github.com/marlonka/superint-video/releases/tag/v0.11.3
 [0.11.2]: https://github.com/marlonka/superint-video/releases/tag/v0.11.2
 [0.11.1]: https://github.com/marlonka/superint-video/releases/tag/v0.11.1

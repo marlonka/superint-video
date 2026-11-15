@@ -26,4 +26,5 @@ pub mod sfx;
 pub mod shortcut;
 pub mod skills;
 pub mod style;
+pub mod update;
 pub mod voice;

@@ -55,6 +55,69 @@ export const de: Catalog = {
   'home.back': 'Zurück zu {name}',
   'home.backToFilm': 'Zurück zum Film',
 
+  // Updates
+  'update.button': 'Update',
+  'update.buttonTitle': 'Version {version} ist da',
+  'update.versionTitle': 'Version und Updates',
+  'update.dialog': 'Updates',
+  'update.title': 'Version {version}',
+  'update.published': 'Erschienen am {date}',
+  'update.current': 'Version {version} ist die neueste.',
+  'update.checked': 'Zuletzt geprüft {when}.',
+  'update.neverChecked': 'Noch nicht geprüft.',
+  'update.checkNow': 'Jetzt prüfen',
+  'update.checking': 'Wird geprüft …',
+  'update.off': 'Die App prüft nicht von selbst. Das lässt sich unter Einrichtung einschalten.',
+  'update.install': 'Aktualisieren und neu starten',
+  'update.download': 'Herunterladen',
+  'update.hint.installed':
+    'Die App und offene Studios schließen sich kurz und kommen von selbst wieder.',
+  'update.hint.portable':
+    'Diese Kopie stammt aus der ZIP-Datei und aktualisiert sich nicht selbst. Die installierte Version tut das.',
+  'update.hint.dev':
+    'Diese Kopie ist aus dem Quellcode gebaut. Aktualisiere sie mit git und dem Build-Skript.',
+  'update.hint.mac':
+    'Lade die neue App herunter und zieh sie in den Ordner Programme, über die alte.',
+  'update.hint.failed':
+    'Beim letzten Mal ließ sie sich nicht installieren. Der Installer von der Release-Seite geht wie gewohnt.',
+  'update.skip': 'Diese Version überspringen',
+  'update.skipped': 'Übersprungen. Die nächste Version wird wieder angezeigt.',
+  'update.allChanges': 'Alle Änderungen',
+  'update.busyRender': '„{name}“ wird gerendert. Aktualisiere, wenn der Render fertig ist.',
+  'update.busyRunning':
+    'Der Coding-Agent arbeitet gerade an „{name}“. Aktualisiere, wenn er fertig ist.',
+  'update.preparing': 'Wird vorbereitet …',
+  'update.downloading': 'Wird heruntergeladen … {percent}',
+  'update.installing': 'Wird installiert. Die App ist gleich wieder da.',
+  'update.restarting': 'Superint Video wird aktualisiert und ist gleich von selbst wieder da.',
+  'update.done': 'Auf Version {version} aktualisiert.',
+  'update.whatsNew': 'Was ist neu',
+  'update.updateSkills': 'Skills aktualisieren',
+  'update.failed':
+    'Das Update auf Version {version} ließ sich nicht installieren. Deine Version läuft weiter wie bisher.',
+  'update.failedInUse':
+    'Das Update auf Version {version} wurde nicht installiert: Aus dem Programm lief noch etwas, etwa ein Befehl des Coding-Agents. Deine Version läuft weiter wie bisher.',
+  'update.downloadInstaller': 'Installer herunterladen',
+  'update.showLog': 'Protokoll anzeigen',
+  'error.update-busy': 'In einem Film läuft gerade Arbeit. Aktualisiere, wenn sie fertig ist.',
+  'error.update-not-installable':
+    'Nur die installierte App aktualisiert sich selbst. Lade die neue Version von der Release-Seite.',
+  'error.update-running': 'Ein Update läuft schon.',
+  'error.update-none': 'Das ist schon die neueste Version.',
+  'error.update-verify':
+    'Der Installer dieses Releases ließ sich nicht prüfen, darum wurde nichts installiert.',
+  'error.update-limit':
+    'GitHub nimmt gerade keine weiteren Anfragen an. Versuch es in einer Stunde noch einmal.',
+  'error.update-check':
+    'GitHub war nicht erreichbar. Prüf die Internetverbindung und versuch es noch einmal.',
+  'setup.updates.title': 'Updates',
+  'setup.updates.why': 'Neue Versionen von Superint Video kommen aus seinen Releases auf GitHub.',
+  'setup.updates.version': 'Version {version}',
+  'setup.updates.newest': 'Das ist die neueste Version.',
+  'setup.updates.auto': 'Von selbst nach neuen Versionen suchen',
+  'setup.updates.note':
+    'Die App fragt alle paar Stunden bei GitHub nach. Installiert wird erst, wenn du klickst.',
+
   // Einrichtung
   'setup.title': 'Einrichtung',
   'setup.first.title': 'Superint Video einrichten',

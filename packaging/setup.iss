@@ -6,6 +6,12 @@
 ;
 ; The program folder goes onto the user's search path, so a coding agent finds `superint-video`
 ; in every new terminal. Films and settings live elsewhere and stay when the app is removed.
+;
+; The app updates itself with this same installer, run silently (src/update/install.rs). To try
+; that without touching the real installation, build a copy that installs apart from it, with
+; its own id and folder, no icons and no change to the search path:
+;
+;   ISCC.exe /DTestInstall /DAppVersion=0.12.0 /DSourceDir=<dist> /DOutputDir=<scratch> packaging\setup.iss
 
 #ifndef AppVersion
   #error Pass the version: ISCC /DAppVersion=x.y.z
@@ -16,19 +22,26 @@
 #ifndef OutputDir
   #define OutputDir "..\dist"
 #endif
+#ifdef TestInstall
+  #define AppIdValue "{{4D7F2B8E-93A1-4C55-B0E6-2F1C8A9D7E31}"
+  #define NameValue "Superint Video Test"
+#else
+  #define AppIdValue "{{C6BA29A5-167F-4761-AE00-467AE9CB2C70}"
+  #define NameValue "Superint Video"
+#endif
 
 [Setup]
 ; Never change the id: it is how an update finds the installed app.
-AppId={{C6BA29A5-167F-4761-AE00-467AE9CB2C70}
-AppName=Superint Video
+AppId={#AppIdValue}
+AppName={#NameValue}
 AppVersion={#AppVersion}
-AppVerName=Superint Video {#AppVersion}
+AppVerName={#NameValue} {#AppVersion}
 AppPublisher=marlonka
 AppPublisherURL=https://github.com/marlonka/superint-video
 AppSupportURL=https://github.com/marlonka/superint-video/issues
 AppUpdatesURL=https://github.com/marlonka/superint-video/releases
 VersionInfoVersion={#AppVersion}
-DefaultDirName={autopf}\Superint Video
+DefaultDirName={autopf}\{#NameValue}
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
@@ -42,7 +55,7 @@ ShowLanguageDialog=no
 LanguageDetectionMethod=uilanguage
 SetupIconFile=app.ico
 UninstallDisplayIcon={app}\Superint Video.exe
-UninstallDisplayName=Superint Video
+UninstallDisplayName={#NameValue}
 ; A running app or Studio holds the program; it is stopped before files are replaced.
 CloseApplications=yes
 RestartApplications=no
@@ -57,8 +70,10 @@ SolidCompression=yes
 Name: "en"; MessagesFile: "compiler:Default.isl"
 Name: "de"; MessagesFile: "compiler:Languages\German.isl"
 
+#ifndef TestInstall
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
+#endif
 
 [InstallDelete]
 ; What came with an earlier version and is gone from this one must not stay behind.
@@ -79,9 +94,11 @@ Source: "{#SourceDir}\docs\*"; DestDir: "{app}\docs"; Flags: ignoreversion recur
 Source: "{#SourceDir}\skills\*"; DestDir: "{app}\skills"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#SourceDir}\prompts\*"; DestDir: "{app}\prompts"; Flags: ignoreversion recursesubdirs createallsubdirs
 
+#ifndef TestInstall
 [Icons]
 Name: "{autoprograms}\Superint Video"; Filename: "{app}\Superint Video.exe"; WorkingDir: "{app}"
 Name: "{autodesktop}\Superint Video"; Filename: "{app}\Superint Video.exe"; WorkingDir: "{app}"; Tasks: desktopicon
+#endif
 
 [Run]
 Filename: "{app}\Superint Video.exe"; Description: "{cm:LaunchProgram,Superint Video}"; Flags: nowait postinstall skipifsilent
@@ -163,12 +180,16 @@ end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
+#ifndef TestInstall
   if CurStep = ssPostInstall then
     AddToPath(ExpandConstant('{app}'));
+#endif
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
+#ifndef TestInstall
   if CurUninstallStep = usPostUninstall then
     RemoveFromPath(ExpandConstant('{app}'));
+#endif
 end;
