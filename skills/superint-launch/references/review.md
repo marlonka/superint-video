@@ -14,7 +14,7 @@ Every item is a yes or a no with frame numbers. A no is a **P0** on the hook, a 
 
 1. **What it is by 3 s.** A stranger knows the product's category and what it does from the first line and picture.
 2. **Words in the middle.** Statements centred in the middle band for most of their time; none flush left at the top or bottom; "text on top, picture below" at most once.
-3. **Line, then picture.** At least two type-only beats (0.5–2.3 s); a line over a picture only where it names what the picture is doing; the first line by 1 s; each picture shows the thing its line said (input → output, before → after) without repeating its words.
+3. **Read soft, act sharp.** The first line by 1 s; after it, every line is read over the product it names, soft behind a dark pool, and no frame is a bare text card; each picture shows the thing its line said (input → output, before → after) without repeating its words.
 4. **One voice, quiet emphasis.** One face; each line arrives differently from the one before; the line centred at every frame of its build; emphasis on at most two lines; no box, marker, pill or underline unless it is the film's one signature.
 5. **Seams that flow.** Every hard cut carries something (an anchor held, a blur at the seam, motion carried, an object flying over it); no one-frame swap of unrelated scenes; no move starting at full speed; no seam kind on more than 40 % of the changes. Check every seam with `--strip`.
 6. **The spine holds.** One case from first act to last, its names and numbers agreeing; the element handed on at every change; no line-card-line-card loop.

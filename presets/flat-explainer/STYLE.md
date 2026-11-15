@@ -35,7 +35,7 @@ Every frame has to hold up next to the stills in the project's `references/`: as
 ## Characters
 
 - Most shots have someone in them: people for human topics (workers, a minister, founders, an official, customers), animals or small creatures for natural ones. They are original and built from rounded shapes with cel shading: shoulders, two arms with hands, a face with eye highlights that blink and look at what matters, a mouth that shows the mood. They act on their word: point, carry, sign, pack, run, react. Squash and stretch on every pose change, and an idle breath or bob.
-- Build people with `scenes/lib/people.js` (`person(parent, opts)` → `update(state)` returns `{hands, head, box}`), never with new ad-hoc stick figures. It already holds the bar the user set ("they must not look drawn by children"):
+- Build people with `scenes/lib/people.js` (`person(parent, opts)` → `update(state)` returns `{hands, head, box}`), never with new ad-hoc stick figures. It already holds the bar for figures, so that nobody would think a child drew them:
   - **Proportions:** stylised, not stock avatars. The head is about 1.3× a realistic head, legs are short, the torso is pear-shaped. Children use `child: true`, their own build, not shrunken adults.
   - **Face:** organic skull with jaw, ears and neck; dot eyes with catch lights; brows; a soft nose wedge; blush; a mouth that shows the mood.
   - **Head turn:** `turn` shifts the features and narrows the far eye.

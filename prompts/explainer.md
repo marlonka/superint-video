@@ -21,7 +21,7 @@ VERMEIDEN:   <optional: was nicht vorkommen darf>
 STOPPS:      keine                # keine = ganz autonom | concept, script, frames, contact
 STIMME:      <KI-Stimme | ich spreche selbst | ohne Stimme>   # ohne API-Schlüssel: selbst sprechen oder ohne Stimme
 TON:         <Musik und SFX, soweit eingerichtet (doctor --json → capabilities) | nur SFX | keiner>
-ORDNER:      ./<ordnername>
+ORDNER:      <optional: leer lassen = dein Filmordner aus der Einrichtung>
 
 ## Anspruch
 Die Messlatte ist ein Film, den ein Top-Studio für Wissensvideos veröffentlichen würde: Er vertritt seine BOTSCHAFT mit wahren, starken Gründen, lässt eine Idee klicken, und jedes Bild ist eine fertige Illustration. Leg deinen Kontaktbogen neben die Referenzbilder in `references/`: Was daneben leer, dunkel, abstrakt oder unfertig wirkt, ist nicht fertig.
@@ -44,7 +44,7 @@ Prioritäten in dieser Reihenfolge: verstanden → überraschend → schön → 
 - Die BOTSCHAFT ist der Winkel: Suche die stärksten belegten Gründe dafür und den stärksten Einwand. Wenn die Belege sie nicht tragen, sag es mir vor dem Skript, statt dir einen anderen Winkel zu suchen oder Vorbehalte wegzulassen.
 
 ## Abgabe
-Vor dem Render läuft ohne Nachfrage der Polish-Durchgang des Skills: Frische Augen (wenn möglich ein Sub-Agent mit dem stärksten verfügbaren Modell) gehen Bild für Bild durch den Film (alle 10 s ein Standbild, bei kurzen Filmen alle 5 s), beheben, was auffällt, und arbeiten Details aus, in so vielen Runden, wie in der Einrichtung unter „Feinschliff vor dem Render“ eingestellt. Dann rendern und mir sofort MP4 und Studio-Adresse nennen, ohne weiteren Schritt.
+Vor dem Render läuft ohne Nachfrage der Polish-Durchgang des Skills: Frische Augen (wenn möglich ein Sub-Agent mit dem stärksten verfügbaren Modell) gehen Bild für Bild durch den Film (alle 10 s ein Standbild, bei kurzen Filmen alle 5 s), beheben, was auffällt, und arbeiten Details aus, in so vielen Runden, wie in der Einrichtung unter „Visueller Qualitäts-Feinschliff vor dem Render“ eingestellt. Dann rendern und mir sofort MP4 und Studio-Adresse nennen, ohne weiteren Schritt.
 
 Nach meiner Abnahme: Thumbnail, Kontaktbogen, research.md, concepts.md, direction.md, script.md, beats.md, process/ und report.md auf Deutsch mit: Botschaft und den Gründen, die der Film dafür gibt, gewähltem Konzept und Begründung, Gestaltungsentscheidungen, Titelvorschlag plus drei inhaltlich verschiedenen Alternativen, Beschreibung mit Quellen je Behauptung, gemessener Lautheit (falls Ton) und was geprüft bzw. nicht geprüft ist.
 ````

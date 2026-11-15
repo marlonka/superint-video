@@ -2,7 +2,7 @@
 
 Ein Erklärfilm im Look von „Videos aus Code“: eine fotografische Miniaturwelt, ganz aus Code gerechnet, ein Ort, durch den die Kamera fährt, Dinge, die von selbst handeln, keine Menschen. Ändere nur die Zeilen im Kasten **Eingaben** und schicke den ganzen Block ab.
 
-Das Rendern dauert bei sechs Minuten Film rund zwei Stunden, das Bauen deutlich länger: Jeder Raum ist viel Code. Das lohnt sich für Filme, die länger halten sollen.
+Das Rendern dauert bei sechs Minuten Film rund eine halbe Stunde, das Bauen deutlich länger: Jeder Raum ist viel Code. Das lohnt sich für Filme, die länger halten sollen.
 
 ````text
 Nutze die Skills superint-video, superint-explainer und superint-miniature und produziere einen Film.
@@ -17,7 +17,7 @@ REFERENZEN:  <optional: Fotos für die erste Nahaufnahme, an denen du dich misst
 MUSS:        <optional: was unbedingt vorkommen muss>
 VERMEIDEN:   <optional: was nicht vorkommen darf>
 STOPPS:      keine                # keine | concept, script, frames, contact
-ORDNER:      ./<ordnername>
+ORDNER:      <optional: leer lassen = dein Filmordner aus der Einrichtung>
 
 ## Anspruch
 Die erste Einstellung hält als Foto stand. Jeder Raum ist ein echter Schritt des Themas, und man sieht ihn dabei, wie er ihn tut. Alles passiert auf einem gesprochenen Wort. Was ich hier sage, kommt nicht wörtlich in den Film, weder als Stimme noch im Bild.

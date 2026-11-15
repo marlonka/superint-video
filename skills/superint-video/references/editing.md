@@ -39,7 +39,7 @@ superint-video studio <dir> --background
 - `check` with zero sampled frames means visual validation did not run.
 - After a visual change, `superint-video review <dir> --frames <list> --strip <a-b>` also measures actors cut at the frame edge and highlights off their target around it.
 - Look at snapshots at a scale where text is readable; check settled frames, mid-motion frames and cut boundaries.
-- Studio runs in the foreground and prints its local URL. Keep a handle to stop it; do not detach it.
+- `studio --background` returns at once with Studio's address: name it to the user. `studio <dir> --stop` ends it.
 - Errors name the clip, source and frame. Fix and repeat only the affected checks.
 - A change to the picture needs a polish pass before the new render ([polish.md](polish.md)): `superint-video polish <dir>` walks only the stills the change touched when the film's last round was accepted, and the whole film otherwise. Write its rows, then `polish --accept`.
 

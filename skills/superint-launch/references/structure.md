@@ -32,7 +32,7 @@ One element, one form per scene, never two at once. Forms: `word` · `pill` · `
 
 ### Where the lines live
 
-Lines alone, on the clean ground, only for the promise and the claim (read in 1.2 s). Everywhere else lines live inside the product's own words or around the element. The first line is on screen by 1 s.
+A line alone on the clean ground only for the first line, the promise (read in 1.2 s), on screen by 1 s. After it, lines are read over the product, soft behind a dark pool, or live inside the product's own words or around the element.
 
 ### The end card grows from the last form
 

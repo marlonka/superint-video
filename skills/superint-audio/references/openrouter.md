@@ -31,7 +31,7 @@ The same Google models are reachable with the OpenRouter key when AI Studio's da
 - ElevenLabs-only settings go in `provider.options.elevenlabs`. The accepted keys are not documented and unknown keys are dropped silently. Before relying on a setting such as `voice_settings.stability`, A/B-test that it changes the output.
 - The response is raw audio bytes. `Content-Type` gives the encoding and `X-Generation-Id` the billed generation.
 - At most 10,000 characters per request.
-- The launch price was $20 per 1M characters, and the launch discount ended on 2026-10-19. On 2026-10-31 the live price was $40 per 1M characters (`pricing.prompt` = 0.00004 per character). Read the current price from `GET https://openrouter.ai/api/v1/models?output_modalities=all`; the list without that parameter leaves out audio models. `voice takes --dry-run` does this.
+- Read the current price from `GET https://openrouter.ai/api/v1/models?output_modalities=all` (the list without that parameter leaves out audio models); `voice takes --dry-run` does this. On 2026-10-31 it was $40 per 1M characters (`pricing.prompt` = 0.00004 per character).
 
 **Prompting** (ElevenLabs' guide; v4 uses the same techniques as v3)
 - Write audio tags in square brackets, before or after the words they shape: `[warm]`, `[curious]`, `[short pause]`.
@@ -104,7 +104,7 @@ The same Google models are reachable with the OpenRouter key when AI Studio's da
 - Audio arrives as base64 in the SSE chunks `choices[0].delta.audio.data`. Concatenate the chunks, then decode.
 - About $0.08 per piece.
 
-Prompting and house rules are the same as on Google AI Studio: see [google-ai-studio.md](google-ai-studio.md#lyria-3-pro-music).
+Prompting and house rules are the same as on Google AI Studio: see [google-ai-studio.md](google-ai-studio.md#lyria-35-music).
 
 ## Sources
 

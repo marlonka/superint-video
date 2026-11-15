@@ -69,7 +69,7 @@ Model IDs and the default voice are in `preset.json` (`narration`, `transcriptio
 
    `timing` is `final` (from the last transcription), `take` (from the take's transcript, moved through the cuts), `interpolated` (no transcript matched; spread between neighbours) or `estimated` (the user's own voice without a transcription route: [own-voice.md](own-voice.md#estimated-word-times)). Frames use the fps in `video.json`.
    **Acceptance:** WER ≤ 2 %, no `interpolated` term or number, and every outlier checked. An outlier that a cue depends on gets a look at the level curve or a snapshot at that frame.
-6. If `voice.wav` runs longer than the target length + 3 s, cut script words and regenerate. Typical pace: German about 140 words/min, English about 165.
+6. The length of `voice.wav` is the film's length: fit the picture to it. Never cut script words or speed up the voice only to hit the target length. Typical pace: German about 140 words/min, English about 165.
 
 `superint-video transcribe <file> [--reference voice.md] [--terms a,b] [--output t.json]` transcribes any file and compares it with the reference in the same way. Narration the user speaks or brings as a file goes through `voice own`, not onto the track by hand.
 
@@ -97,7 +97,7 @@ const collapse = between(time, T.verschwunden, T.verschwunden + 0.33);
 
 ## Music → `audio/music/`
 
-1. **Write `music-prompt.md`.** The front matter holds `model` (default from the preset: `lyria-3.5`) and `seconds`: the whole film including the end card, so the track can resolve after the last word. The body is the whole Lyria prompt and is sent unchanged; `<!-- -->` notes are removed. Its timeline puts the final chord on the end card, after the narration. Rules and a prompt skeleton are in [google-ai-studio.md](google-ai-studio.md#lyria-3-pro-music).
+1. **Write `music-prompt.md`.** The front matter holds `model` (default from the preset: `lyria-3.5`) and `seconds`: the whole film including the end card, so the track can resolve after the last word. The body is the whole Lyria prompt and is sent unchanged; `<!-- -->` notes are removed. Its timeline puts the final chord on the end card, after the narration. Rules and a prompt skeleton are in [google-ai-studio.md](google-ai-studio.md#lyria-35-music).
 2. **`superint-video music <dir> [--variants 3] [--dry-run]`** checks the prompt first:
    - "Instrumental, no vocals" (M2, error)
    - no topic words from `brief.md` or the voice terms (M3, error; they have triggered Lyria's content filter)
@@ -109,7 +109,7 @@ const collapse = between(time, T.verschwunden, T.verschwunden + 0.33);
    - A film longer than one piece gets two or more cues. Measure where each has its climax and its final chord (`listen` names the seconds) and place the clips so the climax lands on the film's key word and the final chord on the last line; the gap between them sits under a pause or a chapter change. A few seconds of voice change rarely need new music, only new start frames.
    - A Lyria variant can carry a spoken or sung voice baked in, even with "instrumental only" in the prompt. Listen to every variant before choosing.
 4. **Run `superint-video mix <dir>` right away.** A music clip at gain 1 has no level yet: Studio's preview plays it as loud as the file is, far louder than the voice. `mix` measures the voice, finds the gain that puts the music its distance under it and writes that gain into the clip (often about 0.05 to 0.1), so the preview, the timeline and the master agree from then on.
-- Level: music is a quiet background, never a second lead. About 22 dB quieter than the voice while words play, ducked another 3 dB under the words, swelling up to about 8 dB over the end card. 15 dB was rejected as much too loud, although it measured well and the critic approved. House rules and the reference measurement are in [google-ai-studio.md](google-ai-studio.md#lyria-3-pro-music).
+- Level: music is a quiet background, never a second lead. About 22 dB quieter than the voice while words play, ducked another 3 dB under the words, swelling up to about 8 dB over the end card. 15 dB was rejected as much too loud, although it measured well and the critic approved. House rules and the reference measurement are in [google-ai-studio.md](google-ai-studio.md#lyria-35-music).
 - A level the user sets in Studio wins: a music clip with any gain other than 1 keeps it, and `mix` only ducks and rides it (`music.level` in its report is `timeline` then, `mix` when it set the level). It warns when the music ends up less than 12 dB under the voice. To have a clip levelled again, set its gain back to 1.
 
 ## SFX → `audio/sfx/`

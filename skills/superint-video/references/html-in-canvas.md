@@ -1,6 +1,6 @@
 # HTML in a canvas
 
-A canvas can draw real HTML. The children of a `<canvas>` that carry `drawable` are laid out by the browser like any HTML (text, fonts, flex and grid, SVG, form controls, CSS filters and masks), but they appear only where the scene draws them: in a 2D canvas, or as a WebGL texture that a shader bends, lights, blurs and cuts. So a scene no longer chooses between real type and layout on one side and shader effects on the other.
+A canvas can draw real HTML. The children of a `<canvas>` that carry `drawable` are laid out by the browser like any HTML (text, fonts, flex and grid, SVG, form controls, CSS filters and masks), but they appear only where the scene draws them: in a 2D canvas, or as a WebGL texture that a shader bends, lights, blurs and cuts. So one scene can have both: real type and layout, and shader effects.
 
 **Use it when** a picture needs both: the product's interface on a plane in space with true perspective and depth of field, light or a lens passing over a page, a shader transition between two real screens, a ripple, a shatter, a pixel sort, the same card drawn twenty times, a real screen, letter or newspaper inside a 3D world.
 

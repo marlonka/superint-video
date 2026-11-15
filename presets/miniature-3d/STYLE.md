@@ -1,6 +1,6 @@
 # Code-rendered miniature: art direction
 
-A film that looks shot on a miniature set with a real lens, and is computed entirely in code: geometry, wood grain, wallpaper, moon and rain are formulas, no downloaded models or textures, no generated images. The renderer in `scenes/` averages hundreds of subframes per film frame, which gives true depth of field, motion blur, soft shadows and film grain. Read the `superint-miniature` skill before building: it holds the renderer's API, the modelling and light recipes and the known traps.
+A film that looks shot on a miniature set with a real lens, and is computed entirely in code: geometry, wood grain, wallpaper, moon and rain are formulas, no downloaded models or textures, no generated images. The renderer in `scenes/` averages many subframes per film frame (64 in the final render), which gives true depth of field, motion blur, soft shadows and film grain. Read the `superint-miniature` skill before building: it holds the renderer's API, the modelling and light recipes and the known traps.
 
 The references in `references/` are the yardstick. Put every style frame and contact sheet next to them at full size.
 

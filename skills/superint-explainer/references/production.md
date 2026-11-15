@@ -92,7 +92,7 @@ With a supplied script, keep its narration verbatim: add scene markers, beats an
 - One `[[scene:<id>]]` per scene, ids in lowercase with hyphens. They become clip ids in `video.json`.
 - `{C1}` tags link lines to claims; strip them before voice generation.
 - Narration is written to be spoken: numbers, units and abbreviations written as they are said.
-- Length: the spoken words match `narrationWords` from the brief ±10 %. Once a voice take exists, its duration decides: if it runs over the target length + 3 s, cut words; never speed up the voice to fit.
+- Length: the spoken words match `narrationWords` from the brief ±10 %. Once a voice take exists, its duration decides: the film follows the voice. Never cut words or speed up the voice only to hit the target length.
 
 Gate: word count, section function test, every claim tagged. With stop `script`, show the narration and wait.
 

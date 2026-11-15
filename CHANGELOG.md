@@ -2,6 +2,23 @@
 
 Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. Das Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Nummern folgen [Semantic Versioning](https://semver.org/lang/de/). Jede Version zum Herunterladen steht unter [Releases](https://github.com/marlonka/superint-video/releases).
 
+## [0.11.3] – 2026-11-15
+
+### Geändert
+
+- Alle Skills sagen jetzt übereinstimmend, dass sich ein Film nach seiner Stimme richtet und keine Wörter gekürzt werden, nur um eine Zielzeit zu treffen.
+- Die Prompt-Vorlagen lassen den Ordner offen, damit ein neuer Film im Filmordner aus der Einrichtung landet und nicht dort, wo der Coding-Agent gerade läuft.
+- Die Review-Checkliste für Launch-Filme folgt der Regel, jede Zeile nach der ersten über dem weichgezeichneten Produkt zu lesen, und verlangt keine reinen Textbilder mehr.
+- Der Stil „Miniatur aus Code“ nennt die Renderzeit bei 64 Samples, etwa eine Fünftelsekunde pro Bild und rund eine halbe Stunde für sechs Minuten Film.
+- Die fünf Superint-Skills haben kürzere Beschreibungen, die der Coding-Agent schneller einordnet.
+- Aus den Skills sind Verweise auf Kontaktbögen fremder Filme, ein lokaler Ordner mit Hörproben und alte Einführungspreise verschwunden.
+
+### Behoben
+
+- Drei Verweise im Audio-Skill führen wieder zum Abschnitt über Lyria.
+- Beim Bearbeiten eines Films startet der Skill Studio im Hintergrund, wie überall sonst.
+- Skills und Vorlagen nennen die Einstellung mit ihrem heutigen Namen „Visueller Qualitäts-Feinschliff vor dem Render“.
+
 ## [0.11.2] – 2026-11-15
 
 ### Geändert
@@ -236,6 +253,7 @@ Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. 
 
 - Erste Version: eine Rust-CLI und Studio im Browser für HTML-Szenen, Timeline, Prüfen, Snapshots und MP4-Export über Chromium und FFmpeg.
 
+[0.11.3]: https://github.com/marlonka/superint-video/releases/tag/v0.11.3
 [0.11.2]: https://github.com/marlonka/superint-video/releases/tag/v0.11.2
 [0.11.1]: https://github.com/marlonka/superint-video/releases/tag/v0.11.1
 [0.11.0]: https://github.com/marlonka/superint-video/releases/tag/v0.11.0

@@ -19,7 +19,7 @@ PRESET:      blank                # der Look; blank = Look kommt aus Brand und R
 REFERENZEN:  <optional: Standbilder/Screenshots von Filmen, deren Look du willst, kommagetrennt>
 TON:         <Musik-Datei mit Lizenz | Musik generieren (braucht einen API-Schlüssel) | ohne Musik, nur Soundeffekte | keiner>
 STOPPS:      keine                # keine | direction, script, frames, contact
-ORDNER:      ./<ordnername>
+ORDNER:      <optional: leer lassen = dein Filmordner aus der Einrichtung>
 
 ## Anspruch
 Ein Fremder weiß nach 3 Sekunden, was das Produkt ist, und am Ende, was es tut. Jedes Bild zeigt das Produkt bei genau dem, was die Zeile sagt, mit seiner echten Oberfläche, in Code nachgebaut. Ein Element trägt durch jeden Szenenwechsel. Keine erfundenen Funktionen, Zahlen oder Kunden.

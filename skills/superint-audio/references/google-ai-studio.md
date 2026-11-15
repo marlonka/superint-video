@@ -59,7 +59,7 @@ TTS prices double on 1 January 2027. Batch and Flex tiers cost half for TTS when
 **House rules**
 - One `user_input` item per paragraph. The `style` stays the same for the whole film unless the concept calls for a change.
 - Request WAV 24 kHz. Generate 2–3 takes per paragraph and keep the best.
-- Voice: decided once per house style after a listening test. The house voice is **Sadaltager** (listening test 2026-10-31 with Charon, Sadaltager, Iapetus and Schedar on the same German text). Charon was as good but is heard more often. The test takes are in `superint-projekte/hoertest-stimme/`. A brand or a character that needs its own voice gets a designed or remixed one, auditioned the same way.
+- Voice: decided once per house style after a listening test on the same text. The house voice is **Sadaltager**; Charon is as good but heard more often. A brand or a character that needs its own voice gets a designed or remixed one, auditioned the same way.
 
 ## Voice design, remixing and replication (Voices API)
 
