@@ -455,21 +455,48 @@ pub async fn finish(home: &Path, job: Finish) -> Result<Value> {
     }))
 }
 
-/// Whether both programs can be written: nothing runs from them any more. A running program
-/// refuses to be opened for writing on Windows. The installer would stop halfway at a file in
-/// use, so it does not start then.
+/// Whether the installer can replace every file of the installed folder: nothing runs from
+/// the programs any more, and nobody holds a skill or a document open so that it cannot be
+/// deleted. The installer would stop halfway at a file in use, so it does not start then.
 async fn free(app_dir: &Path) -> bool {
-    let files = ["superint-video.exe", "Superint Video.exe"].map(|name| app_dir.join(name));
+    let files: Vec<PathBuf> = walkdir::WalkDir::new(app_dir)
+        .max_depth(8)
+        .into_iter()
+        .filter_map(Result::ok)
+        .filter(|entry| entry.file_type().is_file())
+        .take(20_000)
+        .map(walkdir::DirEntry::into_path)
+        .collect();
     for _ in 0..30 {
-        let writable = files.iter().all(|file| {
-            !file.exists() || std::fs::OpenOptions::new().write(true).open(file).is_ok()
-        });
-        if writable {
+        if files.iter().all(|file| !file.exists() || replaceable(file)) {
             return true;
         }
         tokio::time::sleep(Duration::from_millis(500)).await;
     }
     false
+}
+
+/// A running program refuses to be opened for writing on Windows; any file someone holds open
+/// without letting others delete it refuses to be opened for deleting.
+fn replaceable(file: &Path) -> bool {
+    let mut options = std::fs::OpenOptions::new();
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::OpenOptionsExt;
+        const DELETE: u32 = 0x0001_0000;
+        const FILE_WRITE_DATA: u32 = 0x0002;
+        let program = file
+            .extension()
+            .is_some_and(|extension| extension.eq_ignore_ascii_case("exe"));
+        options.access_mode(if program {
+            DELETE | FILE_WRITE_DATA
+        } else {
+            DELETE
+        });
+    }
+    #[cfg(not(windows))]
+    options.write(true);
+    options.open(file).is_ok()
 }
 
 /// Runs the installer without a window and waits for it, five minutes at most. It finds the
@@ -555,6 +582,26 @@ mod tests {
         assert_eq!(sums_line(&text, SETUP), Some("b".repeat(64)));
         assert_eq!(sums_line("short  Superint-Video-Setup.exe", SETUP), None);
         assert_eq!(sums_line("", SETUP), None);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_file_someone_holds_open_is_not_replaceable() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let folder = tempfile::tempdir().unwrap();
+        let file = folder.path().join("SKILL.md");
+        std::fs::write(&file, b"skill").unwrap();
+        assert!(replaceable(&file));
+        // An editor that lets others read, but not delete.
+        const FILE_SHARE_READ: u32 = 1;
+        let held = std::fs::OpenOptions::new()
+            .read(true)
+            .share_mode(FILE_SHARE_READ)
+            .open(&file)
+            .unwrap();
+        assert!(!replaceable(&file));
+        drop(held);
+        assert!(replaceable(&file));
     }
 
     #[test]

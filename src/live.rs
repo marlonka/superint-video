@@ -597,28 +597,58 @@ pub async fn stop_all(home: &Path) -> (bool, usize) {
     (Server::app(home).stop().await, studios)
 }
 
-/// Starts `program` so that it outlives this process and whatever ends it. Ending a server
-/// ends its whole process tree (`taskkill /T`), so the program must not be a child: it becomes
-/// one of the desktop shell, or else of a `cmd` that is gone at once.
+/// Set, this program only starts itself again with the same arguments and ends: see
+/// `spawn_apart`.
+#[cfg(windows)]
+const RELAY: &str = "SUPERINT_RELAY";
+
+/// Starts `program`, a copy of this one, so that it outlives this process and whatever ends it.
+/// Ending a server ends its whole process tree (`taskkill /T`), so the program must not be its
+/// descendant: it becomes a child of the desktop shell, or else of a copy of itself that ends at
+/// once (`relay`), which leaves it with no living parent in the tree.
 #[cfg(windows)]
 pub fn spawn_apart(program: &Path, arguments: &[&OsStr]) -> Result<()> {
-    use std::os::windows::process::CommandExt;
-    use std::process::{Command, Stdio};
     if crate::outside::spawn(program, arguments).is_ok() {
         return Ok(());
     }
-    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
     keep_stdio_from_children();
-    Command::new("cmd")
-        .args(["/c", "start", "", "/b"])
-        .arg(program)
-        .args(arguments)
+    let mut command = alone(program);
+    command.args(arguments).env(RELAY, "1");
+    command.spawn()?.wait()?;
+    Ok(())
+}
+
+/// A program started without a window, in a process group of its own, outside the caller's
+/// job when the job allows it.
+#[cfg(windows)]
+fn alone(program: &Path) -> std::process::Command {
+    use std::os::windows::process::CommandExt;
+    use std::process::{Command, Stdio};
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+    const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
+    let mut command = Command::new(program);
+    command
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
-        .creation_flags(CREATE_NO_WINDOW)
-        .spawn()?;
-    Ok(())
+        .creation_flags(CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP);
+    command
+}
+
+/// The relay of `spawn_apart`: starts this program again with its arguments, without the relay
+/// mark, and says that this process has nothing else to do.
+#[cfg(windows)]
+pub fn relay() -> bool {
+    if std::env::var_os(RELAY).is_none() {
+        return false;
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        let _ = alone(&exe)
+            .args(std::env::args_os().skip(1))
+            .env_remove(RELAY)
+            .spawn();
+    }
+    true
 }
 
 /// Starts this executable again as a background process that outlives the caller.

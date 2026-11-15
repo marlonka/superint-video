@@ -751,8 +751,30 @@ pub fn busy(home: &Path) -> Vec<Value> {
         .collect()
 }
 
+/// The same, from the rows of the start page's film list, which have read it already.
+pub fn busy_in(films: &[Value]) -> Vec<Value> {
+    films
+        .iter()
+        .filter_map(|film| {
+            let what = if film["render"]["status"] == "running" {
+                json!("render")
+            } else if film["running"].is_null() {
+                return None;
+            } else {
+                film["running"].clone()
+            };
+            Some(json!({"name": film["name"], "what": what}))
+        })
+        .collect()
+}
+
 /// Everything the start page shows about updates.
 pub fn status(home: &Path, settings: &Settings) -> Value {
+    status_with(home, settings, busy(home))
+}
+
+/// The same, with the films whose work an update would end already known.
+pub fn status_with(home: &Path, settings: &Settings, busy: Vec<Value>) -> Value {
     let state = State::load(home);
     let running = running_version();
     let now = now_ms();
@@ -792,7 +814,7 @@ pub fn status(home: &Path, settings: &Settings) -> Value {
         "checkedAt": state.checked_at,
         "available": available,
         "progress": progress,
-        "busy": busy(home),
+        "busy": busy,
         "outcome": outcome.map(|outcome| json!({
             "status": outcome.status,
             "version": outcome.version,

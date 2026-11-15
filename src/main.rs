@@ -570,6 +570,10 @@ enum PresetCommand {
 const STACK: usize = 32 * 1024 * 1024;
 
 fn main() {
+    #[cfg(windows)]
+    if live::relay() {
+        return;
+    }
     #[cfg(target_os = "macos")]
     superint_video::process::widen_search_path();
     #[cfg(windows)]

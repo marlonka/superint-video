@@ -257,6 +257,7 @@ async fn payload(state: &AppState, fresh: bool) -> Result<Value> {
             .style_tries(style_model.as_deref())
             .into_iter()
             .next();
+        let films = films(&state, &settings);
         let project = state.project.as_ref().map(|root| {
             let manifest = home::read_json(&root.join("video.json"));
             json!({"name": manifest.and_then(|m| m["name"].as_str().map(str::to_owned))})
@@ -296,10 +297,10 @@ async fn payload(state: &AppState, fresh: bool) -> Result<Value> {
             // Where a text differs by system, as where the keys are kept.
             "system": std::env::consts::OS,
             "filmsFolder": home::films_dir(&settings),
-            "films": films(&state, &settings),
-            "update": update::status(&state.home, &settings),
+            "update": update::status_with(&state.home, &settings, update::busy_in(&films)),
             "settings": settings,
             "styles": styles(&state)?,
+            "films": films,
         }))
     })
     .await?
