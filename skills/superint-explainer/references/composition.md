@@ -10,6 +10,10 @@ The composition grammar of an explainer, independent of the look. The preset's `
   - Inside a world the camera travels: it pans along the street, pushes in on a shop window, pulls back to reveal the next part, and follows a character who walks from one place to the next.
   - New subjects enter that world; the world itself does not swap.
   - Never cut to an unrelated new design every few seconds. That reads as hectic channel-surfing, not as one film.
+- **One place that could exist.** A world is a place with physical logic, not islands joined by bridges: one ground line, one sky, and the stations of the argument connected by something the viewer can see (a road, a river, a drive belt, a cable, a garland of lamps). The camera travels along that connection. Before the direction is written, build the world without motion and take a tour of it (every station fully built, the camera passing each): if neighbouring stills look pieced together, redesign the place, not the shots.
+- **Every place finished to the same level.** The place built last is usually the plainest. Give each kind of place what the real one has; a room, for example: patterned walls, floorboards and a skirting board, a window with depth and a sill, a shelf of books, a picture, a rug, a cable to the socket, lived-in things on the desk. Hold every place against the richest one in the film.
+- **Every prop has a reason the viewer can read.** A model house on a desk inside a house reads as nonsense; two framed pictures with an equals sign mean nothing unless the voice uses them. When the script changes, remove the props that belonged to lines that are gone.
+- **What lives, moves.** Whatever moves in reality moves on screen: a galaxy turns (the inner parts faster), wheels run, smoke rises, water flows, lamps flicker. A still galaxy reads as a sticker.
 - **Something new every 2–4 s, a cut much more rarely.** The picture keeps developing on the voice: the camera moves to a new subject, a character acts, objects arrive, build or transform, an inset opens.
   - A hard cut or transition to another world comes on a chapter or sentence boundary, typically every 10–30 s.
   - Short cut sequences (two or three quick cuts) are a device for one moment, such as a list of examples, not the rhythm of the film.
@@ -58,5 +62,12 @@ Scale it to the length the voice needs. Narration runs at about 150 words per mi
 - **Channel-surfing:** a new place with a new design every 5–10 s, each cut with a different palette and layout. The film falls apart into slides. Stay in the world, travel through it, and change worlds only with the argument.
 - **Coded metaphor:** if `direction.md` needs a sentence to say what an object stands for, the viewer won't get it. Show the real thing, or label the metaphor in the picture.
 - **No ending:** a film that stops a second after its last word feels cut off. End on the message image, then the end card with the music's final chord.
+- **Long holds:** the same framing for more than about 6 s, even while things change inside it. Push in, pull back or move on.
+- **Sliding sky:** parallax in a flat look (an embroidery, a paper cut, a flat illustration on one cloth). When the camera moves, clouds, stars and the sky's hero objects slide against the ground and against their own parts. Keep everything on one plane unless the look is really built in layers.
+- **Text at the edge:** a text group stays inside the frame with a margin in every frame, including the last camera drift on the end card. Check the first and the last frame of every camera move that carries text.
+- **Centred lists:** a checklist or any list is one left-aligned column with a fixed gap after its boxes; centred labels run into their boxes.
+- **Jump moves:** a camera move across most of the picture in about a second reads as a jolt. Give a long move 2–3 s and start it as the sentence before ends.
+- **Flickering hairlines:** a thin dashed line on a textured ground shimmers as the camera moves. A line the picture measures against is one solid line with some weight.
+- **Vague labels:** a mark names exactly what is compared, in the words the argument uses ("human AI researcher", not "human").
 
 Visual devices that work inside this grammar (persistent instruments, scale insets, reveal with light, before and after …) are in [visual-devices.md](visual-devices.md).

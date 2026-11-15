@@ -30,6 +30,7 @@ Model IDs and the default voice are in `preset.json` (`narration`, `transcriptio
    - Front matter, all optional: `model`, `voice`, `style` (Gemini only: delivery, never age, gender or accent), `language`, `terms` (names and technical terms for the transcription), `takes` (1–5, default 3), `sentencePause` (0.24), `paragraphPause` (0.36), `tighten` (true), `transcription`.
    - Blank lines separate paragraphs. Each paragraph is one TTS request and one unit for takes.
    - `[[scene:id]]` tags the paragraphs that follow; the tag ends up in `words.json`. `#` lines and `<!-- -->` are notes and are not sent.
+   - The lines that carry the film (the hook, the term the film is named after, the last line) get their pauses written in from the start (`--`, `...`, a comma before the key word), and each of their takes goes through `listen` before `voice assemble`. Read flat, they sound like any other sentence.
 2. **`superint-video voice check <dir>`** checks the text against the model's syntax and estimates the length of the read. Errors exit 2 and must be fixed:
 
    | Code | Error |
@@ -91,6 +92,7 @@ const collapse = between(time, T.verschwunden, T.verschwunden + 0.33);
 ```
 
 - Regenerate `cues.js` and the clip frames whenever the voice changes. Every trigger lands within ±2 frames of its word; check this in the review snapshots.
+- Hyphenated words come apart in `words.json` ("Science-Fiction" becomes "Science" and "Fiction"): look a cue up by its first part. Before the first snapshot, check every cue word the scene code uses against `words.json`, so a missing word fails in a second and not in a render.
 - **Voice clip:** one audio clip on the `voice` track at frame 0 (or where narration starts), `gain` 1.
 
 ## Music → `audio/music/`
@@ -104,6 +106,8 @@ const collapse = between(time, T.verschwunden, T.verschwunden + 0.33);
 
    Then it generates the variants into `audio/music/vN.*` and measures length, peak, RMS and the ending (`fades` or `cut`) into `audio/music/report.json`.
 3. Listen and pick one: `superint-video listen` on each variant, asking whether it fits the prompt's mood and leaves room for a voice. An original score in the concept's sound world: instrumentation and tempo fit the tone, chord changes land on section beats, and the natural ending lands on the end card. Place it as one clip on the `music` track, `gain` 1, so its ending lands on the end card.
+   - A film longer than one piece gets two or more cues. Measure where each has its climax and its final chord (`listen` names the seconds) and place the clips so the climax lands on the film's key word and the final chord on the last line; the gap between them sits under a pause or a chapter change. A few seconds of voice change rarely need new music, only new start frames.
+   - A Lyria variant can carry a spoken or sung voice baked in, even with "instrumental only" in the prompt. Listen to every variant before choosing.
 4. **Run `superint-video mix <dir>` right away.** A music clip at gain 1 has no level yet: Studio's preview plays it as loud as the file is, far louder than the voice. `mix` measures the voice, finds the gain that puts the music its distance under it and writes that gain into the clip (often about 0.05 to 0.1), so the preview, the timeline and the master agree from then on.
 - Level: music is a quiet background, never a second lead. About 22 dB quieter than the voice while words play, ducked another 3 dB under the words, swelling up to about 8 dB over the end card. 15 dB was rejected as much too loud, although it measured well and the critic approved. House rules and the reference measurement are in [google-ai-studio.md](google-ai-studio.md#lyria-3-pro-music).
 - A level the user sets in Studio wins: a music clip with any gain other than 1 keeps it, and `mix` only ducks and rides it (`music.level` in its report is `timeline` then, `mix` when it set the level). It warns when the music ends up less than 12 dB under the voice. To have a clip levelled again, set its gain back to 1.
@@ -113,6 +117,9 @@ const collapse = between(time, T.verschwunden, T.verschwunden + 0.33);
 Sound effects come from Earshot (local, MIT, no models for these commands); never write synth voices of your own. Without Earshot, `sfx` stops with a clear message; there is no fallback synthesis.
 
 1. **Kit.** `earshot kit init --preset calm -o audio/kit.json`, then edit it. Use one role per event type (tick, pop, whoosh.short, bell …), so the same action always sounds the same. Match the material of what moves, such as glass, metal, paper or water. `superint-video sfx list [--category <c>]` shows each sound's length, onset, peak, loudness, knobs and pitch range. Tonal roles take their notes from the key of the music under them (`edits.pitch` or `pitches`; `earshot measure music.wav --music` measures the key). The `fit/*` sounds are derived from CC0 recordings; every other sound is pure code.
+   - Role names are lowercase words joined by dots (`star.a`); a hyphen is refused. With two music pieces in different keys, give a tonal role one variant per key (`star.a` in A major, `star.f` in F major) and use the one under which the cue plays.
+   - An earlier film in the same style is a good start: copy its `audio/kit.json` and change only what this film adds.
+   - No sound for an action the film repeats all the time, such as a needle stitching every word, a pen writing every line or a key for every letter. It wears on the ear within a minute. Sounds go on events: something lands, clicks, opens, lights up.
 2. **`superint-video sfx kit <dir>`** runs `earshot kit render` and `kit check` into `audio/sfx/` (takes plus `kit.lock.json`) and exits 2 when the audit finds problems. Swap any sound or knob that gets a warning rather than keeping the take. A pitch out of range is an error: shift it by octaves.
 3. **Write `sfx.json`**: which frame gets which role, and how far under the voice.
    ```json

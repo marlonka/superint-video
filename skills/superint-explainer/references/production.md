@@ -61,6 +61,8 @@ Write the number of concepts in the brief (default 3). They must differ in how t
 
 Then `## Choice`: the winner (a grafted hybrid is allowed) and why it best serves understanding, surprise and the audience. Run the concept rubric from [storytelling.md](storytelling.md#rubrics) through the critique loop. With stop `concept`, present the concepts in a few lines each and wait.
 
+**World and script together.** Once a concept is chosen, let the strongest model the host offers write the world concept together with the script, as a sub-agent with the research and the concept: one continuous place, its physical logic ([composition.md](composition.md#shots)), and a shot list per key word. It may rewrite the script so that story and place carry each other; every claim stays in the register. Gate before the build is timed: a tour contact sheet of the world without motion reads as one place.
+
 **`direction.md`** is the production spec for the chosen concept, precise enough that another animator could build the film without asking. It opens with the colour script (set piece → theme world or background hex values, dominant hue, accents) and the cast sheet (each character with proportions, colours and how they move). No vague words ("nice glow", "pretty colors"); every element gets numbers: hex colors, sizes in vmin or px at the output size, counts, positions, gradient stops, parallax depths, rotation speeds, spring values, key light direction and idle motion. Example of the required precision (a film about coffee; yours will differ):
 
 > Colour script: 1 farm at sunrise `.sky.sunset` · 2 hands at the bush, close-up, leaf green #1f9a64 on cream #fff6dc · 3 roastery `.sky.warm` · 4 counting ground `.sky.sunshine` · 5 port at night `.sky` with sodium lamps #ffc83d. Farm: three bush rows at parallax .35/.62/1.0, bushes r = 7 vmin from `blob`, red cherries r = 0.9 vmin, 40 per row; picker 22 vmin tall at (36 %, 64 %), basket on the hip, blinks every 3–4 s, reaches on "pflücken" (spring 120/14); key light upper left; foreground leaves at parallax 1.3 sway ±3° at 0.4 Hz.
@@ -136,6 +138,7 @@ Then build the hook, aha and title scenes first (custom scenes with `kit.js`, fo
 1. Lay out the timeline: one clip per scene marker on the `scenes` track, `id` = marker, `startFrame`/`durationFrames` from the narration (word timestamps if available, otherwise the word budget). The clips fill `durationFrames` of the project without gaps unless a gap is intended. The project ends 3–6 s after the last spoken word: the message image, then an end card (`blocks/outro.html` re-skinned, or your own), with the music's final chord landing on it. A looping 9:16 short instead runs about 1 s past the last word into its first image.
 2. For the remaining scenes, copy a block from `blocks/` (table in `STYLE.md`) under a meaningful name and change props, layout and drawing to match `direction.md`, or write a new scene. A film made of unmodified blocks looks generic.
 3. Put on-screen texts and values into clip `props` so they can be edited in Studio, and mark the element that shows each text with `data-prop="<key>"`: the user can then click it in the preview and type a new one (`references/scene-api.md` in the superint-video skill). Sources do not go into scenes; they go into `report.md` (see `STYLE.md`, Type and labels).
+   Products named on a card carry their maker when the line has room ("OpenAI ChatGPT"), and card and voice name the same products.
 4. Place audio clips if audio exists (the `superint-audio` skill). With the user's own voice, the recording happens here at the latest: `voice own <dir> --wait`, then `voice assemble`, before any scene is timed to words.
 5. Make the scenes measurable: `render` returns actors for every character, hero object and highlight (a highlight names its `target`), and scenes with a camera of their own declare the check camera (`checkCameraProps`). See `references/scene-api.md` in the superint-video skill.
 6. `superint-video check <dir> --json`; fix every error before looking at frames.
@@ -169,6 +172,8 @@ The first full build is a draft. Work on it in passes, going through the film ev
 - **Text:** legible at phone size, at most 4 words per label, no full stops.
 - **Explanation:** the picture explains what the voice says at that moment.
 - **Motion:** something moves in every frame; only the end card holds still.
+- **No long holds:** no framing stays the same for more than about 6 s, except the end card.
+- **Every prop explained:** nothing on screen belongs to a line the script no longer has, and nothing needs a legend.
 - **Ending:** the message lands over its own image, and the end card holds 3–6 s while the music resolves.
 
 These passes are yours as the author: composition, flow and the picture against the words. The cold look at how every object is made, and at what each picture still lacks, comes next.

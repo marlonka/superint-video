@@ -24,7 +24,7 @@ The walk belongs to someone who has not watched the film being made.
 
 **Brief for the polisher** (fill in the path; add nothing about how the film was built, and nothing an earlier round found):
 
-> You are the polish director for the film in `<dir>`. You did not build it. Read `references/polish.md` of the `superint-video` skill, then the project's `brief.md`, `STYLE.md` and `direction.md`, and look once at the pictures in `references/` (the six that show the look best, when there are more). Then walk the film with `superint-video polish <dir>`: each call shows you one still. Fix what is wrong in it and add the detail it lacks, in the scene code; run `polish` once to see the changed still; write its row; run `polish` again for the next still. Look at no other pictures and at no still more than twice. Leave the script, the voice, the timing of the words, `video.json` and the sound as they are. When no row is left, run `check` and `polish --accept`. Report in a few lines: what you fixed, what you added, what you left and why, and what `polish --accept` says comes next.
+> You are the polish director for the film in `<dir>`. You did not build it. Read `references/polish.md` of the `superint-video` skill, then the project's `brief.md`, `STYLE.md` and `direction.md`, and look once at the pictures in `references/` (the six that show the look best, when there are more). Then walk the film with `superint-video polish <dir>`: each call shows you one still. Fix what is wrong in it and add the detail it lacks, in the scene code: lift each still from a simple drawing to a detailed, beautiful picture (material, light, small real parts, contact shadows, depth), not only repair it. Run `polish` once to see the changed still; write its row; run `polish` again for the next still. Look at no other pictures and at no still more than twice. Leave the script, the voice, the timing of the words, `video.json` and the sound as they are. When no row is left, run `check` and `polish --accept`. Report in a few lines: what you fixed, what you added, what you left and why, and what `polish --accept` says comes next.
 
 ## The walk
 
@@ -45,6 +45,8 @@ The walk belongs to someone who has not watched the film being made.
 
 A walk that was interrupted goes on where it stopped: `polish` finds the first empty row. Studio's Progress panel shows the walk live, with the still being looked at and every row's finding and fix, so write each row when its still is done, not at the end.
 
+**Notes from the user during a walk.** The user often watches Studio while a polisher works and says what still looks wrong. Pass each note to the running polisher as it comes (the host's message to a running sub-agent), rather than editing the same files yourself at the same time; a decision the user makes (remove this, rename that, this may stay) goes into the brief of every later round too. When the walk is done, look at each of those points yourself before the render.
+
 ## Rounds
 
 The user chooses in advance how many rounds of polish a film gets: 1 (the default), 2 or 3. One round is one polisher, a new cold sub-agent, walking the film once. Rounds run one after another, never side by side; each starts from the picture the round before left. More rounds give more detail and fewer faults, and cost time and usage, which the user has weighed. Run exactly as many as are set: do not ask for the number, do not cut rounds to save time, do not add any.
@@ -53,7 +55,7 @@ The user chooses in advance how many rounds of polish a film gets: 1 (the defaul
 - **Between rounds.** When `polish --accept` closes a round and another is due, its `next` says so. Start a new cold polisher with the same brief; never hand the round to the polisher that just finished, and add none of its findings to the brief: the next worksheet lists them itself.
 - **What a later round sees.** It walks the film again, with stills between those of the earlier rounds (round 2 half a step on, round 3 a quarter). Its worksheet lists what the earlier rounds fixed and asks its own questions: round 2 checks that the fixes hold and looks for the same kind of fault elsewhere, behind the hero and in the words on screen; round 3 follows each thing through the film and looks at light, depth, materials and composition.
 - **The gate.** `render` refuses until the last round is accepted for the picture as it is; a clean earlier round shows as `next-round`. Studio shows "Round 2 of 3" beside the pass.
-- **After the last round.** A change to the picture (feedback after watching, for example) gets a short pass in the last round: `polish` takes the stills once and lists only those that no longer show what somebody looked at. Walk those the same way.
+- **After the last round.** A change to the picture (feedback after watching, for example) gets a short pass in the last round: `polish` takes the stills once and lists only those that no longer show what somebody looked at. Walk those the same way. A change to a shared library or to the one file a whole world is built in moves every still a little, so such a pass may list them all: look at each once, and most rows are `ok`.
 
 ## What a viewer spots at once
 
