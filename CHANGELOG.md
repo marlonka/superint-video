@@ -2,6 +2,20 @@
 
 Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. Das Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Nummern folgen [Semantic Versioning](https://semver.org/lang/de/). Jede Version zum Herunterladen steht unter [Releases](https://github.com/marlonka/superint-video/releases).
 
+## [0.13.0] – 2026-11-16
+
+### Neu
+
+- Der Launch-Ablauf kennt jetzt Regeln für Bewegung und Ton, die aus der Analyse von 82 Motionfilmen großer Marken stammen: zehn Prinzipien mit je einem Test, Remix-Operatoren, mit denen der Coding-Agent jede übernommene Bewegung zu etwas Eigenem macht, und eine Pre-Flight-Prüfung vor den Style Frames und vor dem Render.
+- Ein Treffer im Ton kann aus mehreren Klängen auf demselben Bild bestehen, etwa Anschlag, Körper und Nachklang: In `sfx.json` trägt jede weitere Schicht `"layer": true` und zählt nicht als eigener Klang, wenn `sfx place` nach zu dichten Stellen sucht.
+- Mit `"room"` in `mix.json` klingen alle Soundeffekte im selben Raum, mit einstellbarer Nachhallzeit, Lautstärke und Helligkeit, statt trocken neben der Musik zu stehen.
+- Jede Lautheitsmessung, im Mix wie im fertigen MP4, nennt jetzt den Abstand der Spitze zur Lautheit (`peakToLoudnessDb`). Filme großer Marken liegen bei 12 bis 16 dB.
+
+### Behoben
+
+- Bei aufwendigen Szenen mit 3D, Filtern oder vielen Ebenen kam beim Rendern manchmal ein schwarzes Bild heraus, weil es fotografiert wurde, bevor die Szene es gemalt hatte. Jede Aufnahme wartet jetzt, bis das Bild gemalt ist.
+- Das Beispiel zum Schneiden der Musik im Launch-Ablauf verschob jeden Schnitt um 40 ms nach vorn; jetzt bleibt jeder Taktanfang auf dem Raster des Films.
+
 ## [0.12.0] – 2026-11-15
 
 ### Neu
@@ -268,6 +282,7 @@ Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. 
 
 - Erste Version: eine Rust-CLI und Studio im Browser für HTML-Szenen, Timeline, Prüfen, Snapshots und MP4-Export über Chromium und FFmpeg.
 
+[0.13.0]: https://github.com/marlonka/superint-video/releases/tag/v0.13.0
 [0.12.0]: https://github.com/marlonka/superint-video/releases/tag/v0.12.0
 [0.11.3]: https://github.com/marlonka/superint-video/releases/tag/v0.11.3
 [0.11.2]: https://github.com/marlonka/superint-video/releases/tag/v0.11.2
