@@ -109,6 +109,8 @@ Report a highlight from the moment it arrives until it leaves, not during its fl
 
 **HTML in a canvas.** `htmlCanvas(canvas)` from `/runtime/html-in-canvas.js` lets a canvas draw its `drawable` children: real HTML as a picture in a 2D canvas or as a WebGL texture under a shader (a page in space with depth of field, a lens, a shader transition between two real screens). Change the HTML, then `await stage.paint(draw)` in `render`. It needs Chrome 157 or newer. The pattern, the API, what a picture of an element holds and tested recipes: [html-in-canvas.md](html-in-canvas.md).
 
+**3D in CSS.** A card or a page that turns in depth (`transform-style: preserve-3d`, faces with `backface-visibility: hidden`, slices for its thickness) stays 3D only while nothing between the container and its faces groups it: `opacity` under 1, `filter`, `mask`, `clip-path` or an `overflow` other than `visible` flattens it into a picture, and the back face then shows mirrored through the front. Fade, blur and dim the faces (the leaves), never the container, and hide the slices while a face is see-through. Hide a group with `visibility: hidden` only where no child sets `visibility: visible`, because such a child stays on screen; show children with `visibility: ''`, so they follow their parent.
+
 Scenes run in opaque sandboxed iframes on the read-only preview server.
 They cannot access Studio's document or mutation token.
 Relative images resolve from the scene directory: `../assets/photo.png`.
@@ -129,6 +131,6 @@ window.__superint.getState(); // frame, playing, durationFrames, propDefinitions
 `actors` are the boxes the visible scenes reported for the current frame, in stage pixels, each with its `clipId`.
 
 `seek` clamps to the project's first/last frame and pauses playback.
-It awaits scene callbacks, assets, exact video decoding, and composition paint.
+It awaits scene callbacks, assets, exact video decoding, the scene's own paint (in capture mode) and composition paint.
 Use one completed seek per screenshot. Rapid interactive requests coalesce to the newest target.
 Export uses the same function; it never skips requested output frames.
