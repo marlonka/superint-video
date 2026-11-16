@@ -129,7 +129,13 @@ Sound effects come from Earshot (local, MIT, no models for these commands); neve
    ]}
    ```
    `frame` is the frame the sound's sync point lands on, taken from `words.json` or the scene's own beat, never from hand-typed seconds. The role's `align` picks the sync point: onset for hits and touches, peak for whooshes, end for risers. `take` (1-based) or `pitch` pick a take; otherwise the role rotates through its takes. Levels: big hits 14–18 dB under the voice, accents 20–26 dB, textures and repeated sounds (keys, ticks, drops) 27–37 dB. About 10 dB was rejected as much too loud.
-4. **`superint-video sfx place <dir>`** reads the lock and puts every cue on the `sfx` track: `startFrame = frame − round(syncPoint × fps)`, gain from the take's `lufs_m_max` against the voice's integrated loudness, or the music's in a film without a voice (a music-led launch film). It replaces the clips it placed before (id prefix `sfx-`), keeps everything else, and warns about cues closer than 3 frames, more than 4 cues in one second, and levels outside 12–40 dB.
+   A designed hit is several cues on one frame: the first is the hit (a transient such as a knock or click), the ones after it carry `"layer": true` (a body, a tuned tail, a sub under the biggest moments). Layers belong to the hit before them, up to 6 frames after it: they are not counted as cues of their own when `place` looks for smears and crowded seconds, and they sit at their own distances (the transient a little louder than the body, the tail 6–10 dB under both).
+   ```json
+   {"frame": 780, "role": "tock", "under": 19, "note": "the last card lands"},
+   {"frame": 780, "role": "land", "under": 20, "layer": true},
+   {"frame": 780, "role": "hit", "under": 26, "layer": true, "note": "struck bell on the root"}
+   ```
+4. **`superint-video sfx place <dir>`** reads the lock and puts every cue on the `sfx` track: `startFrame = frame − round(syncPoint × fps)`, gain from the take's `lufs_m_max` against the voice's integrated loudness, or the music's in a film without a voice (a music-led launch film). It replaces the clips it placed before (id prefix `sfx-`), keeps everything else, and warns about cues closer than 3 frames, more than 4 cues in one second (layers not counted), a layer with no hit before it, and levels outside 12–40 dB.
 
 ## Mix, master and verification
 
@@ -139,9 +145,12 @@ Targets for the delivered file: **−14 LUFS integrated, true peak ≤ −2.2 dB
 2. Optional `mix.json` tunes it:
    ```json
    {"loudness": -14, "ceiling": -3.4, "musicUnder": 22, "duckDb": 3,
-    "rides": [{"from": 990, "to": 1110, "db": 5, "rampFrames": 15, "note": "title swell"}]}
+    "rides": [{"from": 990, "to": 1110, "db": 5, "rampFrames": 15, "note": "title swell"}],
+    "room": {"seconds": 0.9, "db": -12, "tone": 5000}}
    ```
    `musicUnder` is the distance for music clips at gain 1; a clip with another gain keeps it, and `musicUnder: null` levels nothing. A ride lifts (or with a negative `db` lowers) the music from `from` to `to`; it ramps in over `rampFrames` before `from` and out after `to`, so the full lift is there at `from`.
+   `room` puts every sound effect into one shared space, so they sound recorded in the same place and none stands bone-dry against the music: a reverb on the `sfx` track (Freeverb's combs and allpasses) that decays by 60 dB in `seconds` (0.5 a small room, 0.8–1.2 a studio, 2 and more a hall), loses its highs above `tone` Hz and sits `db` of energy under the dry effects (−12 is present but quiet, −18 barely there). Studio's preview plays the effects dry; the master has the room. The report gives it under `room`.
+   Every loudness in the report (`master`, each bus, and the finished MP4 in `render`) carries `peakToLoudnessDb`, the true peak over the integrated loudness: the room the hits have. Brand films sit at 12–16 dB; under about 12 the hits are limited flat. A music-led film without a voice is mastered calmer with more headroom, for example `"loudness": -16, "ceiling": -1.5`.
 3. **`superint-video render <dir> --output renders/<slug>.mp4 --audio audio/master.wav`** muxes the master as AAC 256k instead of summing the clips and reports the loudness and true peak measured on the finished MP4 (`audio`). Without `--audio`, `render` sums the clips without a limiter, which is fine for drafts. Every MP4 has an audio stream: a film with nothing to hear gets a silent stereo track, because some upload forms, editors and television sets refuse or flag a file without one.
 4. Report integrated loudness and true peak from the render output.
 

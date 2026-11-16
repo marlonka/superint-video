@@ -61,6 +61,10 @@ These are landing-page grammar and the fastest tells of generated work. A word t
 8. **Its own film.** One world for the film, one face, two or three moves, two or three seam kinds, one signature, one end-card design, declared in `direction.md`. A second film for the same product changes the world, the signature and the end card.
 9. **Premium habits in every shot.** One sharp plane with a graded blur behind it; one camera move with a job, front-loaded and landing (else still: no float, drift or bob); light from a source, sized to it; a hero object in a real material; the product's real content in quantity; one scale jump (macro to wide); motion smear only on fast moves.
 10. **Something moves with purpose in every frame.** A hold is the landing tail of a move, never still for more than 0.8 s, the end card included.
+11. **Results, not progress.** No bare progress bar, spinner or check mark carries a beat: show the result appearing, or an object doing the work. A product's own progress view may be seen in passing, never as the climax.
+12. **The hero is the odd one out.** Squint at the frame: the brightest or most saturated thing is what the line is about. In a quiet grey product, colour belongs to what the product makes.
+13. **New heroes enter inline.** A new hero object arrives small, at text height or at the centre of attention with space around it, then grows to near full frame at an angle; never as a speck in a corner, never flat-on at full size.
+14. **Time and room to read.** A line holds at least 0.8 s after it has landed, a push that changes the scene runs at least 20 frames, and nothing moving crosses a line while it is read. A beat that cannot be read at first viewing gets whole bars more; it is never squeezed.
 
 ## Bans in a look you invent
 
@@ -70,4 +74,4 @@ Without a brand kit or a preset rule that says otherwise, these stay out (house 
 - **Colour:** neon; a monochrome accent wash; glassmorphism as a UI style; more than one dominant accent.
 - **Decoration:** emoji and stock icons; sparkles for "AI", confetti, lens flares, code rain; bounce on anything that is not landing; springy overshoot on copy.
 - **Pictures:** grey cards standing in for pictures; stock gestures (handshakes, pointing at screens); low-resolution or mixed-grade pictures; a person drawn in a crude style where the look calls for a photo.
-- **Sound:** a film with no music; music ducked under effects.
+- **Sound:** a film with no music; music ducked under effects for more than a hit; a dry effect with no room; the same take on every repeat.

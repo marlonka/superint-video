@@ -153,6 +153,8 @@ const deadline = (promise, label, ms = 15000) => new Promise((resolve, reject) =
   const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
   Promise.resolve(promise).then(value => { clearTimeout(timer); resolve(value); }, error => { clearTimeout(timer); reject(error); });
 });
+/** Resolves once the document has gone through two animation frames: what was set before is painted. */
+const painted = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
 /** The film's main font while the user has chosen one this scene has, else null. */
 let filmFont = null;
@@ -244,6 +246,11 @@ if (typeof window !== 'undefined' && window.parent !== window) {
         document.documentElement.getBoundingClientRect();
         await assetReadiness();
         document.documentElement.getBoundingClientRect();
+        // The scene paints in a process of its own, and the capture photographs the page as soon
+        // as the frame is reported: a heavy frame (3D, filters, many layers) was then sometimes not
+        // there yet, and the shot came out empty. Two of the scene's own animation frames mean it
+        // has painted this one. The preview shows whatever arrives, so it does not wait.
+        if (!preview) await deadline(painted(), 'Painting the frame');
         // Only the paused preview asks where the texts are, to let the user retype them.
         const texts = context.texts ? textBoxes(document.body, definition?.props, props) : [];
         post({ type: 'frame', requestId: message.requestId, frame: context.frame, actors, texts });

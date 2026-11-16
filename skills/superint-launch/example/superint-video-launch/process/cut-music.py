@@ -3,7 +3,9 @@
 Bars of the variant: intro 1-5, build 8-11, lift 16-20, peak 24-27, then the struck
 final chord at bar 38 with its own ring-out to the end. Variant 3 was dropped: Lyria
 fades its last chord out within half a second. Each join is a 40 ms equal-power crossfade that ends
-just before the downbeat, so every new section starts on its own first hit.
+3 ms before the downbeat, so every new section starts on its own first hit. Every piece keeps its
+whole bars, so each downbeat lands on the film's bar grid; a crossfade laid over the end of the piece
+before (instead of before the new downbeat) pulls every later join 40 ms early.
 Writes audio/music/cue.wav (48 kHz stereo, 24-bit) and prints the film's bar times.
 """
 import subprocess, sys, wave
@@ -14,20 +16,20 @@ project = Path(__file__).resolve().parent.parent
 source = project / "audio/music/v2.mp3"
 rate, bar, first = 48000, 1.9993, -0.146  # attacks at 15.848, 31.846, 47.833 and 75.79 s
 pieces = [(1, 5), (8, 11), (16, 20), (24, 27), (38, None)]
-fade = 0.040
+fade, lead = 0.040, 0.003
 
 raw = subprocess.run(["ffmpeg", "-v", "error", "-i", str(source), "-f", "f32le", "-ac", "2", "-ar", str(rate), "-"],
                      capture_output=True, check=True).stdout
 audio = np.frombuffer(raw, dtype=np.float32).reshape(-1, 2)
 at = lambda k: int(round((first + k * bar) * rate))
-n = int(fade * rate)
+n, early = int(fade * rate), int(round(lead * rate))
 ramp = np.linspace(0, np.pi / 2, n, endpoint=False)
 fade_in, fade_out = np.sin(ramp)[:, None], np.cos(ramp)[:, None]
 
 out = np.zeros((0, 2), dtype=np.float32)
 for start, end in pieces:
-    a = at(start) - n  # the crossfade sits just before the downbeat
-    b = len(audio) if end is None else at(end) - n
+    a = at(start) - n - early  # the crossfade ends just before the downbeat
+    b = len(audio) if end is None else at(end) - early
     piece = audio[max(a, 0):b].copy()
     if len(out) == 0:
         out = audio[at(start):b].copy()

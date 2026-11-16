@@ -6,7 +6,7 @@
   <b>Dein Coding-Agent macht Videos für dich.</b><br>
   Du sagst, worum es gehen soll. Claude Code, ChatGPT Codex oder Google Antigravity recherchiert,<br>
   schreibt, zeichnet, vertont und rendert den Film, und du schaust dabei zu.<br>
-  Alles läuft auf deinem eigenen PC, ohne Konto und ohne Abo.
+  Superint Video läuft auf deinem eigenen PC, ohne Konto und ohne Abo.
 </p>
 
 <p align="center">
@@ -115,4 +115,4 @@ Stimme und Musik kommen meist aus generativen Modellen, und jedes MP4 sagt das i
 
 ## Lizenz und Dank
 
-Superint Video steht unter der [MIT-Lizenz](LICENSE). Der Launch-Ablauf baut auf [cinetic](https://github.com/Leonxlnx/cinetic) auf, die Klänge und das Gehör kommen aus [Earshot](https://github.com/Leonxlnx/earshot), beide von Leonxlnx und unter MIT. Die Schriften Nunito und Geist stehen unter der SIL Open Font License. Alle Abhängigkeiten und ihre Lizenzen stehen in den [Drittanbieterhinweisen](THIRD_PARTY_NOTICES.md).
+Superint Video steht unter der [MIT-Lizenz](LICENSE). Der Launch-Ablauf baut auf [cinetic](https://github.com/Leonxlnx/cinetic) auf, die Klänge und das Gehör kommen aus [Earshot](https://github.com/Leonxlnx/earshot), beide von Leonxlnx und unter MIT. Seine Regeln für Bewegung und Ton stammen zum Teil aus [motion-library-skill](https://github.com/ronkenx9/motion-library-skill) (MIT). Die Schriften Nunito und Geist stehen unter der SIL Open Font License. Alle Abhängigkeiten und ihre Lizenzen stehen in den [Drittanbieterhinweisen](THIRD_PARTY_NOTICES.md).
