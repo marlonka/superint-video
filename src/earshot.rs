@@ -30,6 +30,31 @@ where
     serde_json::from_slice(&bytes).context("earshot did not print JSON")
 }
 
+/// Run an Earshot audit (`kit check`) and parse its JSON. The audit exits 1 when it finds
+/// problems or warnings and still prints its result: that result is the answer, not a failure.
+async fn audit<I, S>(args: I, timeout: Duration) -> Result<Value>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
+    let mut cmd = process::command(process::binary("earshot"));
+    cmd.args(args);
+    let (out, err, status) =
+        match process::output_with_status(cmd, &CancellationToken::new(), timeout).await {
+            Ok(result) => result,
+            Err(error) if error.to_string().starts_with("Could not start") => return Err(missing()),
+            Err(error) => return Err(error.context("earshot failed")),
+        };
+    match serde_json::from_slice::<Value>(&out) {
+        Ok(result) if status.success() || result.get("ok").is_some() => Ok(result),
+        _ if !status.success() => {
+            bail!("earshot failed: {}", process::diagnostic_tail(&err).trim())
+        }
+        Ok(result) => Ok(result),
+        Err(error) => Err(error).context("earshot did not print JSON"),
+    }
+}
+
 /// Version and bank for doctor; `None` when earshot cannot be started.
 pub async fn version() -> Option<Value> {
     let list = json(["sfx", "list", "--json"], Duration::from_secs(60))
@@ -68,7 +93,7 @@ pub async fn kit(kit: &Path, out: &Path) -> Result<(Value, Value)> {
         timeout,
     )
     .await?;
-    let check = json(
+    let check = audit(
         [
             OsStr::new("kit"),
             OsStr::new("check"),

@@ -13,7 +13,7 @@ The tool's checks follow the rules below: `voice check` for the voice text, `mus
 | `lyria-3.5` | $0.08 per song | | no |
 | `lyria-3-clip-preview` | $0.04 per 30 s clip | | no |
 
-TTS prices double on 1 January 2027. Batch and Flex tiers cost half for TTS when a job may wait. Voice remixing and replication need a paid project (Tier 1+). A 60 s film with three takes per paragraph costs about $0.04 in voice, under $0.01 in transcription and $0.24 for three music variants: never skip takes or variants to save money.
+TTS prices double on 1 January 2027. Batch and Flex tiers cost half for TTS when a job may wait. Voice remixing and replication need a paid project (Tier 1+). A 60 s film with three takes per paragraph costs about $0.04 in voice, under $0.01 in transcription and $0.24 for three music variants: never skip voice takes to save money. Music stops at three pieces per film unless the user asks for more.
 
 ## Gemini 3.8 Flash TTS (narration, default)
 
@@ -124,13 +124,14 @@ All three create a stored `voice_…` ID in the Google project (200 per project,
 **Prompting** (Google's Lyria prompt guide plus our runs)
 - **Order:** lead with the genre (eras and regional variants work: "early 1990s boom-bap", "Berlin minimal techno"; hybrids too), then mood, instrumentation and how the instruments sound together, tempo and key, structure and dynamics. Short phrases and detailed paragraphs both work; specific beats vague.
 - **Vocabulary the model knows** (from Google's lists): genres such as Chillout, Lo-Fi Hip Hop, Synthpop, Trip Hop, Orchestral Score, Piano Ballad, Indie Folk, Bossa Nova, Minimal Techno; instruments such as Rhodes Piano, Synth Pads, Mellotron, Moog Oscillations, Glockenspiel, Kalimba, Marimba, Vibraphone, Celesta-like Music Box, Cello, Harp, Warm Acoustic Guitar, TR-909 Drum Machine; moods such as Ambient, Bright, Dreamy, Ethereal, Euphoric, Melancholic, Nostalgic, Ominous, Triumphant, Upbeat, Whimsical.
+- **Only what plays:** naming an instrument, even in a ban, tends to bring it in: "no piano, no vibraphone" came back with both. Describe the instruments that play and what each does, then let `listen` name what else crept in, with times. In our runs, bowed low strings came back the most expensive-sounding (8–8.5 of 10 from the critic); big band, jazz-funk and jazz noir drifted to retro library music (2–6).
 - **Texture sentences** beat instrument lists: "warm analog synth pads swelling beneath a dry, intimate acoustic guitar".
 - **Parameters:** "84 BPM", "in D major", "Create a 34-second instrumental track". There are no API fields for length, BPM, seed or a negative prompt; everything goes into the prompt. Ask for a few seconds more than you need and trim.
 - **Structure:** section tags or arrows (`[Intro] -> [Build] -> [Lift] -> [Outro]`), energy directions ("gradual crescendo, adding one instrument per section", "drop to near silence, then the full theme"), or timestamps. For films use a timeline with one line per section, derived from the real word timings: `[0:00 - 0:06] Intro: solo celesta, sparse. Intensity: 2/10`. Specific markers work too: "the full theme enters at 22 seconds".
 - **Vocals:** Lyria sings by default. For a bed under narration write "Instrumental only, no vocals." (`music` refuses a prompt without it). For a launch film with a sung or chanted hook: put lyrics under a `Lyrics:` header with `[Verse]`, `[Chorus]` tags, backing vocals in parentheses, and a singer profile ("Female alto, warm, husky lower range"); lyrics come out in the prompt's language, so write the prompt in the film's language.
 - **Images:** up to 10 images may go along as inspiration. Style frames from `renders/frames/` or the project's references can set the mood; they never carry the film's topic words.
-- **Iterate on Clip, finish on 3.5:** test a prompt on `lyria-3-clip-preview` (30 s, $0.04), then generate the variants on `lyria-3.5`.
-- Results vary between calls with the same prompt; generate variants and pick by ear and measurement. Editing a generated track by a follow-up prompt is not possible.
+- **Three pieces per film:** one run of three variants on `lyria-3.5`, and a test on `lyria-3-clip-preview` counts as one of the three. More only when the user asks for more music.
+- Results vary between calls with the same prompt; pick the best of the three by ear and measurement. Editing a generated track by a follow-up prompt is not possible.
 - Artist names and copyrighted lyrics are blocked. In our runs, topic words have triggered PROHIBITED_CONTENT, so describe only the music, never the film's topic.
 - `negative_prompt` exists on Vertex AI only. Through OpenRouter or AI Studio, write exclusions as a sentence ("No vocals, no drums before 0:08").
 

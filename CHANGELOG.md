@@ -2,6 +2,27 @@
 
 Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. Das Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Nummern folgen [Semantic Versioning](https://semver.org/lang/de/). Jede Version zum Herunterladen steht unter [Releases](https://github.com/marlonka/superint-video/releases).
 
+## [0.13.0] – 2026-11-17
+
+### Neu
+
+- Der Launch-Ablauf kennt jetzt Regeln für Bewegung und Ton, die aus der Analyse von 82 Motionfilmen großer Marken stammen: zehn Prinzipien mit je einem Test, Remix-Operatoren, mit denen der Coding-Agent jede übernommene Bewegung zu etwas Eigenem macht, und eine Pre-Flight-Prüfung vor den Style Frames und vor dem Render.
+- Ein Treffer im Ton kann aus mehreren Klängen auf demselben Bild bestehen, etwa Anschlag, Körper und Nachklang: In `sfx.json` trägt jede weitere Schicht `"layer": true` und zählt nicht als eigener Klang, wenn `sfx place` nach zu dichten Stellen sucht.
+- Mit `"room"` in `mix.json` klingen alle Soundeffekte im selben Raum, mit einstellbarer Nachhallzeit, Lautstärke und Helligkeit, statt trocken neben der Musik zu stehen.
+- Jede Lautheitsmessung, im Mix wie im fertigen MP4, nennt jetzt den Abstand der Spitze zur Lautheit (`peakToLoudnessDb`). Filme großer Marken liegen bei 12 bis 16 dB.
+- Der Launch-Ablauf weiß jetzt, was einen Film billig klingen lässt: klimpernde Motive in der Musik und gestimmte Glöckchen als Geräusche. Er verlangt Musik mit Gewicht, Geräusche ohne Tonhöhe und ein erstes Bild, das zeigt, was das Produkt macht.
+- Die Szenen-Referenz erklärt, warum eine 3D-Karte für ein Bild halb grau werden kann, wenn Chrome eine ihrer Kantenebenen vor das Bild sortiert, und wie die Szene das verhindert.
+
+### Geändert
+
+- Für einen Film erzeugt der Coding-Agent höchstens drei Musikstücke, normalerweise in einem Lauf mit drei Varianten, und wählt das beste. Mehr Musik entsteht nur, wenn du darum bittest; `music --variants` nimmt deshalb 1 bis 3.
+
+### Behoben
+
+- Bei aufwendigen Szenen mit 3D, Filtern oder vielen Ebenen kam beim Rendern manchmal ein schwarzes Bild heraus, weil es fotografiert wurde, bevor die Szene es gemalt hatte. Jede Aufnahme wartet jetzt, bis das Bild gemalt ist.
+- Das Beispiel zum Schneiden der Musik im Launch-Ablauf verschob jeden Schnitt um 40 ms nach vorn; jetzt bleibt jeder Taktanfang auf dem Raster des Films.
+- `sfx kit` brach mit einer leeren Fehlermeldung ab, sobald Earshots Prüfung eine Warnung fand. Jetzt zeigt es das Prüfergebnis mit den Warnungen und endet, wie beschrieben, mit Code 2.
+
 ## [0.12.0] – 2026-11-15
 
 ### Neu
@@ -268,6 +289,7 @@ Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. 
 
 - Erste Version: eine Rust-CLI und Studio im Browser für HTML-Szenen, Timeline, Prüfen, Snapshots und MP4-Export über Chromium und FFmpeg.
 
+[0.13.0]: https://github.com/marlonka/superint-video/releases/tag/v0.13.0
 [0.12.0]: https://github.com/marlonka/superint-video/releases/tag/v0.12.0
 [0.11.3]: https://github.com/marlonka/superint-video/releases/tag/v0.11.3
 [0.11.2]: https://github.com/marlonka/superint-video/releases/tag/v0.11.2

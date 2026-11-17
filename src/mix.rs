@@ -24,6 +24,8 @@ const NARRATION: &str = "audio/voice.wav";
 const VOICE_TRACK: &str = "voice";
 /// The track the music is placed on.
 const MUSIC_TRACK: &str = "music";
+/// The track `sfx place` puts the sound effects on; the room is theirs.
+const SFX_TRACK: &str = "sfx";
 /// Music less than this many dB under the voice while words are spoken is reported: it is no
 /// longer background.
 const LOUD_MUSIC: f64 = 12.0;
@@ -51,6 +53,32 @@ pub struct Settings {
     /// Gain changes on the music, such as a swell under the title.
     #[serde(default)]
     pub rides: Vec<Ride>,
+    /// One shared room for the sound effects, so they sound recorded in the same place.
+    #[serde(default)]
+    pub room: Option<Room>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Room {
+    /// Reverb time (RT60): about 0.5 s a small room, 0.8–1.2 s a studio, 2 s and more a hall.
+    #[serde(default = "room_seconds")]
+    pub seconds: f64,
+    /// The room's energy under the dry effects, in dB.
+    #[serde(default = "room_db")]
+    pub db: f64,
+    /// Above this frequency (Hz) the room dies away faster, as walls absorb the highs.
+    #[serde(default = "room_tone")]
+    pub tone: f64,
+}
+fn room_seconds() -> f64 {
+    0.9
+}
+fn room_db() -> f64 {
+    -12.0
+}
+fn room_tone() -> f64 {
+    5000.0
 }
 fn loudness() -> f64 {
     -14.0
@@ -127,6 +155,29 @@ pub async fn mix(root: &Path) -> Result<Value> {
         return silent(&store.root, &output, frames);
     }
     let (speech, mut warnings) = speech(&store.root, manifest).await?;
+    let mut room_report = Value::Null;
+    if let Some(room) = &settings.room {
+        anyhow::ensure!(
+            (0.1..=8.0).contains(&room.seconds)
+                && room.db <= 0.0
+                && (500.0..=20_000.0).contains(&room.tone),
+            "{SETTINGS}: the room needs seconds 0.1–8, db at most 0 and tone 500–20000 Hz"
+        );
+        match buses.get_mut(SFX_TRACK) {
+            Some(bus) => {
+                let gain = add_room(bus, room);
+                room_report = json!({
+                    "seconds": room.seconds,
+                    "db": room.db,
+                    "tone": room.tone,
+                    "wetGainDb": gain.map(|g| round(g, 2)),
+                });
+            }
+            None => warnings.push(format!(
+                "{SETTINGS} has a room, but nothing plays on the {SFX_TRACK} track"
+            )),
+        }
+    }
 
     let mut music_report = Value::Null;
     // The gain each music clip without a level gets, to be written into the film.
@@ -227,6 +278,7 @@ pub async fn mix(root: &Path) -> Result<Value> {
         "limiterMaxReductionDb": round(reduction, 2),
         "buses": levels,
         "music": music_report,
+        "room": room_report,
         "speechIntervals": speech.len(),
         "warnings": warnings,
     });
@@ -483,6 +535,81 @@ fn apply_envelope(samples: &mut [f32], envelope: &[f64]) {
     }
 }
 
+/// Freeverb's tunings at 44.1 kHz (Jezar at Dreampoint, public domain): eight combs, four
+/// allpasses, and the right channel 23 samples longer, so the two sides do not correlate.
+const COMBS: [usize; 8] = [1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617];
+const ALLPASSES: [usize; 4] = [556, 441, 341, 225];
+const SPREAD: usize = 23;
+
+/// Adds one room to a stereo bus: a Schroeder–Moorer reverb (damped feedback combs in parallel
+/// into allpasses in series, after Freeverb) whose combs decay by 60 dB in `seconds` and lose
+/// their highs above `tone`, 12 ms behind the dry sound, mixed in `db` of energy under it.
+/// Returns the gain the room got, or None for a silent bus.
+fn add_room(bus: &mut [f32], room: &Room) -> Option<f64> {
+    let rate = f64::from(RATE);
+    let frames = bus.len() / CHANNELS;
+    let scaled = |n: usize| ((n as f64) * rate / 44_100.0).round() as usize;
+    let damp = (-std::f64::consts::TAU * room.tone / rate).exp();
+    let predelay = (0.012 * rate) as usize;
+    let mono: Vec<f64> = bus
+        .as_chunks::<CHANNELS>()
+        .0
+        .iter()
+        .map(|pair| 0.5 * (f64::from(pair[0]) + f64::from(pair[1])))
+        .collect();
+    let mut wet = vec![0f64; frames * CHANNELS];
+    for channel in 0..CHANNELS {
+        let extra = channel * SPREAD;
+        // (buffer, position, feedback, the damping filter's state)
+        let mut combs: Vec<(Vec<f64>, usize, f64, f64)> = COMBS
+            .iter()
+            .map(|&n| {
+                let length = scaled(n + extra);
+                let feedback = 10f64.powf(-3.0 * length as f64 / (room.seconds * rate));
+                (vec![0.0; length], 0, feedback, 0.0)
+            })
+            .collect();
+        let mut allpasses: Vec<(Vec<f64>, usize)> = ALLPASSES
+            .iter()
+            .map(|&n| (vec![0.0; scaled(n + extra)], 0))
+            .collect();
+        for frame in 0..frames {
+            let input = if frame >= predelay {
+                mono[frame - predelay]
+            } else {
+                0.0
+            };
+            let mut out = 0.0;
+            for (buffer, index, feedback, store) in &mut combs {
+                let delayed = buffer[*index];
+                *store = delayed * (1.0 - damp) + *store * damp;
+                let next = input + *store * *feedback;
+                // Flushed before it decays into denormals, which are slow.
+                buffer[*index] = if next.abs() < 1e-25 { 0.0 } else { next };
+                *index = (*index + 1) % buffer.len();
+                out += delayed;
+            }
+            for (buffer, index) in &mut allpasses {
+                let delayed = buffer[*index];
+                buffer[*index] = out + delayed * 0.5;
+                *index = (*index + 1) % buffer.len();
+                out = delayed - out;
+            }
+            wet[frame * CHANNELS + channel] = out;
+        }
+    }
+    let dry: f64 = bus.iter().map(|&s| f64::from(s) * f64::from(s)).sum();
+    let reverb: f64 = wet.iter().map(|s| s * s).sum();
+    if dry <= 0.0 || reverb <= 0.0 {
+        return None;
+    }
+    let gain = (dry / reverb).sqrt() * 10f64.powf(room.db / 20.0);
+    for (target, sample) in bus.iter_mut().zip(&wet) {
+        *target += (sample * gain) as f32;
+    }
+    Some(audio::db(gain))
+}
+
 fn scale(samples: &mut [f32], db: f64) {
     let gain = 10f64.powf(db / 20.0) as f32;
     for sample in samples {
@@ -701,6 +828,57 @@ mod tests {
             .collect();
         // The gain the user set in Studio stays; the voice is never levelled as music.
         assert_eq!(without, vec!["bed"]);
+    }
+
+    #[test]
+    fn the_room_rings_on_after_a_hit_at_its_level() {
+        // One click at 0.1 s in two seconds of stereo.
+        let mut bus = vec![0f32; RATE as usize * 2 * CHANNELS];
+        let click = RATE as usize / 10;
+        for i in 0..48 {
+            let s = 0.8 * (1.0 - i as f32 / 48.0);
+            bus[(click + i) * CHANNELS] = s;
+            bus[(click + i) * CHANNELS + 1] = s;
+        }
+        let dry: f64 = bus.iter().map(|&s| f64::from(s) * f64::from(s)).sum();
+        let room: Room = serde_json::from_value(json!({"seconds": 0.8, "db": -10})).unwrap();
+        let gain = add_room(&mut bus, &room).unwrap();
+        assert!(gain.is_finite());
+        // Nothing before the click; 0.1 s and 0.5 s after it the room still rings.
+        assert!(bus[..click * CHANNELS].iter().all(|&s| s == 0.0));
+        let rms = |from: f64, to: f64| {
+            let (a, b) = (
+                (from * f64::from(RATE)) as usize,
+                (to * f64::from(RATE)) as usize,
+            );
+            let part = &bus[a * CHANNELS..b * CHANNELS];
+            (part
+                .iter()
+                .map(|&s| f64::from(s) * f64::from(s))
+                .sum::<f64>()
+                / part.len() as f64)
+                .sqrt()
+        };
+        let early = rms(0.2, 0.3);
+        let late = rms(0.6, 0.7);
+        assert!(early > 1e-4, "the room rings: {early}");
+        // 0.4 s later it is about 30 dB quieter (60 dB in 0.8 s), give or take the comb pattern.
+        let fall = audio::db(early / late);
+        assert!((20.0..45.0).contains(&fall), "decay {fall} dB over 0.4 s");
+        // The room's energy sits `db` under the dry click (the two barely overlap in time).
+        let total: f64 = bus.iter().map(|&s| f64::from(s) * f64::from(s)).sum();
+        let wet = total - dry;
+        assert!(
+            (audio::db((wet / dry).sqrt()) + 10.0).abs() < 1.5,
+            "{}",
+            audio::db((wet / dry).sqrt())
+        );
+        // The two sides differ: the room is wide.
+        let at = (0.25 * f64::from(RATE)) as usize;
+        assert!((bus[at * CHANNELS] - bus[at * CHANNELS + 1]).abs() > 0.0);
+        // A silent bus gets no room.
+        let mut silent = vec![0f32; 1000];
+        assert!(add_room(&mut silent, &room).is_none());
     }
 
     #[test]

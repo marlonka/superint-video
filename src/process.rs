@@ -497,10 +497,36 @@ pub(crate) async fn read_diagnostics(mut reader: impl AsyncRead + Unpin) -> Resu
 /// Bound process lifetime, buffered output, and pipe completion together.
 /// Only this application's owned child PID is ever terminated.
 pub async fn output(
-    mut cmd: Command,
+    cmd: Command,
     cancel: &CancellationToken,
     timeout: Duration,
 ) -> Result<Vec<u8>> {
+    let (out, err, status) = output_with_status(cmd, cancel, timeout).await?;
+    if !status.success() {
+        bail!("Media tool failed: {}", diagnostic_tail(&err));
+    }
+    Ok(out)
+}
+
+/// The last 4000 characters of a tool's diagnostics, where its error usually stands.
+pub fn diagnostic_tail(err: &[u8]) -> String {
+    let diagnostic = String::from_utf8_lossy(err);
+    let start = diagnostic
+        .char_indices()
+        .rev()
+        .nth(3999)
+        .map(|(offset, _)| offset)
+        .unwrap_or(0);
+    diagnostic[start..].to_string()
+}
+
+/// Like [`output`], but a non-zero exit comes back with stdout and stderr instead of failing:
+/// for tools that print a failed audit as their answer and say so in the exit code.
+pub async fn output_with_status(
+    mut cmd: Command,
+    cancel: &CancellationToken,
+    timeout: Duration,
+) -> Result<(Vec<u8>, Vec<u8>, std::process::ExitStatus)> {
     if cancel.is_cancelled() {
         bail!("cancelled");
     }
@@ -529,22 +555,43 @@ pub async fn output(
         }
         let _ = tokio::time::timeout(Duration::from_secs(3), child.kill()).await;
     }
-    let (out, err, status) = result?;
-    if !status.success() {
-        let diagnostic = String::from_utf8_lossy(&err);
-        let start = diagnostic
-            .char_indices()
-            .rev()
-            .nth(3999)
-            .map(|(offset, _)| offset)
-            .unwrap_or(0);
-        bail!("Media tool failed: {}", &diagnostic[start..]);
-    }
-    Ok(out)
+    result
 }
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+    use tokio_util::sync::CancellationToken;
+
+    /// A child that prints an audit and exits 1, as `earshot kit check` does when it warns.
+    fn failed_audit() -> tokio::process::Command {
+        if cfg!(windows) {
+            let mut cmd = super::command("cmd");
+            cmd.args(["/C", "echo audit& exit 1"]);
+            cmd
+        } else {
+            let mut cmd = super::command("sh");
+            cmd.args(["-c", "echo audit; exit 1"]);
+            cmd
+        }
+    }
+
+    #[tokio::test]
+    async fn a_failed_audit_comes_back_with_its_output() {
+        let never = CancellationToken::new();
+        let (out, _, status) =
+            super::output_with_status(failed_audit(), &never, Duration::from_secs(30))
+                .await
+                .unwrap();
+        assert!(!status.success());
+        assert!(String::from_utf8_lossy(&out).contains("audit"));
+        assert!(
+            super::output(failed_audit(), &never, Duration::from_secs(30))
+                .await
+                .is_err()
+        );
+    }
+
     #[cfg(windows)]
     #[test]
     fn a_saved_search_path_is_read_and_expanded() {

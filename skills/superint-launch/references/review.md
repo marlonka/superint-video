@@ -12,7 +12,7 @@ Read the sheet with the words ignored. For each picture beat write one line: wha
 
 Every item is a yes or a no with frame numbers. A no is a **P0** on the hook, a picture beat's core action, the end card or a hard ban; a **P1** elsewhere. Fix every P0 and the P1s time allows.
 
-1. **What it is by 3 s.** A stranger knows the product's category and what it does from the first line and picture.
+1. **What it is by 3 s.** A stranger knows the product's category and what it does from the first line and picture. Frame 0 shows content, and the first second has one signature move; nothing fades in from an empty ground.
 2. **Words in the middle.** Statements centred in the middle band for most of their time; none flush left at the top or bottom; "text on top, picture below" at most once.
 3. **Read soft, act sharp.** The first line by 1 s; after it, every line is read over the product it names, soft behind a dark pool, and no frame is a bare text card; each picture shows the thing its line said (input → output, before → after) without repeating its words.
 4. **One voice, quiet emphasis.** One face; each line arrives differently from the one before; the line centred at every frame of its build; emphasis on at most two lines; no box, marker, pill or underline unless it is the film's one signature.
@@ -21,9 +21,10 @@ Every item is a yes or a no with frame numbers. A no is a **P0** on the hook, a 
 7. **Clean UI.** No accent bar beside a card; stacked rows aligned within 4 px; no text touching an edge; even padding; real strings everywhere (no bracket slot, stand-in number or kit sample); no title cut with "…"; nothing flying over readable words. Close-ups with `--crop` on every screen.
 8. **Marks.** Other products' marks current and in one presentation; the end card centred, grown from the last element, held 2–3 s, the name once and one fact under it, alive to the last frame.
 9. **Premium, not just clean.** One sharp plane and a blur ladder behind it; one camera move with a job per shot, front-loaded and landing; light from a source; a hero material; the product's real content in quantity. A flat field with small type and a still card fails.
-10. **Motion.** Nothing still for more than 0.8 s; no float, drift or bob for its own sake; no bounce on copy; smear only on fast moves.
-11. **Sound.** Acts on downbeats, seams on beats, the end card on the last phrase, the track's own ending; SFX only where the picture acts; the music never ducked under effects.
+10. **Motion.** Nothing still for more than 0.8 s; no float, drift or bob for its own sake; no bounce on copy; smear only on fast moves. Every line holds at least 0.8 s after it lands, and nothing moving crosses it while it is read. Whatever turns or moves in depth has thickness, light that follows its angle and a shadow.
+11. **Sound.** Acts on downbeats, the 3–5 hero actions exactly on hits, the end card on the last phrase, the track's own ending; SFX only where the picture acts; each hero hit layered, one silence before the biggest reveal, the effects in one room; the music ducked only around a hit, never under effects for longer; the `mix` report shows 12–16 dB peak to loudness.
 12. **Copy.** Every line passes the line test in [standard.md](standard.md#copy); nothing from the cut-on-sight list.
+13. **Proof and originality.** The product's real output is on screen, not a progress bar or check mark in its place; the hero is the odd one out in every frame; each borrowed move is changed by a remix operator named in `direction.md` ([motion.md](motion.md)).
 
 ## 3. Log
 

@@ -51,6 +51,7 @@ pub async fn kit(root: &Path) -> Result<Value> {
         "takeCount": takes,
         "summary": check["summary"],
         "problems": check["problems"],
+        "notes": check["notes"],
     }))
 }
 
@@ -77,9 +78,16 @@ struct Cue {
     /// Pick the take with this pitch, for tuned roles.
     pitch: Option<String>,
     under: Option<f64>,
+    /// A layer of the hit before it: the body or tail of one designed sound on the same frame
+    /// (or a few frames after). Layers are not hits of their own in the smear and density checks.
+    #[serde(default)]
+    layer: bool,
     #[serde(default)]
     note: String,
 }
+
+/// A layer may follow its hit by this many frames at most.
+const LAYER_FRAMES: u64 = 6;
 
 #[derive(Deserialize)]
 struct Lock {
@@ -135,6 +143,7 @@ struct Placed {
     sync_seconds: f64,
     gain_db: f64,
     under: f64,
+    layer: bool,
     note: String,
 }
 
@@ -183,9 +192,11 @@ pub async fn place(root: &Path) -> Result<Value> {
     store.edit_many(&revision, &operations)?;
     // After the edit: this file counts towards the revision the edit checks.
     let fps = manifest.fps.num as f64 / manifest.fps.den as f64;
+    // One event per hit: its layers sound with it.
     let events: Vec<Value> = placed
         .iter()
         .enumerate()
+        .filter(|(_, cue)| !cue.layer)
         .map(|(index, cue)| {
             json!({"f": cue.frame, "kind": cue.role, "id": clip_id(index, &cue.role)})
         })
@@ -209,6 +220,7 @@ pub async fn place(root: &Path) -> Result<Value> {
             "syncSeconds": c.sync_seconds,
             "gainDb": round(c.gain_db, 2),
             "under": c.under,
+            "layer": c.layer,
             "note": c.note,
         })).collect::<Vec<_>>(),
         "warnings": warnings,
@@ -315,11 +327,25 @@ fn arrange(
             sync_seconds: round(sync, 4),
             gain_db,
             under,
+            layer: cue.layer,
             note: cue.note.clone(),
         });
     }
-    placed.sort_by_key(|c| c.frame);
-    for pair in placed.windows(2) {
+    // Stable: the layers of a hit keep their order after it.
+    placed.sort_by_key(|c| (c.frame, c.layer));
+    let hits: Vec<&Placed> = placed.iter().filter(|c| !c.layer).collect();
+    for cue in placed.iter().filter(|c| c.layer) {
+        let own = hits
+            .iter()
+            .any(|hit| hit.frame <= cue.frame && cue.frame - hit.frame <= LAYER_FRAMES);
+        if !own {
+            warnings.push(format!(
+                "frame {} {}: a layer without a hit on its frame or up to {LAYER_FRAMES} frames before it",
+                cue.frame, cue.role
+            ));
+        }
+    }
+    for pair in hits.windows(2) {
         if pair[1].frame - pair[0].frame < 3 {
             warnings.push(format!(
                 "frames {} and {}: two cues {} frames apart stack into one smear",
@@ -330,8 +356,8 @@ fn arrange(
         }
     }
     let second = fps.round() as u64;
-    for (i, cue) in placed.iter().enumerate() {
-        let dense = placed[i..]
+    for (i, cue) in hits.iter().enumerate() {
+        let dense = hits[i..]
             .iter()
             .take_while(|c| c.frame < cue.frame + second)
             .count();
@@ -400,6 +426,28 @@ mod tests {
         assert_eq!(placed[1].file, "bell_A5.wav");
         assert!(warnings.iter().any(|w| w.contains("outside 12–40 dB")));
         assert!(warnings.iter().any(|w| w.contains("stack")));
+    }
+
+    #[test]
+    fn layers_of_one_hit_are_not_a_smear() {
+        let cues: Cues = serde_json::from_value(json!({"cues":[
+            {"frame":100,"role":"bell","under":16},
+            {"frame":100,"role":"whoosh","under":20,"layer":true},
+            {"frame":101,"role":"bell","under":30,"layer":true},
+            {"frame":200,"role":"bell","layer":true}
+        ]}))
+        .unwrap();
+        let (placed, warnings) = arrange(&cues, &lock(), &manifest(), ("music", -16.0)).unwrap();
+        assert_eq!(placed.len(), 4);
+        // The hit comes first on its frame, its layers after it.
+        assert!(!placed[0].layer && placed[1].layer);
+        assert!(
+            !warnings.iter().any(|w| w.contains("smear")),
+            "{warnings:?}"
+        );
+        // A layer far from any hit is a slip.
+        assert_eq!(warnings.len(), 1, "{warnings:?}");
+        assert!(warnings[0].contains("frame 200") && warnings[0].contains("without a hit"));
     }
 
     #[test]

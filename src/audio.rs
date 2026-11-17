@@ -98,6 +98,9 @@ pub struct Loudness {
     /// Four times oversampled peak of the loudest channel.
     pub true_peak_db: f64,
     pub range_lu: f64,
+    /// True peak over integrated loudness: the room the loudest hit has over the whole. Brand
+    /// films sit at 12–16 dB; under about 12 their hits are limited flat.
+    pub peak_to_loudness_db: f64,
 }
 
 pub fn loudness(samples: &[f32], rate: u32, channels: u32) -> Result<Loudness> {
@@ -112,10 +115,17 @@ pub fn loudness(samples: &[f32], rate: u32, channels: u32) -> Result<Loudness> {
     for channel in 0..channels {
         peak = peak.max(meter.true_peak(channel).context("true peak")?);
     }
+    let (integrated, peak) = (integrated.max(-70.0), db(peak));
     Ok(Loudness {
-        integrated_lufs: round(integrated.max(-70.0), 2),
-        true_peak_db: round(db(peak), 2),
+        integrated_lufs: round(integrated, 2),
+        true_peak_db: round(peak, 2),
         range_lu: round(meter.loudness_range().unwrap_or(0.0), 2),
+        // Silence has no hits to give room to.
+        peak_to_loudness_db: if integrated <= -70.0 {
+            0.0
+        } else {
+            round(peak - integrated, 2)
+        },
     })
 }
 
@@ -219,5 +229,9 @@ mod tests {
         let measured = loudness(&samples, RATE, 2).unwrap();
         assert!((measured.integrated_lufs + 20.0).abs() < 0.3);
         assert!((measured.true_peak_db - (-20.0)).abs() < 0.2);
+        // A steady tone has no hits: its peak sits on its loudness.
+        assert!(measured.peak_to_loudness_db.abs() < 0.5);
+        let silence = loudness(&vec![0f32; RATE as usize * 2], RATE, 2).unwrap();
+        assert_eq!(silence.peak_to_loudness_db, 0.0);
     }
 }
