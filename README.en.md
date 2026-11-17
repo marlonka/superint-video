@@ -22,9 +22,9 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/studio.jpg" alt="Superint Video's Studio: the preview of a finished explainer on the left, the coding agent's progress on the right, the timeline with scenes, voice, music and sound effects below" width="100%">
+  <a href="https://github.com/marlonka/superint-video/releases/download/v0.13.0/superint-video-launch.mp4"><img src="docs/images/launch-film.jpg" alt="The first frame of the launch film: a wall of twelve films made with Superint Video, under the line “Dein KI-Coding-Agent macht Videos.” (Your AI coding agent makes videos.)" width="100%"></a>
   <br>
-  <sub>Studio with a finished film. You see what your coding agent is doing and change whatever you like yourself.</sub>
+  <sub>▶ <a href="https://github.com/marlonka/superint-video/releases/download/v0.13.0/superint-video-launch.mp4">Watch the launch film</a> (33 s, German, with sound). Superint Video made it about itself.</sub>
 </p>
 
 ## How it works
@@ -36,6 +36,12 @@ Superint Video is not an editor where you build scenes yourself. It is the works
 3. **Your agent builds the film** with Superint Video's tools: it researches, writes, draws, voices, checks and renders.
 
 Keep Superint Video open while it works. It then switches to the new film, and you see every step. If the app is closed, your agent opens Studio itself. You do not have to watch, though: it keeps working in the background until the MP4 is done.
+
+<p align="center">
+  <img src="docs/images/studio.jpg" alt="Superint Video's Studio: the preview of a finished explainer on the left, the coding agent's progress on the right, the timeline with scenes, voice, music and sound effects below" width="100%">
+  <br>
+  <sub>Studio with a finished film. You see what your coding agent is doing and change whatever you like yourself.</sub>
+</p>
 
 ## What you need
 
@@ -79,7 +85,7 @@ Your agent asks if something is missing, then gets going: research, script, pict
   <img src="docs/images/app-start.jpg" alt="The start page: a field for the film's topic, style, length, format and language below it, the finished prompt with the Copy prompt button, and four films with a picture and their status" width="100%">
 </p>
 
-For more ideas, see the [starter prompts](prompts/README.md). To see a result, watch the [launch film](https://github.com/marlonka/superint-video/releases/download/v0.3.0/superint-video-launch.mp4) (32 s, German, with sound) that Superint Video made about itself.
+For more ideas, see the [starter prompts](prompts/README.md). To see a result, watch the [launch film](https://github.com/marlonka/superint-video/releases/download/v0.13.0/superint-video-launch.mp4) at the top of this page.
 
 ## Questions
 

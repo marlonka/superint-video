@@ -2,7 +2,7 @@
 
 Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. Das Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Nummern folgen [Semantic Versioning](https://semver.org/lang/de/). Jede Version zum Herunterladen steht unter [Releases](https://github.com/marlonka/superint-video/releases).
 
-## [0.13.0] – 2026-11-16
+## [0.13.0] – 2026-11-17
 
 ### Neu
 
@@ -11,6 +11,7 @@ Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. 
 - Mit `"room"` in `mix.json` klingen alle Soundeffekte im selben Raum, mit einstellbarer Nachhallzeit, Lautstärke und Helligkeit, statt trocken neben der Musik zu stehen.
 - Jede Lautheitsmessung, im Mix wie im fertigen MP4, nennt jetzt den Abstand der Spitze zur Lautheit (`peakToLoudnessDb`). Filme großer Marken liegen bei 12 bis 16 dB.
 - Der Launch-Ablauf weiß jetzt, was einen Film billig klingen lässt: klimpernde Motive in der Musik und gestimmte Glöckchen als Geräusche. Er verlangt Musik mit Gewicht, Geräusche ohne Tonhöhe und ein erstes Bild, das zeigt, was das Produkt macht.
+- Die Szenen-Referenz erklärt, warum eine 3D-Karte für ein Bild halb grau werden kann, wenn Chrome eine ihrer Kantenebenen vor das Bild sortiert, und wie die Szene das verhindert.
 
 ### Geändert
 
