@@ -58,6 +58,7 @@ You cannot hear. Three tools listen for you, and every take, music pick and fini
 - A verdict is evidence, not an order. It knows the voice is synthetic on purpose (`--synth-intended`), but it still tends to call TTS "a little flat": weigh that against the transcript and your own reading of the script, and say in the report what you changed because of it.
 - Earshot also has local listening models (`describe`, `match`, `ab`, `rank`, `timeline --cues audio/sfx/cues.json`, `sheet`, `critique`). They need a one-time 1.1 GB download, so they are not part of the workflow; use them only when `earshot doctor` shows them cached.
 - Generate voice and music with `voice takes` and `music`, not with other CLIs: they do the takes, checks and caching.
+- **At most three pieces of music per film**, counted over all runs (normally one `music --variants 3`). Pick the best of them and cut it to the film. A fourth piece only when the user asks for more music; when none of the three fits, say what is wrong with each and ask. `--dry-run` generates nothing and does not count.
 
 ## Workflow
 
@@ -74,7 +75,7 @@ The workflow skill decides whether the film is voice-led (explainer) or music-le
 | `voice own <dir> [--wait] [--timeout 540] [--file <audio> [--paragraph N]]` | The user's own voice: opens Studio's recording view and, with `--wait`, returns when every paragraph is recorded (exit 3 when time ran out: run it again); `--file` takes a recording instead, whole or for one paragraph. Without flags it prints the state |
 | `voice assemble <dir> [--pick auto]` | `audio/voice.wav` and `audio/words.json` with seconds and frames, from TTS takes or the user's recordings; says whether the word times are `measured` or `estimated` |
 | `transcribe <file> [--reference voice.md] [--terms a,b]` | Word times and errors for any audio file |
-| `music <dir> [--variants 3] [--dry-run]` | Checks `music-prompt.md`, generates and measures variants |
+| `music <dir> [--variants 3] [--dry-run]` | Checks `music-prompt.md`, generates and measures variants (1–3; three pieces per film in all unless the user asks for more) |
 | `sfx list [--category <c>]` | The Earshot bank: timing, loudness, pitch range per sound |
 | `sfx kit <dir>` | Renders `audio/kit.json` through Earshot into `audio/sfx/` and audits every take; exit 2 on problems |
 | `sfx place <dir>` | Puts the cues of `sfx.json` on the `sfx` track by each take's measured sync point |

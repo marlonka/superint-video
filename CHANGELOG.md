@@ -10,11 +10,17 @@ Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. 
 - Ein Treffer im Ton kann aus mehreren Klängen auf demselben Bild bestehen, etwa Anschlag, Körper und Nachklang: In `sfx.json` trägt jede weitere Schicht `"layer": true` und zählt nicht als eigener Klang, wenn `sfx place` nach zu dichten Stellen sucht.
 - Mit `"room"` in `mix.json` klingen alle Soundeffekte im selben Raum, mit einstellbarer Nachhallzeit, Lautstärke und Helligkeit, statt trocken neben der Musik zu stehen.
 - Jede Lautheitsmessung, im Mix wie im fertigen MP4, nennt jetzt den Abstand der Spitze zur Lautheit (`peakToLoudnessDb`). Filme großer Marken liegen bei 12 bis 16 dB.
+- Der Launch-Ablauf weiß jetzt, was einen Film billig klingen lässt: klimpernde Motive in der Musik und gestimmte Glöckchen als Geräusche. Er verlangt Musik mit Gewicht, Geräusche ohne Tonhöhe und ein erstes Bild, das zeigt, was das Produkt macht.
+
+### Geändert
+
+- Für einen Film erzeugt der Coding-Agent höchstens drei Musikstücke, normalerweise in einem Lauf mit drei Varianten, und wählt das beste. Mehr Musik entsteht nur, wenn du darum bittest; `music --variants` nimmt deshalb 1 bis 3.
 
 ### Behoben
 
 - Bei aufwendigen Szenen mit 3D, Filtern oder vielen Ebenen kam beim Rendern manchmal ein schwarzes Bild heraus, weil es fotografiert wurde, bevor die Szene es gemalt hatte. Jede Aufnahme wartet jetzt, bis das Bild gemalt ist.
 - Das Beispiel zum Schneiden der Musik im Launch-Ablauf verschob jeden Schnitt um 40 ms nach vorn; jetzt bleibt jeder Taktanfang auf dem Raster des Films.
+- `sfx kit` brach mit einer leeren Fehlermeldung ab, sobald Earshots Prüfung eine Warnung fand. Jetzt zeigt es das Prüfergebnis mit den Warnungen und endet, wie beschrieben, mit Code 2.
 
 ## [0.12.0] – 2026-11-15
 

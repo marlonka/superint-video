@@ -334,6 +334,7 @@ enum Commands {
         output: Option<PathBuf>,
     },
     /// Check music-prompt.md, then generate and measure variants with Lyria.
+    /// A film gets at most three generated pieces of music; more only when the user asks.
     Music {
         #[arg(default_value = ".")]
         project: PathBuf,

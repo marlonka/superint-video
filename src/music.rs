@@ -282,8 +282,8 @@ fn measure(samples: &[f32], rate: u32) -> (audio::Levels, f64) {
 /// `music`: check the prompt, then generate and measure the variants.
 pub async fn generate(root: &Path, variants: u32, dry_run: bool) -> Result<Value> {
     ensure!(
-        (1..=5).contains(&variants),
-        "--variants must be between 1 and 5"
+        (1..=3).contains(&variants),
+        "--variants must be between 1 and 3: a film gets at most three generated pieces of music, more only when the user asks for them"
     );
     let (doc, topic, terms) = read(root)?;
     let issues = check(&doc, &topic, &terms);

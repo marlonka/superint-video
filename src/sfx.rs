@@ -51,6 +51,7 @@ pub async fn kit(root: &Path) -> Result<Value> {
         "takeCount": takes,
         "summary": check["summary"],
         "problems": check["problems"],
+        "notes": check["notes"],
     }))
 }
 
