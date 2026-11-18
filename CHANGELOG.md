@@ -2,6 +2,20 @@
 
 Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. Das Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Nummern folgen [Semantic Versioning](https://semver.org/lang/de/). Jede Version zum Herunterladen steht unter [Releases](https://github.com/marlonka/superint-video/releases).
 
+## [0.14.0] – 2026-11-18
+
+### Neu
+
+- Ein vorhandenes Video, das du verwenden darfst, baut der Coding-Agent jetzt als Film nach, den du in Studio ändern kannst: Schrift, Untertitel, Karten, Hintergründe und Bewegung als Szenen, gefilmte Menschen, Fotos und Logos als Ausschnitte aus dem Original. Der neue Skill `superint-rebuild` führt ihn durch Rechte, Schnittplan, Nachbau, Vergleich und Übergabe.
+- `superint-video rebuild open` legt den Film in Größe, Bildrate und Länge des Originals an, übernimmt dessen Ton unverändert und listet jeden Schnitt, jeden Bildwechsel, jede Überblendung und jeden Blitz mit seinem Bild.
+- `rebuild look` zeigt Bilder des Originals Bild für Bild und misst in einem Ausschnitt, wann er sich ändert, wo Schrift oder Formen stehen und welche Farben der Hintergrund hat, in den Farbwerten, die eine Szene braucht.
+- `rebuild lift` schneidet einen Ausschnitt des Originals für eine Bildspanne heraus und legt ihn genau an seine alte Stelle; eingebrannten Text kann es dabei übermalen.
+- `rebuild compare` vergleicht den Film mit dem Original: an einzelnen Bildern direkt aus den Szenen, ohne Rendern, oder über einen ganzen Render mit fehlenden und zusätzlichen Schnitten, Tonversatz, schwachen Stellen und den schwächsten Bildern nebeneinander, auf Wunsch als Video mit Original und Nachbau Seite an Seite.
+
+### Behoben
+
+- Beim parallelen Rendern eines Films mit Videoclips brach der Render unter Windows manchmal mit „The source image cannot be decoded“ ab, wenn zwei Worker dasselbe Bild gleichzeitig zwischenspeicherten.
+
 ## [0.13.0] – 2026-11-17
 
 ### Neu
@@ -289,6 +303,7 @@ Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. 
 
 - Erste Version: eine Rust-CLI und Studio im Browser für HTML-Szenen, Timeline, Prüfen, Snapshots und MP4-Export über Chromium und FFmpeg.
 
+[0.14.0]: https://github.com/marlonka/superint-video/releases/tag/v0.14.0
 [0.13.0]: https://github.com/marlonka/superint-video/releases/tag/v0.13.0
 [0.12.0]: https://github.com/marlonka/superint-video/releases/tag/v0.12.0
 [0.11.3]: https://github.com/marlonka/superint-video/releases/tag/v0.11.3

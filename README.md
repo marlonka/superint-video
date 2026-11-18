@@ -12,7 +12,7 @@
 <p align="center">
   <img alt="Windows 10 und 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-2f7bf5?style=flat-square">
   <img alt="macOS ab 11" src="https://img.shields.io/badge/macOS-ab%2011-6e6e73?style=flat-square">
-  <a href="https://github.com/marlonka/superint-video/releases/latest"><img alt="Version 0.13.0" src="https://img.shields.io/badge/Version-0.13.0-2e8b57?style=flat-square"></a>
+  <a href="https://github.com/marlonka/superint-video/releases/latest"><img alt="Version 0.14.0" src="https://img.shields.io/badge/Version-0.14.0-2e8b57?style=flat-square"></a>
   <img alt="Lizenz: MIT" src="https://img.shields.io/badge/Lizenz-MIT-3a3a3a?style=flat-square">
 </p>
 
@@ -91,7 +91,7 @@ Mehr Ideen findest du in den [Starter-Prompts](prompts/README.md). Wie ein Ergeb
 
 **Was kostet das?** Superint Video selbst ist kostenlos und quelloffen. Du brauchst deinen Coding-Agenten mit dessen Abo oder Guthaben. Ein API-Schlüssel ist freiwillig; Google AI Studio hat eine kostenlose Stufe mit Tageslimit.
 
-**Welche Filme kann ich machen?** Erklärfilme, Launch- und Update-Filme für ein Produkt, kurze Clips und Loops. Mitgeliefert sind drei Stile: flache Vektorgrafik, eine fotografische Miniaturwelt aus Code und ein Launch-Look. Unter „Stile“ machst du aus deinen eigenen Bildern einen neuen.
+**Welche Filme kann ich machen?** Erklärfilme, Launch- und Update-Filme für ein Produkt, kurze Clips und Loops. Ein eigenes Video baut der Agent auch nach, damit du es in Studio ändern kannst. Mitgeliefert sind drei Stile: flache Vektorgrafik, eine fotografische Miniaturwelt aus Code und ein Launch-Look. Unter „Stile“ machst du aus deinen eigenen Bildern einen neuen.
 
 **Wo liegen meine Filme?** In `Videos\Superint Video` (auf dem Mac `Filme/Superint Video`), jeder Film in einem eigenen Ordner. Einen anderen Ort wählst du in der Einrichtung.
 

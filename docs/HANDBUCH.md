@@ -157,7 +157,7 @@ Das Werkzeug selbst hat keinen Geschmack. Was ein Film wird, kommt aus drei aust
 
 | Teil | Bestimmt | Liegt in |
 | --- | --- | --- |
-| **Ablauf-Skill** | Welche Art Film, wie er geplant, geschrieben, komponiert und geprüft wird | `skills/superint-explainer` (Erklärvideo), `skills/superint-launch` (Launch-, Update-, Produktfilm, aufgebaut auf [cinetic](https://github.com/Leonxlnx/cinetic) von Leon), oder ein eigener |
+| **Ablauf-Skill** | Welche Art Film, wie er geplant, geschrieben, komponiert und geprüft wird | `skills/superint-explainer` (Erklärvideo), `skills/superint-launch` (Launch-, Update-, Produktfilm, aufgebaut auf [cinetic](https://github.com/Leonxlnx/cinetic) von Leon), `skills/superint-rebuild` (ein vorhandenes Video nachbauen), oder ein eigener |
 | **Stil-Preset** | Look: Farbe, Licht, Schrift, Formen, Figuren, Bewegung | `blank` (kein Hauslook), `flat-explainer`, `miniature-3d`, `launch`, oder ein eigenes |
 | **Referenzen** | Woran der Agent seine Bilder misst | Standbilder, Screenshots, Clips in `references/` von Preset oder Projekt |
 
@@ -207,6 +207,16 @@ Jeder Schritt läuft in Kritikrunden. Willst du zwischendurch entscheiden, setze
 Der vollständige Auftrag mit allen Eingaben steht in [prompts/explainer.md](../prompts/explainer.md); dazu Varianten für Shorts, eigene Skripte und Änderungen in [prompts/](../prompts/README.md).
 
 **Ton:** Stimme, Wort-Timestamps und Musik erzeugen die Befehle `voice`, `transcribe` und `music`. Standard ist Google AI Studio mit `GEMINI_API_KEY` (`gemini-3.8-flash-tts`, `gemini-3.5-transcribe`, `lyria-3.5`), dieselben Modelle gibt es über Google Cloud mit `GOOGLE_CLOUD_API_KEY`, die Alternative ist OpenRouter mit `OPENROUTER_API_KEY`. Die Soundeffekte kommen aus [Earshot](https://github.com/Leonxlnx/earshot) (lokal, MIT): `sfx kit` rendert sie, `sfx place` setzt sie auf die Frames. `mix` mischt und mastert auf −14 LUFS, `listen` lässt einen Take oder den fertigen Film über Earshot gegenhören. Musik ist leiser Hintergrund: `mix` legt sie etwa 22 dB unter die Stimme und schreibt diese Lautstärke in den Musik-Clip, damit die Vorschau in Studio so klingt wie der fertige Film. Stellst du die Lautstärke der Musik in Studio selbst ein, bleibt dein Wert. Ohne API-Schlüssel sprichst du selbst (`voice own`, siehe „Eigene Stimme“) oder der Film bleibt ohne Stimme; Musik gibt es dann nur aus einer Datei, die du mitbringst.
+
+### Ein vorhandenes Video nachbauen
+
+Ein Video, das du gemacht hast oder verwenden darfst, baut der Agent als Film nach, den du in Studio ändern kannst:
+
+```text
+Nutze den Skill superint-video: Bau dieses Video nach, damit ich es bearbeiten kann: C:\Videos\produktclip.mp4
+```
+
+`superint-video rebuild open` legt den Film in Größe, Bildrate und Länge des Originals an, übernimmt seinen Ton unverändert und listet jeden Schnitt und jeden Bildwechsel. Schrift, Untertitel, Karten, Diagramme, Hintergründe und Bewegung baut der Agent als Szenen nach; was Code nicht zeichnen kann (gefilmte Menschen, Fotos, Logos, gemalte Szenen), schneidet `rebuild lift` aus dem Original auf seinem eigenen Ausschnitt aus. `rebuild compare` vergleicht den Film mit dem Original, ohne Rendern an einzelnen Bildern oder über den ganzen Render: fehlende Schnitte, Tonversatz, schwache Stellen, die schwächsten Bilder nebeneinander. Am Ende bekommst du den Film, ein Video mit Original und Nachbau nebeneinander und im Bericht, was nachgebaut und was übernommen ist. Nachgebaut werden nur Videos, die du verwenden darfst; der Agent lädt nichts herunter.
 
 ## Presets, Referenzen und Briefing
 

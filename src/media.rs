@@ -300,7 +300,10 @@ impl MediaService {
                 count -= 1;
             }
         }
-        crate::project::atomic_write(&file, &data)?;
+        // The cache only saves work. Parallel render workers ask for the same frame at once, and
+        // on Windows replacing a file that another worker is reading fails; the frame is in
+        // hand either way, so a failed write must not fail the frame.
+        let _ = crate::project::atomic_write(&file, &data);
         Ok(data)
     }
 

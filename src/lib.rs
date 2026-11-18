@@ -19,6 +19,7 @@ pub mod process;
 pub mod production;
 pub mod project;
 pub mod providers;
+pub mod rebuild;
 pub mod renderer;
 pub mod review;
 pub mod server;

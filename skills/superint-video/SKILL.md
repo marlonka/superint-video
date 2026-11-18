@@ -11,7 +11,7 @@ The tool itself has no taste. Three things decide what a film becomes, and each 
 
 | Layer | Answers | Comes from |
 | --- | --- | --- |
-| **Workflow** | What kind of film, how it is planned, written, composed and reviewed | A workflow skill: `superint-explainer`, `superint-launch`, or your own |
+| **Workflow** | What kind of film, how it is planned, written, composed and reviewed | A workflow skill: `superint-explainer`, `superint-launch`, `superint-rebuild`, or your own |
 | **Look** | Palette, type, shapes, light, characters, motion vocabulary | A style preset: `STYLE.md`, `kit/`, `scenes/lib/`, `blocks/` |
 | **References** | What "good" looks like for this film | Stills, screenshots or clips in the project's `references/` |
 
@@ -45,6 +45,8 @@ Then read the workflow skill and follow it. To edit an existing project (a folde
 
 **Starting from another film.** When the user names one of their films as the base ("Nimm meinen Film … als Vorlage", "like my sleep film, but about dreams"), do not run `new`. Run `superint-video duplicate "<film folder>" --topic "<new topic>"`: it copies brief, scenes, kit, references, blocks and sound into a new folder in the films folder, names the copy, opens Studio and prints the new `project`; renders, `report.md`, `process/` (status, reviews, polish) and Studio's state stay behind. Work only in the copy. Rewrite `brief.md` for the new film first (topic, message, audience, length, language), then change only what the new topic needs and keep what still fits: the style, the world, the kit, the music if it suits. The copy needs its own polish pass and render.
 
+**Rebuilding a video.** When the user brings a video file and wants it rebuilt as a film they can edit ("bau dieses Video nach", "recreate this", "make this editable"), do not run `new`: read the `superint-rebuild` skill. `superint-video rebuild open <video>` starts the film from the video itself, at its size, rate and length, with its sound.
+
 ## Let the user watch
 
 Studio shows the production live: the brief, the preset and skills in use, the references, your current step, the working documents, the latest changes, and the preview, which reloads whenever a scene or `video.json` changes.
@@ -69,7 +71,7 @@ Studio shows the production live: the brief, the preset and skills in use, the r
 - The project's `STYLE.md` is the look contract. The workflow skill's `direction.md` makes it concrete for one film; it may narrow `STYLE.md` but not break it unless the brief says so.
 - `references/` is the yardstick. Before style frames, look at every reference and write into `direction.md` what you take from each (palette, type, light, composition, motion) and what not. Put your style frames and every review contact sheet next to them at the same size. Anything that looks emptier, flatter, cheaper or less finished beside them is a defect.
 - Without references, ask once. Without any, judge against `STYLE.md` and the workflow's rubric, and say in the report that no references were given.
-- References show a look; they are never content. Never copy their scenes, characters, logos or layouts. Reference files of other people's films stay out of version control.
+- References show a look; they are never content. Never copy their scenes, characters, logos or layouts. Reference files of other people's films stay out of version control. The one exception is a video the user may use and wants rebuilt: `superint-rebuild`.
 
 Presets, their layout, where they live and how to make your own: [references/styles.md](references/styles.md).
 
@@ -123,6 +125,7 @@ Presets, their layout, where they live and how to make your own: [references/sty
 | `studio <dir> [--background] [--no-open] [--stop]` | Local editor and live view in the browser. Reuses an instance already running for the project. `--background` starts it the way `new` and `render` do and prints its `url` at once: use it, because without it the command is the server and runs until it is stopped |
 | `render <dir> --output renders/video.mp4 [--audio audio/master.wav] [--codec x265\|x264] [--workers N] [--quality draft] [--unpolished]` | Final MP4 with AAC; x265/HEVC by default (half the size) or x264/H.264 (plays everywhere); with `--audio` the master is muxed and measured on the MP4. A film with a brief needs its last polish round accepted: `--quality draft` for test renders, `--unpolished` only on the user's word |
 | `voice …`, `transcribe …`, `music …`, `sfx …`, `listen …`, `mix …` | Audio: see the `superint-audio` skill |
+| `rebuild open …`, `rebuild look …`, `rebuild lift …`, `rebuild compare …` | Rebuild a video the user may use as an editable film and measure it against the source: see the `superint-rebuild` skill |
 
 `init <dir>` creates a minimal one-scene project without a preset. Every command prints JSON on success and `{"error", "message"}` on failure.
 

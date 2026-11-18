@@ -849,7 +849,7 @@ pub fn contact_sheet(thumbs: &[(String, image::RgbImage)]) -> image::RgbImage {
 }
 
 // A tiny bitmap label keeps contact sheets self-identifying without host fonts.
-fn label(image: &mut image::RgbImage, x: u32, y: u32, text: &str) {
+pub fn label(image: &mut image::RgbImage, x: u32, y: u32, text: &str) {
     let digits: [[u8; 5]; 10] = [
         [7, 5, 5, 5, 7],
         [2, 6, 2, 2, 7],

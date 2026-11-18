@@ -74,6 +74,10 @@ pub fn summary(root: &Path) -> Value {
         .any(|p| root.join(p).exists());
     let mut skills = vec!["superint-video".to_string()];
     skills.extend(workflow);
+    // A rebuild has no brief: its record names the workflow.
+    if root.join(crate::rebuild::RECORD).is_file() {
+        skills.push("superint-rebuild".into());
+    }
     if audio {
         skills.push("superint-audio".into());
     }
