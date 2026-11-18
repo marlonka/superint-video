@@ -91,7 +91,7 @@ Mehr Ideen findest du in den [Starter-Prompts](prompts/README.md). Wie ein Ergeb
 
 **Was kostet das?** Superint Video selbst ist kostenlos und quelloffen. Du brauchst deinen Coding-Agenten mit dessen Abo oder Guthaben. Ein API-Schlüssel ist freiwillig; Google AI Studio hat eine kostenlose Stufe mit Tageslimit.
 
-**Welche Filme kann ich machen?** Erklärfilme, Launch- und Update-Filme für ein Produkt, kurze Clips und Loops. Mitgeliefert sind drei Stile: flache Vektorgrafik, eine fotografische Miniaturwelt aus Code und ein Launch-Look. Unter „Stile“ machst du aus deinen eigenen Bildern einen neuen.
+**Welche Filme kann ich machen?** Erklärfilme, Launch- und Update-Filme für ein Produkt, kurze Clips und Loops. Ein eigenes Video baut der Agent auch nach, damit du es in Studio ändern kannst. Mitgeliefert sind drei Stile: flache Vektorgrafik, eine fotografische Miniaturwelt aus Code und ein Launch-Look. Unter „Stile“ machst du aus deinen eigenen Bildern einen neuen.
 
 **Wo liegen meine Filme?** In `Videos\Superint Video` (auf dem Mac `Filme/Superint Video`), jeder Film in einem eigenen Ordner. Einen anderen Ort wählst du in der Einrichtung.
 

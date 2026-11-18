@@ -15,6 +15,7 @@ pub const SKILLS: &[&str] = &[
     "superint-launch",
     "superint-audio",
     "superint-miniature",
+    "superint-rebuild",
 ];
 
 /// A coding agent that can operate Superint Video once it has the skills.
@@ -352,7 +353,7 @@ mod tests {
 
         let done = sync(&shipped, &installed, &replaced).unwrap();
         assert_eq!(done.updated, vec![SKILLS[1]]);
-        assert_eq!(done.added, vec![SKILLS[2], SKILLS[3], SKILLS[4]]);
+        assert_eq!(done.added, SKILLS[2..].to_vec());
         assert!(
             states(&wanted(Some(&shipped)), &installed)
                 .iter()

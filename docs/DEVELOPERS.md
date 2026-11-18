@@ -21,7 +21,7 @@ The agent only asks about what it cannot decide well itself, such as screenshots
 
 | Part | Decides | Included |
 | --- | --- | --- |
-| **Workflow skill** | What kind of film, how it is planned, written and checked | [`superint-explainer`](../skills/superint-explainer/SKILL.md) for explainers, [`superint-launch`](../skills/superint-launch/SKILL.md) for launch, update and product films (built on [cinetic](https://github.com/Leonxlnx/cinetic)) |
+| **Workflow skill** | What kind of film, how it is planned, written and checked | [`superint-explainer`](../skills/superint-explainer/SKILL.md) for explainers, [`superint-launch`](../skills/superint-launch/SKILL.md) for launch, update and product films (built on [cinetic](https://github.com/Leonxlnx/cinetic)), [`superint-rebuild`](../skills/superint-rebuild/SKILL.md) to rebuild an existing video as an editable film, measured against it frame by frame |
 | **Style preset** | The look: colour, light, type, shapes, characters, motion | `flat-explainer`, `miniature-3d` (with its own skill [`superint-miniature`](../skills/superint-miniature/SKILL.md)), `launch`, `blank` |
 | **References** | What the agent measures its pictures against | Your stills and screenshots, on the preset or in the project |
 

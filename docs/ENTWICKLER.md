@@ -21,7 +21,7 @@ Der Agent fragt nur nach, was er nicht selbst gut entscheiden kann, etwa Screens
 
 | Teil | Bestimmt | Mitgeliefert |
 | --- | --- | --- |
-| **Ablauf-Skill** | Welche Art Film, wie er geplant, geschrieben und geprüft wird | [`superint-explainer`](../skills/superint-explainer/SKILL.md) für Erklärvideos, [`superint-launch`](../skills/superint-launch/SKILL.md) für Launch-, Update- und Produktfilme (aufgebaut auf [cinetic](https://github.com/Leonxlnx/cinetic)) |
+| **Ablauf-Skill** | Welche Art Film, wie er geplant, geschrieben und geprüft wird | [`superint-explainer`](../skills/superint-explainer/SKILL.md) für Erklärvideos, [`superint-launch`](../skills/superint-launch/SKILL.md) für Launch-, Update- und Produktfilme (aufgebaut auf [cinetic](https://github.com/Leonxlnx/cinetic)), [`superint-rebuild`](../skills/superint-rebuild/SKILL.md), um ein vorhandenes Video als bearbeitbaren Film nachzubauen und Bild für Bild mit ihm zu vergleichen |
 | **Stil-Preset** | Der Look: Farbe, Licht, Schrift, Formen, Figuren, Bewegung | `flat-explainer`, `miniature-3d` (mit eigenem Skill [`superint-miniature`](../skills/superint-miniature/SKILL.md)), `launch`, `blank` |
 | **Referenzen** | Woran der Agent seine Bilder misst | Deine Standbilder und Screenshots, am Preset oder im Projekt |
 

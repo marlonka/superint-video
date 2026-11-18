@@ -91,7 +91,7 @@ For more ideas, see the [starter prompts](prompts/README.md). To see a result, w
 
 **What does it cost?** Superint Video itself is free and open source. You need your coding agent, with its plan or credits. An API key is optional; Google AI Studio has a free tier with a daily limit.
 
-**What films can I make?** Explainers, launch and update films for a product, short clips and loops. Three styles come with it: flat vector art, a photographic miniature world made in code, and a launch look. Under "Styles" you make a new one from your own pictures.
+**What films can I make?** Explainers, launch and update films for a product, short clips and loops. The agent can also rebuild a video of your own, so you can change it in Studio. Three styles come with it: flat vector art, a photographic miniature world made in code, and a launch look. Under "Styles" you make a new one from your own pictures.
 
 **Where are my films?** In `Videos\Superint Video` (on a Mac `Movies/Superint Video`), each film in a folder of its own. You can choose another place in Setup.
 

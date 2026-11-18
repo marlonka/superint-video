@@ -14,7 +14,7 @@ use superint_video::{
     music, polish,
     preset::{self, Brief, Preset},
     project::{self, ProjectStore, display_path},
-    providers, renderer, review, server, sfx, style,
+    providers, rebuild, renderer, review, server, sfx, style,
     voice::{self, TakesOptions, TranscribeOptions},
 };
 use tokio_util::sync::CancellationToken;
@@ -381,8 +381,144 @@ enum Commands {
         #[arg(long)]
         online: bool,
     },
+    /// Rebuild an existing video as an editable film and measure the film against it: open a
+    /// film at the source's size with its sound and its shots, look at source frames, lift
+    /// regions of the source into the film, compare the film with the source.
+    Rebuild {
+        #[command(subcommand)]
+        command: RebuildCommand,
+    },
     /// Print the versioned project JSON Schema.
     Schema,
+}
+
+#[derive(Subcommand)]
+enum RebuildCommand {
+    /// A new film at the video's size, frame rate and length: the video copied into source/
+    /// untouched, its sound as one clip over the whole film, every shot and change listed, and a
+    /// sheet with the first frame of every shot. Opens Studio.
+    Open {
+        /// The video to rebuild (MP4, MOV, WebM or MKV), one the user has the right to use.
+        video: PathBuf,
+        /// The film's name (else the video's file name).
+        #[arg(long)]
+        name: Option<String>,
+        /// Folder for the film; else the user's films folder.
+        #[arg(long)]
+        to: Option<PathBuf>,
+        /// Don't start Studio.
+        #[arg(long)]
+        no_studio: bool,
+    },
+    /// Source frames of a range on one sheet, every frame when the range is short, and what can
+    /// be measured on them inside a region: the frames where it changes (--events), the box and
+    /// colour of what is drawn on its ground (--ink), the colours of a grid (--colours).
+    Look {
+        project: PathBuf,
+        /// First and last frame, e.g. 240-262.
+        #[arg(long, value_parser = frame_range)]
+        range: (u64, u64),
+        /// x,y,w,h in source pixels (default: the whole picture).
+        #[arg(long, value_parser = pixel_box)]
+        region: Option<[u32; 4]>,
+        /// Most frames on the sheet; a longer range shows every nth frame.
+        #[arg(long, default_value_t = 24)]
+        max: usize,
+        /// Frames where the region changes.
+        #[arg(long)]
+        events: bool,
+        /// Box, colour and coverage of the ink in the region, per frame on the sheet.
+        #[arg(long)]
+        ink: bool,
+        /// Mean colour of a grid over the region, e.g. 8x4, at the start, middle and end.
+        #[arg(long, value_parser = grid)]
+        colours: Option<(usize, usize)>,
+    },
+    /// Cut a region of the source into assets/lifted/ for the frames of a range, and print the
+    /// clip that puts it back on its own box. Recorded, so `compare` scores the rest without it.
+    Lift {
+        project: PathBuf,
+        /// First and last frame, e.g. 240-389; one frame with --still.
+        #[arg(long, value_parser = frame_range)]
+        range: (u64, u64),
+        /// x,y,w,h in source pixels (default: the whole picture), widened to even pixels.
+        #[arg(long, value_parser = pixel_box)]
+        region: Option<[u32; 4]>,
+        /// The clip's id and file name (else lift-<from>-<to>).
+        #[arg(long)]
+        id: Option<String>,
+        /// One frame as a PNG image clip, for a photo, a logo or a still background.
+        #[arg(long)]
+        still: bool,
+        /// x,y,w,h of burned-in text or a mark to paint out from its surroundings; repeatable.
+        #[arg(long, value_parser = pixel_box)]
+        clean: Vec<[u32; 4]>,
+        /// Put the clip on the timeline at once (through Studio when it is open).
+        #[arg(long)]
+        add: bool,
+        /// The track it goes on with --add.
+        #[arg(long, default_value = "lifted")]
+        track: String,
+    },
+    /// Score the film against the source. --at renders those frames straight from the scenes,
+    /// without a render; --render compares a whole MP4: cuts missed, added or shifted, the
+    /// sound's offset, weak and empty stretches and the weakest moments, pictured.
+    Compare {
+        project: PathBuf,
+        /// Frames to compare without rendering, comma-separated.
+        #[arg(long, value_delimiter = ',')]
+        at: Vec<u64>,
+        /// A render of the film to compare frame by frame.
+        #[arg(long)]
+        render: Option<PathBuf>,
+        /// With --at: x,y,w,h to measure the ink of both in, for type size and weight.
+        #[arg(long, value_parser = pixel_box)]
+        region: Option<[u32; 4]>,
+        /// With --render: only these frames, for a long film worked in sections.
+        #[arg(long, value_parser = frame_range)]
+        range: Option<(u64, u64)>,
+        /// With --render: also write source and film next to each other in one MP4.
+        #[arg(long)]
+        side_by_side: bool,
+    },
+}
+
+/// `240-262` or `240` (one frame).
+fn frame_range(text: &str) -> Result<(u64, u64), String> {
+    let parse = |s: &str| s.trim().parse::<u64>().map_err(|e| format!("{s}: {e}"));
+    match text.split_once('-') {
+        Some((a, b)) => {
+            let (a, b) = (parse(a)?, parse(b)?);
+            if b < a {
+                return Err(format!("{a}-{b} ends before it starts"));
+            }
+            Ok((a, b))
+        }
+        None => parse(text).map(|a| (a, a)),
+    }
+}
+
+/// `x,y,w,h` in pixels.
+fn pixel_box(text: &str) -> Result<[u32; 4], String> {
+    let parts: Vec<u32> = text
+        .split(',')
+        .map(|s| s.trim().parse::<u32>().map_err(|e| format!("{s}: {e}")))
+        .collect::<Result<_, _>>()?;
+    parts
+        .try_into()
+        .map_err(|_| "expected x,y,w,h in pixels, e.g. 80,900,1760,120".to_string())
+}
+
+/// `8x4`: columns and rows.
+fn grid(text: &str) -> Result<(usize, usize), String> {
+    let (c, r) = text
+        .split_once(['x', 'X'])
+        .ok_or("expected columns x rows, e.g. 8x4")?;
+    let parse = |s: &str| match s.trim().parse::<usize>() {
+        Ok(n) if (1..=32).contains(&n) => Ok(n),
+        _ => Err(format!("{s}: 1 to 32")),
+    };
+    Ok((parse(c)?, parse(r)?))
 }
 
 #[derive(Subcommand)]
@@ -659,6 +795,15 @@ fn running(command: &Commands) -> Option<live::Running> {
         Commands::Sfx {
             command: SfxCommand::Place { project, .. },
         } => (project, "Placing sound effects"),
+        Commands::Rebuild {
+            command: RebuildCommand::Look { project, .. },
+        } => (project, "Looking at source frames"),
+        Commands::Rebuild {
+            command: RebuildCommand::Lift { project, .. },
+        } => (project, "Lifting a region of the source"),
+        Commands::Rebuild {
+            command: RebuildCommand::Compare { project, .. },
+        } => (project, "Comparing the film with the source"),
         _ => return None,
     };
     live::Running::start(project, label)
@@ -1612,6 +1757,85 @@ async fn run() -> Result<()> {
                 std::process::exit(2);
             }
         }
+        Commands::Rebuild { command } => match command {
+            RebuildCommand::Open {
+                video,
+                name,
+                to,
+                no_studio,
+            } => {
+                let (root, mut opened) = rebuild::open(rebuild::Open {
+                    video: &video,
+                    name: name.as_deref(),
+                    to,
+                })
+                .await?;
+                if !no_studio {
+                    opened["studio"] = json!(live::ensure_studio(&root).await);
+                }
+                print_json(opened);
+            }
+            RebuildCommand::Look {
+                project,
+                range,
+                region,
+                max,
+                events,
+                ink,
+                colours,
+            } => {
+                let root = ProjectStore::open(&project)?.root;
+                let look = rebuild::Look {
+                    range,
+                    region,
+                    max,
+                    events,
+                    colours,
+                    ink,
+                };
+                print_json(rebuild::look(&root, look).await?);
+            }
+            RebuildCommand::Lift {
+                project,
+                range,
+                region,
+                id,
+                still,
+                clean,
+                add,
+                track,
+            } => {
+                let root = ProjectStore::open(&project)?.root;
+                let lift = rebuild::LiftOptions {
+                    region,
+                    range,
+                    id,
+                    still,
+                    clean,
+                    add,
+                    track,
+                };
+                print_json(rebuild::lift(&root, lift).await?);
+            }
+            RebuildCommand::Compare {
+                project,
+                at,
+                render,
+                region,
+                range,
+                side_by_side,
+            } => {
+                let root = ProjectStore::open(&project)?.root;
+                let compare = rebuild::CompareOptions {
+                    at,
+                    render,
+                    region,
+                    range,
+                    side_by_side,
+                };
+                print_json(rebuild::compare(&root, compare).await?);
+            }
+        },
         Commands::Schema => print_json(Manifest::schema()),
     }
     Ok(())
