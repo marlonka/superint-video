@@ -1,7 +1,7 @@
 //! Whether a newer Superint Video is out, and the one click that installs it.
 //!
-//! The app asks GitHub for the latest release a few seconds after it starts and again whenever
-//! its last look is six hours old, and keeps the answer in the user folder (`update.json`). The
+//! The app asks GitHub for the latest release once, a few seconds after it starts, and keeps the
+//! answer in the user folder (`update.json`). The
 //! file holds only what the release is. Whether it is newer is decided by whoever reads it,
 //! against its own version: a copy built from the code and an installed one share the file.
 //!
@@ -34,11 +34,8 @@ const STATE: &str = "update.json";
 /// The folder in the user folder for the download, the helper and the installer's log.
 pub const FOLDER: &str = "update";
 
-/// A look older than this is taken again.
-const STALE_MS: u64 = 6 * 60 * 60 * 1000;
-/// How often the app sees whether its look has gone stale. The app ends itself after two hours
-/// without anyone looking, so the file, not this, keeps the requests rare.
-const WATCH_EVERY: Duration = Duration::from_secs(30 * 60);
+/// How long after the app starts it asks GitHub, so the look does not hold up the start.
+const LOOK_AFTER: Duration = Duration::from_secs(5);
 /// Someone asking twice within this gets the first answer.
 const ASKED_FLOOR_MS: u64 = 60 * 1000;
 /// An update that has not said how it went after this long is taken as failed.
@@ -521,14 +518,6 @@ pub fn enabled(settings: &Settings) -> bool {
         && std::env::var_os("CI").is_none()
 }
 
-fn due(state: &State, now: u64) -> bool {
-    let limited = state.retry_after.is_some_and(|until| until > now);
-    let stale = state
-        .checked_at
-        .is_none_or(|at| now.saturating_sub(at) >= STALE_MS);
-    stale && !limited
-}
-
 enum Answer {
     Unchanged,
     Latest {
@@ -677,20 +666,17 @@ pub(crate) async fn fresh(home: &Path, source: &Source) -> Result<Option<Release
     Ok(release)
 }
 
-/// Looks for a new version a few seconds after the app starts, then whenever the last look is
-/// six hours old, until the app closes. Only the app does this, never a film's Studio.
+/// Looks for a new version once, a few seconds after the app starts, however recent the last
+/// look is; the next look by itself is at the next start. While GitHub says to wait, `check`
+/// keeps what it knew. Only the app does this, never a film's Studio.
 pub async fn watch(home: PathBuf, closing: CancellationToken) {
-    let mut wait = Duration::from_secs(5);
-    loop {
-        tokio::select! {
-            _ = closing.cancelled() => return,
-            _ = tokio::time::sleep(wait) => {}
-        }
-        wait = WATCH_EVERY;
-        let settings = Settings::load(&home).unwrap_or_default();
-        if enabled(&settings) && due(&State::load(&home), now_ms()) {
-            let _ = check(&home, false).await;
-        }
+    tokio::select! {
+        _ = closing.cancelled() => return,
+        _ = tokio::time::sleep(LOOK_AFTER) => {}
+    }
+    let settings = Settings::load(&home).unwrap_or_default();
+    if enabled(&settings) {
+        let _ = check(&home, false).await;
     }
 }
 
@@ -1059,27 +1045,6 @@ mod tests {
         );
         let arrived = outcome(&pending(now - 2 * PENDING_FOR_MS), v("0.12.0"), now).unwrap();
         assert_eq!(arrived.status, "updated");
-    }
-
-    #[test]
-    fn a_look_is_due_when_old_and_not_while_github_says_wait() {
-        let now = 10 * STALE_MS;
-        assert!(due(&State::default(), now));
-        let fresh = State {
-            checked_at: Some(now - 1000),
-            ..State::default()
-        };
-        assert!(!due(&fresh, now));
-        let old = State {
-            checked_at: Some(now - STALE_MS),
-            ..State::default()
-        };
-        assert!(due(&old, now));
-        let limited = State {
-            retry_after: Some(now + 1),
-            ..old
-        };
-        assert!(!due(&limited, now));
     }
 
     #[test]

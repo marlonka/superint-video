@@ -116,7 +116,7 @@ export const de: Catalog = {
   'setup.updates.newest': 'Das ist die neueste Version.',
   'setup.updates.auto': 'Von selbst nach neuen Versionen suchen',
   'setup.updates.note':
-    'Die App fragt alle paar Stunden bei GitHub nach. Installiert wird erst, wenn du klickst.',
+    'Die App fragt bei jedem Start einmal bei GitHub nach. Installiert wird erst, wenn du klickst.',
 
   // Einrichtung
   'setup.title': 'Einrichtung',
