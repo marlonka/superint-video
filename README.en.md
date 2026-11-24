@@ -109,7 +109,7 @@ For more ideas, see the [starter prompts](prompts/README.md). To see a result, w
 
 ## Privacy and AI content
 
-Superint Video collects no usage data and needs no account. Pictures, Studio and renders stay on your PC. Every few hours the app asks GitHub whether a new version is out; nothing about you goes with it beyond what any request shows (your IP address and the version). You can turn that off under **Setup** → **Updates**. Only if you add an API key do the texts for the AI voice and music go to that provider, under its terms. What your coding agent does with your files is governed by its provider.
+Superint Video collects no usage data and needs no account. Pictures, Studio and renders stay on your PC. Each time it starts, the app asks GitHub once whether a new version is out; nothing about you goes with it beyond what any request shows (your IP address and the version). You can turn that off under **Setup** → **Updates**. Only if you add an API key do the texts for the AI voice and music go to that provider, under its terms. What your coding agent does with your files is governed by its provider.
 
 Voice and music usually come from generative models, and every MP4 says so in its metadata. When you publish a film, label it visibly as AI-assisted too, and only recreate a real voice with that person's consent.
 
