@@ -54,24 +54,98 @@ const MOST_REFERENCES_BYTES: usize = 96 * 1024 * 1024;
 const REPLACED_SKILLS: &str = "replaced-skills";
 
 /// An answer kept for a while, because working it out starts programs or reads many files.
+/// Tracks an epoch so an in-flight read that began before a mutation cannot write stale data back.
 #[derive(Clone, Default)]
-struct Cache(Arc<Mutex<Option<(Instant, Value)>>>);
+struct Cache(Arc<Mutex<CacheEntry>>);
+
+#[derive(Default)]
+struct CacheEntry {
+    epoch: u64,
+    value: Option<(Instant, Value)>,
+}
 
 impl Cache {
-    fn get(&self, lasts: Duration) -> Option<Value> {
+    /// Returns a fresh cached value, or the current epoch so a later store can verify nothing
+    /// invalidated or replaced the cache while the caller was reading from disk or running tools.
+    fn get_or_epoch(&self, lasts: Duration, fresh: bool) -> std::result::Result<Value, u64> {
         let kept = self.0.lock().unwrap();
-        kept.as_ref()
-            .filter(|(at, _)| at.elapsed() < lasts)
-            .map(|(_, value)| value.clone())
+        if !fresh
+            && let Some((at, value)) = &kept.value
+            && at.elapsed() < lasts
+        {
+            return Ok(value.clone());
+        }
+        Err(kept.epoch)
+    }
+
+    fn put_if(
+        &self,
+        expected: u64,
+        value: Value,
+        lasts: Duration,
+    ) -> std::result::Result<Value, ()> {
+        let mut kept = self.0.lock().unwrap();
+        if kept.epoch != expected {
+            if let Some((at, newer)) = &kept.value
+                && at.elapsed() < lasts
+            {
+                return Ok(newer.clone());
+            }
+            return Err(());
+        }
+        kept.epoch += 1;
+        kept.value = Some((Instant::now(), value.clone()));
+        Ok(value)
+    }
+
+    fn resolve<E>(
+        &self,
+        lasts: Duration,
+        fresh: bool,
+        mut load: impl FnMut() -> std::result::Result<Value, E>,
+    ) -> std::result::Result<Value, E> {
+        for _ in 0..3 {
+            let expected = match self.get_or_epoch(lasts, fresh) {
+                Ok(value) => return Ok(value),
+                Err(epoch) => epoch,
+            };
+            let value = load()?;
+            if let Ok(stored) = self.put_if(expected, value, lasts) {
+                return Ok(stored);
+            }
+        }
+        load()
+    }
+
+    async fn resolve_async<F, Fut>(&self, lasts: Duration, fresh: bool, mut load: F) -> Value
+    where
+        F: FnMut() -> Fut,
+        Fut: std::future::Future<Output = Value>,
+    {
+        for _ in 0..3 {
+            let expected = match self.get_or_epoch(lasts, fresh) {
+                Ok(value) => return value,
+                Err(epoch) => epoch,
+            };
+            let value = load().await;
+            if let Ok(stored) = self.put_if(expected, value, lasts) {
+                return stored;
+            }
+        }
+        load().await
     }
 
     fn put(&self, value: Value) -> Value {
-        *self.0.lock().unwrap() = Some((Instant::now(), value.clone()));
+        let mut kept = self.0.lock().unwrap();
+        kept.epoch += 1;
+        kept.value = Some((Instant::now(), value.clone()));
         value
     }
 
     fn clear(&self) {
-        *self.0.lock().unwrap() = None;
+        let mut kept = self.0.lock().unwrap();
+        kept.epoch += 1;
+        kept.value = None;
     }
 }
 
@@ -526,16 +600,17 @@ const TOOLS: &[Tool] = &[
 /// Whether the app is on the desktop and in the Start menu. Reading a shortcut starts a program,
 /// so the answer is kept as long as the tools'.
 async fn shortcut_status(state: &AppState, fresh: bool) -> Value {
-    if let Some(status) = state.shortcut.get(TOOLS_FOR).filter(|_| !fresh) {
-        return status;
-    }
     state
         .shortcut
-        .put(serde_json::to_value(shortcut::status().await).unwrap_or(Value::Null))
+        .resolve_async(TOOLS_FOR, fresh, || async {
+            serde_json::to_value(shortcut::status().await).unwrap_or(Value::Null)
+        })
+        .await
 }
 
 /// Puts the app on the desktop and in the Start menu.
 async fn make_shortcut(State(state): State<AppState>) -> ApiResult<Json<Value>> {
+    state.shortcut.clear();
     let status = shortcut::create()
         .await
         .map_err(|error| ApiError::told("shortcut-failed", &format!("{error:#}")))?;
@@ -544,33 +619,35 @@ async fn make_shortcut(State(state): State<AppState>) -> ApiResult<Json<Value>> 
 }
 
 async fn tools(state: &AppState, fresh: bool) -> Value {
-    if let Some(tools) = state.tools.get(TOOLS_FOR).filter(|_| !fresh) {
-        return tools;
-    }
-    let found = dependencies().await;
-    let part = |name: &str| found.iter().find(|d| d["name"] == name);
-    let manager = process::package_manager();
-    let tools: Vec<Value> = TOOLS
-        .iter()
-        .map(|tool| {
-            let first = part(tool.parts[0]);
-            json!({
-                "id": tool.id,
-                "title": tool.title,
-                "ok": tool.parts.iter().all(|name| part(name).is_some_and(|d| d["ok"] == true)),
-                "optional": tool.optional,
-                "sounds": first.and_then(|d| d["sounds"].as_u64()),
-                "get": tool.get,
-                // A script brings what it needs through winget or Homebrew when that is missing.
-                "install": match tool.script {
-                    Some(script) => manager || process::installed(script.needs),
-                    None => manager && install_command(tool).is_some(),
-                },
-                "command": tool.command,
-            })
+    state
+        .tools
+        .resolve_async(TOOLS_FOR, fresh, || async {
+            let found = dependencies().await;
+            let part = |name: &str| found.iter().find(|d| d["name"] == name);
+            let manager = process::package_manager();
+            let tools: Vec<Value> = TOOLS
+                .iter()
+                .map(|tool| {
+                    let first = part(tool.parts[0]);
+                    json!({
+                        "id": tool.id,
+                        "title": tool.title,
+                        "ok": tool.parts.iter().all(|name| part(name).is_some_and(|d| d["ok"] == true)),
+                        "optional": tool.optional,
+                        "sounds": first.and_then(|d| d["sounds"].as_u64()),
+                        "get": tool.get,
+                        // A script brings what it needs through winget or Homebrew when that is missing.
+                        "install": match tool.script {
+                            Some(script) => manager || process::installed(script.needs),
+                            None => manager && install_command(tool).is_some(),
+                        },
+                        "command": tool.command,
+                    })
+                })
+                .collect();
+            json!(tools)
         })
-        .collect();
-    state.tools.put(json!(tools))
+        .await
 }
 
 /// The command line that installs a tool through winget, on a Mac through Homebrew. No
@@ -1055,37 +1132,37 @@ async fn save_settings(
 // -------------------------------------------------------------------------------------- styles
 
 fn styles(state: &AppState) -> Result<Value> {
-    if let Some(styles) = state.styles.get(STYLES_FOR) {
-        return Ok(styles);
-    }
-    let styles: Vec<Value> = preset::all()?
-        .into_iter()
-        .map(|p| {
-            let references: Vec<String> = p
-                .references()
-                .into_iter()
-                .filter_map(|r| r.rsplit('/').next().map(str::to_owned))
-                .filter(|r| is_picture(r))
-                .collect();
-            let preview: Vec<&str> = p.previews().into_iter().filter(|f| is_picture(f)).collect();
-            json!({
-                "name": p.config.name,
-                "title": p.config.title,
-                "description": p.config.description,
-                "translations": p.config.translations,
-                "formats": p.config.formats.keys().collect::<Vec<_>>(),
-                "defaultFormat": p.config.default_format,
-                "seconds": p.config.defaults.seconds,
-                "language": p.config.defaults.language,
-                "voice": p.config.narration.voice,
-                "music": p.config.music.is_some(),
-                "own": matches!(p.source, preset::Source::User),
-                "references": references,
-                "preview": preview,
+    state.styles.resolve(STYLES_FOR, false, || {
+        let styles: Vec<Value> = preset::all()?
+            .into_iter()
+            .map(|p| {
+                let references: Vec<String> = p
+                    .references()
+                    .into_iter()
+                    .filter_map(|r| r.rsplit('/').next().map(str::to_owned))
+                    .filter(|r| is_picture(r))
+                    .collect();
+                let preview: Vec<&str> =
+                    p.previews().into_iter().filter(|f| is_picture(f)).collect();
+                json!({
+                    "name": p.config.name,
+                    "title": p.config.title,
+                    "description": p.config.description,
+                    "translations": p.config.translations,
+                    "formats": p.config.formats.keys().collect::<Vec<_>>(),
+                    "defaultFormat": p.config.default_format,
+                    "seconds": p.config.defaults.seconds,
+                    "language": p.config.defaults.language,
+                    "voice": p.config.narration.voice,
+                    "music": p.config.music.is_some(),
+                    "own": matches!(p.source, preset::Source::User),
+                    "references": references,
+                    "preview": preview,
+                })
             })
-        })
-        .collect();
-    Ok(state.styles.put(json!(styles)))
+            .collect();
+        Ok(json!(styles))
+    })
 }
 
 fn is_picture(name: &str) -> bool {
@@ -1497,10 +1574,12 @@ async fn reveal_film(
 /// The coding agents and their skills, remembered for a moment: comparing reads many files and
 /// the start page asks every few seconds.
 fn agents(state: &AppState, fresh: bool) -> Value {
-    match state.agents.get(AGENTS_FOR).filter(|_| !fresh) {
-        Some(agents) => agents,
-        None => state.agents.put(json!(skills::describe())),
-    }
+    state
+        .agents
+        .resolve(AGENTS_FOR, fresh, || {
+            Ok::<_, std::convert::Infallible>(json!(skills::describe()))
+        })
+        .unwrap()
 }
 
 /// Brings an agent's skills to the app's version: adds the missing ones and replaces the ones
@@ -1524,8 +1603,12 @@ async fn install_skills(
     })?;
     let installed = agent.skills_dir().context("No user folder")?;
     let replaced = state.home.join(REPLACED_SKILLS).join(agent.id);
+    // Invalidate before and after syncing so an overlapping overview poll cannot cache stale
+    // pre-sync or mid-sync skill states.
+    state.agents.clear();
     let done = tokio::task::spawn_blocking(move || skills::sync(&shipped, &installed, &replaced))
         .await??;
+    state.agents.clear();
     Ok(Json(json!({
         "copied": done.added,
         "updated": done.updated,
@@ -1697,5 +1780,47 @@ mod tests {
         assert!(rows.contains(r#""style":"google/gemini-4-hydrogen""#));
         assert!(rows.contains(r#""region":"eu""#));
         assert_eq!(rows.matches(r#""more":true"#).count(), 2);
+    }
+
+    #[test]
+    fn cache_drops_stale_store_after_clear_or_newer_put() {
+        let cache = Cache::default();
+        let ttl = Duration::from_secs(20);
+
+        let expected = cache.get_or_epoch(ttl, false).unwrap_err();
+        cache.clear();
+        cache.put(json!({"state": "current"}));
+
+        let stored = cache
+            .put_if(expected, json!({"state": "outdated"}), ttl)
+            .expect("newer value already in cache should be returned");
+        assert_eq!(stored, json!({"state": "current"}));
+        assert_eq!(
+            cache.get_or_epoch(ttl, false).unwrap(),
+            json!({"state": "current"})
+        );
+
+        let before_clear = cache.get_or_epoch(ttl, true).unwrap_err();
+        cache.clear();
+        assert!(
+            cache
+                .put_if(before_clear, json!({"state": "stale"}), ttl)
+                .is_err()
+        );
+        assert!(cache.get_or_epoch(ttl, false).is_err());
+
+        let mut attempts = 0;
+        let resolved = cache
+            .resolve::<()>(ttl, false, || {
+                attempts += 1;
+                if attempts == 1 {
+                    cache.clear();
+                    return Ok(json!({"attempt": 1}));
+                }
+                Ok(json!({"attempt": 2}))
+            })
+            .unwrap();
+        assert_eq!(attempts, 2);
+        assert_eq!(resolved, json!({"attempt": 2}));
     }
 }

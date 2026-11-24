@@ -69,6 +69,15 @@ function explain(result: { code?: string; message?: string }, status: number) {
     : say('common.failed', { status });
 }
 
+/**
+ * Overview answers can arrive out of order, and a call can change part of the overview while
+ * one is on its way. An answer older than the one shown, or asked for before such a change,
+ * would bring the old state back, so it is left out; the next round asks again.
+ */
+let asked = 0;
+let shown = 0;
+let changed = 0;
+
 /** Takes a fresh overview. The app's language follows the saved setting whenever that changed. */
 export function accept(next: Overview) {
   // The program was updated underneath: this page is its old one, so the new one is loaded.
@@ -88,7 +97,16 @@ export function accept(next: Overview) {
 
 /** Replaces part of the overview with what a call returned. */
 export function patch(changes: Partial<Overview>) {
+  changed += 1;
   overview.update((current) => (current ? { ...current, ...changes } : current));
+}
+
+/** Replaces part of the setup with what a call returned, on the overview as it is now. */
+export function patchSetup(changes: Partial<Overview['setup']>) {
+  changed += 1;
+  overview.update((current) =>
+    current ? { ...current, setup: { ...current.setup, ...changes } } : current,
+  );
 }
 
 /**
@@ -134,6 +152,8 @@ export async function call<T>(
 
 /** Asks for the overview again; `fresh` also asks the tools again instead of remembering them. */
 export async function refresh(fresh = false): Promise<Overview | null> {
+  const number = ++asked;
+  const before = changed;
   const query = new URLSearchParams();
   if (document.visibilityState === 'visible') query.set('visible', '1');
   if (fresh) query.set('fresh', '1');
@@ -142,6 +162,8 @@ export async function refresh(fresh = false): Promise<Overview | null> {
     reachable.set(true);
     if (!response.ok) return null;
     const next: Overview = await response.json();
+    if (number < shown || before !== changed) return get(overview);
+    shown = number;
     accept(next);
     return next;
   } catch {

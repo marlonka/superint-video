@@ -18,7 +18,7 @@
     copyText,
     fail,
     needs,
-    patch,
+    patchSetup,
     refresh,
     reveal,
     run,
@@ -142,7 +142,7 @@
       const result = await call<{ copied: string[]; updated: string[]; agents: Agent[] }>(
         `/api/app/agents/${agent.id}/skills`,
       );
-      patch({ setup: { ...overview.setup, agents: result.agents } });
+      patchSetup({ agents: result.agents });
       const [added, updated] = [result.copied.length, result.updated.length];
       announce(
         added && updated
@@ -166,7 +166,7 @@
   function makeShortcut() {
     void run('shortcut', async () => {
       const result = await call<{ shortcut: Overview['setup']['shortcut'] }>('/api/app/shortcut');
-      patch({ setup: { ...overview.setup, shortcut: result.shortcut } });
+      patchSetup({ shortcut: result.shortcut });
       announce($t('setup.shortcut.made'));
     });
   }
@@ -175,7 +175,7 @@
   function adoptKeys() {
     void run('adopt-keys', async () => {
       const result = await call<{ keys: KeyRow[]; removed: boolean }>('/api/app/keys/adopt');
-      patch({ setup: { ...overview.setup, keys: result.keys } });
+      patchSetup({ keys: result.keys });
       envKept = !result.removed;
       if (result.removed) announce($t('setup.env.moved'));
       await refresh();
@@ -208,7 +208,7 @@
       });
       drafts = { ...drafts, [key.name]: '' };
       replacing = { ...replacing, [key.name]: false };
-      patch({ setup: { ...overview.setup, keys: result.keys } });
+      patchSetup({ keys: result.keys });
       await checkKey(key);
       void refresh();
     });
@@ -232,7 +232,7 @@
       const result = await call<{ keys: KeyRow[] }>(`/api/app/keys/${key.name}`, 'DELETE');
       const { [key.name]: _gone, ...rest } = checks;
       checks = rest;
-      patch({ setup: { ...overview.setup, keys: result.keys } });
+      patchSetup({ keys: result.keys });
       announce($t('setup.key.removed', { provider: key.title }));
       void refresh();
     });
