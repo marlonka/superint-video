@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "name": "faltwerk",
+  "title": "Faltwerk pop-up book",
+  "description": "A pop-up book on a paper maker's desk, computed in code by its own WebGL2 renderer: a leather binding with gold, pages that turn on the voice, and on every spread a picture of cut paper that stands up by itself as the book opens, with soft shadows, depth of field and a desk lamp. Made for narrated explainers told chapter by chapter, one spread per chapter; expect about a fifth of a second per frame at 64 samples on a desktop GPU. Read the superint-faltwerk skill.",
+  "translations": {
+    "de": {
+      "title": "Faltwerk Pop-up-Buch",
+      "description": "Ein Pop-up-Buch auf dem Tisch eines Papiermachers, vollständig in Code berechnet, mit eigenem WebGL2-Renderer: ein Ledereinband mit Gold, Seiten, die auf der Stimme umblättern, und auf jeder Doppelseite ein Bild aus geschnittenem Papier, das sich beim Aufschlagen von selbst aufstellt, mit weichen Schatten, Schärfentiefe und einer Schreibtischlampe. Gemacht für gesprochene Erklärfilme, Kapitel für Kapitel erzählt, eine Doppelseite je Kapitel; rechne bei 64 Samples mit etwa einer Fünftelsekunde pro Bild auf einer Desktop-Grafikkarte."
+    }
+  },
+  "formats": {
+    "16:9": {
+      "width": 1920,
+      "height": 1080
+    }
+  },
+  "defaultFormat": "16:9",
+  "defaults": {
+    "seconds": 180,
+    "language": "de",
+    "stops": [],
+    "concepts": 3,
+    "workflow": "superint-explainer"
+  },
+  "narration": {
+    "wordsPerMinute": {
+      "de": 130,
+      "en": 155,
+      "*": 140
+    },
+    "model": "gemini-3.8-flash-tts",
+    "voice": "Sadaltager"
+  },
+  "transcription": {
+    "model": "gemini-3.5-transcribe"
+  },
+  "music": {
+    "model": "lyria-3.5",
+    "prompt": "Orchestral score for strings and two French horns: slow, warm and grown-up, with quiet weight, like careful work at a desk in the evening. Cellos and double basses carry long, connected bowed lines low down; violas and violins hold wide, slow chords that change on the first beat of the bar; in the moving passages the violas and cellos play a steady pattern of smooth, repeated bowed eighth notes. A simple, broad theme belongs to one French horn and comes rarely. 64 BPM, 4/4, one key, clear four-bar phrases, soft dynamics throughout, so a calm speaking voice sits over the music. Instrumental, no vocals."
+  }
+}

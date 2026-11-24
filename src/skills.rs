@@ -15,6 +15,7 @@ pub const SKILLS: &[&str] = &[
     "superint-launch",
     "superint-audio",
     "superint-miniature",
+    "superint-faltwerk",
     "superint-rebuild",
 ];
 

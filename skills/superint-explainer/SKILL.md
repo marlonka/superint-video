@@ -44,6 +44,7 @@ Read for each step:
 - The project's `STYLE.md` and `references/`: the look. Read before steps 2 and 5–7.
 - The `superint-audio` skill: narration, timing from word timestamps, music, SFX and mastering. An explainer is voice-led: the picture follows the words. The voice is an AI voice or the user's own, as the prompt or brief says (else `doctor --json` → `capabilities.narration`); the steps are the same, only the voice step differs (`voice takes` or `voice own --wait`). No API key is no reason to stop.
 - With the preset `miniature-3d`: the `superint-miniature` skill. Its scenes are one WebGL2 world with a camera instead of HTML scenes per shot; the steps stay the same.
+- With the preset `faltwerk`: the `superint-faltwerk` skill. The film is a pop-up book, one spread per chapter, timed by the voice's paragraphs and words; the steps stay the same, with a book plan before the script.
 
 **Critique loops.** Concept, script, beats, style frames and review each run at least two rounds, a third when the second still changed something substantial, at most five. Log each round briefly in `process/<step>.md`.
 
