@@ -239,14 +239,15 @@
         title={$t(`voice.step.${paragraph.state}`, { number: paragraph.paragraph })}
         disabled={busy}
         onclick={() => go(at)}
-        >{#if paragraph.state === 'accepted'}<Icon
+      >
+        {#if paragraph.state === 'accepted'}<Icon
             name="check"
             size={16}
-          />{:else}{paragraph.paragraph}{/if}</button
-      >{/each}
-    <span class="voice-steps-count"
-      >{$t('voice.progress', { recorded: script.recorded, total: script.total })}</span
-    >
+          />{:else}{paragraph.paragraph}{/if}
+      </button>{/each}
+    <span class="voice-steps-count">
+      {$t('voice.progress', { recorded: script.recorded, total: script.total })}
+    </span>
   </nav>
 
   <div
@@ -273,44 +274,47 @@
     <LevelMeter level={recording ? () => recording!.level() : null} />
     <div class="voice-controls">
       {#if phase === 'counting' || phase === 'recording'}
-        <button class="voice-record live" onclick={phase === 'recording' ? finish : cancel}
-          >{#if phase === 'counting'}<span class="voice-count" aria-hidden="true"
-              >{count || ''}</span
-            >{:else}<span class="voice-stop" aria-hidden="true"></span>{/if}<span class="sr-only"
-            >{$t(phase === 'recording' ? 'voice.stop' : 'voice.cancel')}</span
-          ></button
-        >
-        <span class="voice-status"
-          >{phase === 'counting' ? $t('voice.getReady') : filmClock(seconds)}</span
-        >
+        <button class="voice-record live" onclick={phase === 'recording' ? finish : cancel}>
+          {#if phase === 'counting'}<span class="voice-count" aria-hidden="true">
+              {count || ''}
+            </span>{:else}<span class="voice-stop" aria-hidden="true"></span>{/if}<span
+            class="sr-only"
+          >
+            {$t(phase === 'recording' ? 'voice.stop' : 'voice.cancel')}
+          </span>
+        </button>
+        <span class="voice-status">
+          {phase === 'counting' ? $t('voice.getReady') : filmClock(seconds)}
+        </span>
       {:else if phase === 'saving'}
         <span class="voice-status"><span class="loader small"></span>{$t('voice.saving')}</span>
       {:else if review}
-        <button class="button" onclick={listen}
-          ><Icon name={playing ? 'pause' : 'play'} />{$t(
+        <button class="button" onclick={listen}>
+          <Icon name={playing ? 'pause' : 'play'} />{$t(
             playing ? 'voice.listenStop' : 'voice.listen',
-          )}</button
-        >
+          )}
+        </button>
         <button class="button" onclick={redo}><Icon name="refresh" />{$t('voice.redo')}</button>
-        <button class="button primary" onclick={accept}
-          ><Icon name="check" />{$t('voice.accept')}</button
-        >
+        <button class="button primary" onclick={accept}>
+          <Icon name="check" />{$t('voice.accept')}
+        </button>
       {:else}
-        {#if heard}<button class="button" onclick={listen}
-            ><Icon name={playing ? 'pause' : 'play'} />{$t(
+        {#if heard}<button class="button" onclick={listen}>
+            <Icon name={playing ? 'pause' : 'play'} />{$t(
               playing ? 'voice.listenStop' : 'voice.listen',
-            )}</button
-          >{/if}
+            )}
+          </button>{/if}
         <button
           class="button"
           class:primary={!script.complete}
           disabled={!microphone}
           onclick={heard ? redo : begin}
-          ><Icon name="mic" />{$t(heard ? 'voice.again' : 'voice.record')}</button
         >
-        {#if script.complete}<button class="button primary" onclick={onclose}
-            >{$t('voice.backToFilm')}</button
-          >{/if}
+          <Icon name="mic" />{$t(heard ? 'voice.again' : 'voice.record')}
+        </button>
+        {#if script.complete}<button class="button primary" onclick={onclose}>
+            {$t('voice.backToFilm')}
+          </button>{/if}
       {/if}
     </div>
     <p class="voice-keys" aria-hidden="true">
@@ -327,12 +331,12 @@
       {#if script.source !== 'own'}{$t('voice.notOwn')}{/if}
     </p>
     <p class="voice-files">
-      <button class="text-link" disabled={busy} onclick={() => paragraphFile.click()}
-        >{$t('voice.fileParagraph')}</button
-      >
-      <button class="text-link" disabled={busy} onclick={() => wholeFile.click()}
-        >{$t('voice.fileWhole')}</button
-      >
+      <button class="text-link" disabled={busy} onclick={() => paragraphFile.click()}>
+        {$t('voice.fileParagraph')}
+      </button>
+      <button class="text-link" disabled={busy} onclick={() => wholeFile.click()}>
+        {$t('voice.fileWhole')}
+      </button>
     </p>
     <input
       bind:this={paragraphFile}

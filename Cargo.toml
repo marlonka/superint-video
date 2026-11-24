@@ -6,32 +6,32 @@ description = "Local HTML video authoring, preview and rendering"
 license = "MIT"
 
 [dependencies]
-anyhow = "1"
-axum = { version = "0.8", features = ["multipart"] }
-tokio = { version = "1", features = ["full"] }
-tokio-util = { version = "0.7", features = ["io"] }
-clap = { version = "4", features = ["derive"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = { version = "1", features = ["float_roundtrip"] }
-schemars = "1"
-sha2 = "0.11"
-hex = "0.4"
-uuid = { version = "1", features = ["v4"] }
-tempfile = "3"
-walkdir = "2"
-mime_guess = "2"
-include_dir = "0.7"
+anyhow = "1.0.105"
+axum = { version = "0.8.9", features = ["multipart"] }
+tokio = { version = "1.54.1", features = ["full"] }
+tokio-util = { version = "0.7.20", features = ["io"] }
+clap = { version = "4.6.10", features = ["derive"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = { version = "1.0.154", features = ["float_roundtrip"] }
+schemars = "1.2.3"
+sha2 = "0.11.1"
+hex = "0.4.3"
+uuid = { version = "1.29.3", features = ["v4"] }
+tempfile = "3.27.0"
+walkdir = "2.5.1"
+mime_guess = "2.0.5"
+include_dir = "0.7.4"
 chromiumoxide = "0.9.1"
-futures = "0.3"
-tokio-stream = { version = "0.1", features = ["sync"] }
-image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
-reqwest = { version = "0.13", default-features = false, features = ["native-tls", "http2", "json", "multipart", "stream"] }
-base64 = "0.23"
-hound = "3.5"
+futures = "0.3.34"
+tokio-stream = { version = "0.1.19", features = ["sync"] }
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg"] }
+reqwest = { version = "0.13.5", default-features = false, features = ["native-tls", "http2", "json", "multipart", "stream"] }
+base64 = "0.23.1"
+hound = "3.5.1"
 ebur128 = "0.1.11"
 # Style files. Deflate only, through the pure-Rust backend the image decoder already brings.
-zip = { version = "9.5.1", default-features = false, features = ["deflate-flate2"] }
-flate2 = { version = "1.1", default-features = false, features = ["rust_backend"] }
+zip = { version = "9.8.2", default-features = false, features = ["deflate-flate2"] }
+flate2 = { version = "1.1.11", default-features = false, features = ["rust_backend"] }
 
 [profile.release]
 lto = "thin"

@@ -80,9 +80,9 @@
       ></video>
     {:else if picture}
       <img src={picture} alt={$t('render.frame', { frame: pinned ?? render.latestFrame ?? 0 })} />
-      {#if pinned !== null}<button class="button render-back" onclick={() => (pinned = null)}
-          >{$t('render.backToLive')}</button
-        >{/if}
+      {#if pinned !== null}<button class="button render-back" onclick={() => (pinned = null)}>
+          {$t('render.backToLive')}
+        </button>{/if}
     {:else}
       <div class="preview-loading">
         <span class="loader"></span><span>{render.stage}</span>
@@ -95,45 +95,45 @@
       <div class="render-headline">
         <strong>{$t('state.rendering', { percent: $format.percent(share) })}</strong>
         <span>{$t('render.frames', progress)}</span>
-        <span
-          >{$t('render.filmTime', {
+        <span>
+          {$t('render.filmTime', {
             done: filmTime(render.completed),
             total: filmTime(render.total),
-          })}</span
-        >
-        {#if render.framesPerSecond}<span
-            >{$t('render.speed', { value: $format.number(render.framesPerSecond, 2) })}</span
-          >{/if}
-        {#if render.etaSeconds != null}<span class="render-eta"
-            >{$t('render.eta', {
+          })}
+        </span>
+        {#if render.framesPerSecond}<span>
+            {$t('render.speed', { value: $format.number(render.framesPerSecond, 2) })}
+          </span>{/if}
+        {#if render.etaSeconds != null}<span class="render-eta">
+            {$t('render.eta', {
               span: span(render.etaSeconds),
               time: $format.clock(render.updatedAt + render.etaSeconds * 1000),
-            })}</span
-          >{:else}<span class="render-eta">{render.stage}</span>{/if}
+            })}
+          </span>{:else}<span class="render-eta">{render.stage}</span>{/if}
       </div>
       <progress max="1" value={share}></progress>
     {:else if finished}
       <div class="render-headline">
         <strong><Icon name="check" size={18} /> {$t('state.filmReady')}</strong>
         <span>{$t('render.minutes', { time: filmTime(render.total) })}</span>
-        {#if render.finishedAt}<span
-            >{$t('render.took', {
+        {#if render.finishedAt}<span>
+            {$t('render.took', {
               span: span((render.finishedAt - render.startedAt) / 1000),
-            })}</span
-          >{/if}
-        {#if typeof soundLevel === 'number'}<span title={$t('render.loudnessHint')}
-            >{$t('render.loudness', {
+            })}
+          </span>{/if}
+        {#if typeof soundLevel === 'number'}<span title={$t('render.loudnessHint')}>
+            {$t('render.loudness', {
               value: $format.number(soundLevel, 1),
               verdict: loudness,
-            })}</span
-          >{/if}
+            })}
+          </span>{/if}
         <span class="render-path">{render.output}</span>
       </div>
       {#if videoFailed}<p class="field-note">{$t('render.cannotPlay')}</p>{/if}
       <div class="render-actions">
-        <button class="button primary" onclick={onopen}
-          ><Icon name="external" />{$t('export.open')}</button
-        >
+        <button class="button primary" onclick={onopen}>
+          <Icon name="external" />{$t('export.open')}
+        </button>
         <button class="button" onclick={onclose}>{$t('render.backToTimeline')}</button>
       </div>
     {:else}
@@ -156,8 +156,9 @@
           class:chosen={pinned === value}
           title={$t('render.filmTimeAt', { time: filmTime(value) })}
           onclick={() => (pinned = pinned === value ? null : value)}
-          ><img loading="lazy" src={`/api/live/strip/${value}`} alt={filmTime(value)} /></button
         >
+          <img loading="lazy" src={`/api/live/strip/${value}`} alt={filmTime(value)} />
+        </button>
       {/each}
     </div>
   {/if}

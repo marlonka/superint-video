@@ -128,8 +128,10 @@
     onclick={() => {
       toggle();
       field.focus();
-    }}><Icon name="chevron" size={18} /></button
+    }}
   >
+    <Icon name="chevron" size={18} />
+  </button>
   {#if open}<div
       class="length-list"
       id={`${id}-list`}

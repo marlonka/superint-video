@@ -30,18 +30,20 @@
   <SetupItem title={$t('setup.films.folder')} done={null}>
     <span class="setup-path">{overview.filmsFolder ?? '–'}</span>
     <span>{$t('setup.films.folderNote')}</span>
-    {#if !changing}<span class="setup-links"
-        ><button class="text-link" onclick={change}>{$t('setup.films.change')}</button
-        >{#if settings.projectsDir}<button class="text-link" onclick={() => save(null)}
-            >{$t('setup.films.folderReset')}</button
-          >{/if}</span
-      >{/if}
+    {#if !changing}<span class="setup-links">
+        <button class="text-link" onclick={change}>
+          {$t('setup.films.change')}
+        </button>{#if settings.projectsDir}<button class="text-link" onclick={() => save(null)}>
+            {$t('setup.films.folderReset')}
+          </button>{/if}
+      </span>{/if}
     <svelte:fragment slot="action">
       {#if overview.filmsFolder}<button
           class="button"
           onclick={() => reveal('/api/app/reveal/films')}
-          ><Icon name="folder" />{$t('films.showFolder')}</button
-        >{/if}
+        >
+          <Icon name="folder" />{$t('films.showFolder')}
+        </button>{/if}
     </svelte:fragment>
     <svelte:fragment slot="below">
       {#if changing}
@@ -65,33 +67,33 @@
               event.stopPropagation();
             }}
           />
-          <button class="button" type="submit" disabled={$busy === 'settings'}
-            >{$t('common.save')}</button
-          >
-          <span class="setup-links"
-            ><button class="text-link" type="button" onclick={() => (changing = false)}
-              >{$t('common.cancel')}</button
-            ></span
-          >
+          <button class="button" type="submit" disabled={$busy === 'settings'}>
+            {$t('common.save')}
+          </button>
+          <span class="setup-links">
+            <button class="text-link" type="button" onclick={() => (changing = false)}>
+              {$t('common.cancel')}
+            </button>
+          </span>
         </form>
       {/if}
     </svelte:fragment>
   </SetupItem>
   <SetupItem title={$t('setup.films.opening')} done={null}>
-    <label class="setup-check"
-      ><input
+    <label class="setup-check">
+      <input
         type="checkbox"
         checked={settings.follow}
         onchange={(event) => saveSettings({ follow: event.currentTarget.checked })}
-      /><span>{$t('setup.films.follow')}</span></label
-    >
-    <label class="setup-check"
-      ><input
+      /><span>{$t('setup.films.follow')}</span>
+    </label>
+    <label class="setup-check">
+      <input
         type="checkbox"
         checked={settings.window === 'app'}
         onchange={(event) =>
           saveSettings({ window: event.currentTarget.checked ? 'app' : 'browser' })}
-      /><span>{$t('setup.films.window')}</span></label
-    >
+      /><span>{$t('setup.films.window')}</span>
+    </label>
   </SetupItem>
 </ul>

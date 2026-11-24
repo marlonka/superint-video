@@ -67,40 +67,42 @@
             onclick={() => onopen(film)}
             aria-label={$t('films.open', { name: film.name })}
           >
-            <span class="film-picture"
-              >{#if film.picture}<img
+            <span class="film-picture">
+              {#if film.picture}<img
                   src={`/api/app/films/${film.id}/picture?v=${film.picture}`}
                   alt=""
                   loading="lazy"
-                />{:else}<Icon name="film" size={28} />{/if}</span
-            >
+                />{:else}<Icon name="film" size={28} />{/if}
+            </span>
             <span class="film-name">{film.name}</span>
-            <span class="film-state" title={film.note || ''}
-              >{#if doing.live}<span class="live-dot" aria-hidden="true"></span>{/if}{doing.text
+            <span class="film-state" title={film.note || ''}>
+              {#if doing.live}<span class="live-dot" aria-hidden="true"></span>{/if}{doing.text
                 ? `${doing.text} · `
                 : ''}{film.current
                 ? $t('time.openNow')
-                : $format.ago(Math.max(film.seenAt, film.createdAt), now)}</span
-            >
+                : $format.ago(Math.max(film.seenAt, film.createdAt), now)}
+            </span>
           </button>
           <MoreMenu place="film-more" label={$t('menu.moreFor', { name: film.name })}>
-            {#if film.exists}<button role="menuitem" onclick={() => baseFilm.set(film)}
-                ><Icon name="film" />{$t('films.startFrom')}</button
-              ><button
+            {#if film.exists}<button role="menuitem" onclick={() => baseFilm.set(film)}>
+                <Icon name="film" />{$t('films.startFrom')}
+              </button><button
                 role="menuitem"
                 disabled={$busy === `film-${film.id}`}
                 onclick={() => duplicate(film)}
-                ><Icon name="duplicate" />{$t('films.duplicate')}</button
-              ><button role="menuitem" onclick={() => makeStyle(film)}
-                ><Icon name="image" />{$t('films.makeStyle')}</button
-              ><button
+              >
+                <Icon name="duplicate" />{$t('films.duplicate')}
+              </button><button role="menuitem" onclick={() => makeStyle(film)}>
+                <Icon name="image" />{$t('films.makeStyle')}
+              </button><button
                 role="menuitem"
                 onclick={() => void reveal(`/api/app/films/${film.id}/reveal`)}
-                ><Icon name="folder" />{$t('films.showFolder')}</button
-              >{/if}
-            <button role="menuitem" onclick={() => forget(film)}
-              ><Icon name="close" />{$t('films.remove')}</button
-            >
+              >
+                <Icon name="folder" />{$t('films.showFolder')}
+              </button>{/if}
+            <button role="menuitem" onclick={() => forget(film)}>
+              <Icon name="close" />{$t('films.remove')}
+            </button>
           </MoreMenu>
         </li>
       {/each}

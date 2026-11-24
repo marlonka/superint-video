@@ -274,8 +274,10 @@
         ></iframe>
         {#if phase === 'counting' && count}{#key count}<span
               class="voice-over-count"
-              aria-hidden="true">{count}</span
-            >{/key}{/if}
+              aria-hidden="true"
+            >
+              {count}
+            </span>{/key}{/if}
       </div>
     </div>
     <div class="voice-over-place">
@@ -299,8 +301,9 @@
             disabled={busy || review}
             title={$t('over.cueJump')}
             onclick={() => void seek(cue.seconds * fps)}
-            ><span class="timecode">{filmClock(cue.seconds)}</span><span>{cue.text}</span></button
           >
+            <span class="timecode">{filmClock(cue.seconds)}</span><span>{cue.text}</span>
+          </button>
         </li>{/each}
     </ol>{/if}
 
@@ -314,32 +317,32 @@
     <LevelMeter level={recording ? () => recording!.level() : null} />
     <div class="voice-controls">
       {#if phase === 'counting' || phase === 'recording'}
-        <button class="voice-record live" onclick={phase === 'recording' ? finish : cancel}
-          ><span class="voice-stop" aria-hidden="true"></span><span class="sr-only"
-            >{$t(phase === 'recording' ? 'voice.stop' : 'voice.cancel')}</span
-          ></button
-        >
-        <span class="voice-status"
-          >{phase === 'counting' ? $t('voice.getReady') : $t('over.speaking')}</span
-        >
+        <button class="voice-record live" onclick={phase === 'recording' ? finish : cancel}>
+          <span class="voice-stop" aria-hidden="true"></span><span class="sr-only">
+            {$t(phase === 'recording' ? 'voice.stop' : 'voice.cancel')}
+          </span>
+        </button>
+        <span class="voice-status">
+          {phase === 'counting' ? $t('voice.getReady') : $t('over.speaking')}
+        </span>
       {:else if phase === 'saving'}
         <span class="voice-status"><span class="loader small"></span>{$t('voice.saving')}</span>
       {:else if review || phase === 'listening'}
-        <button class="button" onclick={listen}
-          ><Icon name={phase === 'listening' ? 'pause' : 'play'} />{$t(
+        <button class="button" onclick={listen}>
+          <Icon name={phase === 'listening' ? 'pause' : 'play'} />{$t(
             phase === 'listening' ? 'voice.listenStop' : 'over.listen',
-          )}</button
-        >
-        <button class="button" disabled={phase === 'listening'} onclick={redo}
-          ><Icon name="refresh" />{$t('voice.redo')}</button
-        >
-        <button class="button primary" disabled={phase === 'listening'} onclick={keep}
-          ><Icon name="check" />{$t('over.keep')}</button
-        >
+          )}
+        </button>
+        <button class="button" disabled={phase === 'listening'} onclick={redo}>
+          <Icon name="refresh" />{$t('voice.redo')}
+        </button>
+        <button class="button primary" disabled={phase === 'listening'} onclick={keep}>
+          <Icon name="check" />{$t('over.keep')}
+        </button>
       {:else}
-        <button class="button primary" disabled={!microphone || !ready} onclick={begin}
-          ><Icon name="mic" />{$t('over.record', { time: filmClock(frame / fps) })}</button
-        >
+        <button class="button primary" disabled={!microphone || !ready} onclick={begin}>
+          <Icon name="mic" />{$t('over.record', { time: filmClock(frame / fps) })}
+        </button>
       {/if}
     </div>
     <p class="voice-keys" aria-hidden="true">
