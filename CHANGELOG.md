@@ -2,6 +2,18 @@
 
 Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. Das Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Nummern folgen [Semantic Versioning](https://semver.org/lang/de/). Jede Version zum Herunterladen steht unter [Releases](https://github.com/marlonka/superint-video/releases).
 
+## [0.15.0] – 2026-11-24
+
+### Neu
+
+- Neuer Stil `faltwerk`: ein Pop-up-Buch auf dem Tisch eines Papiermachers, ganz in Code gerechnet. Jede Doppelseite ist ein Kapitel, ihr Bild aus geschnittenem Papier stellt sich beim Aufschlagen von selbst auf und handelt auf die Wörter der Stimme, und zwischen den Kapiteln blättert die Seite um. Ein neuer Film beginnt mit einem kleinen fertigen Buch, das sofort rendert.
+- Der neue Skill `superint-faltwerk` führt den Coding-Agenten durch die Papiermechanik, das Timing von der Stimme bis zum Umblättern und das Handwerk aus dem ersten Film in diesem Stil, dessen Doppelseiten als Beispiel dabei sind. Dazu gibt es die Prompt-Vorlage `prompts/faltwerk.md`.
+- Studio zeigt bei den Skills eines Films jetzt auch den eigenen Skill seines Stils (`superint-miniature`, `superint-faltwerk`).
+
+### Geändert
+
+- Alle Abhängigkeiten sind auf ihrem neuesten Stand, die Rust-Bibliotheken ebenso wie die Werkzeuge von Studio (darunter Svelte 5.59). TypeScript bleibt bei 6.0.3, weil die Typprüfung von Studio TypeScript 7 noch nicht unterstützt.
+
 ## [0.14.0] – 2026-11-18
 
 ### Neu
@@ -303,6 +315,7 @@ Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. 
 
 - Erste Version: eine Rust-CLI und Studio im Browser für HTML-Szenen, Timeline, Prüfen, Snapshots und MP4-Export über Chromium und FFmpeg.
 
+[0.15.0]: https://github.com/marlonka/superint-video/releases/tag/v0.15.0
 [0.14.0]: https://github.com/marlonka/superint-video/releases/tag/v0.14.0
 [0.13.0]: https://github.com/marlonka/superint-video/releases/tag/v0.13.0
 [0.12.0]: https://github.com/marlonka/superint-video/releases/tag/v0.12.0
