@@ -55,17 +55,17 @@
 
 <div class="voice-layer" role="dialog" aria-modal="true" aria-labelledby="voice-title">
   <header class="app-header">
-    <button class="button quiet" onclick={onclose}
-      ><Icon name="arrowLeft" /><span>{$t('voice.backToFilm')}</span></button
-    >
+    <button class="button quiet" onclick={onclose}>
+      <Icon name="arrowLeft" /><span>{$t('voice.backToFilm')}</span>
+    </button>
     <h1 id="voice-title" class="voice-title">{$t('voice.title')}</h1>
     <div class="header-actions">
-      <button class="button quiet" aria-pressed={mode === 'read'} onclick={() => (chosen = 'read')}
-        >{$t('voice.mode.read')}</button
-      >
-      <button class="button quiet" aria-pressed={mode === 'over'} onclick={() => (chosen = 'over')}
-        >{$t('voice.mode.over')}</button
-      >
+      <button class="button quiet" aria-pressed={mode === 'read'} onclick={() => (chosen = 'read')}>
+        {$t('voice.mode.read')}
+      </button>
+      <button class="button quiet" aria-pressed={mode === 'over'} onclick={() => (chosen = 'over')}>
+        {$t('voice.mode.over')}
+      </button>
     </div>
   </header>
   <main class="voice-page">

@@ -99,7 +99,7 @@ The shared room of `mix` (`src/mix.rs`) uses the comb and allpass tunings of Fre
 | anstyle-query | 1.1.5 | MIT OR Apache-2.0 |
 | anstyle-wincon | 3.0.11 | MIT OR Apache-2.0 |
 | anstyle | 1.0.14 | MIT OR Apache-2.0 |
-| anyhow | 1.0.104 | MIT OR Apache-2.0 |
+| anyhow | 1.0.105 | MIT OR Apache-2.0 |
 | async-tungstenite | 0.32.1 | MIT |
 | atomic-waker | 1.1.2 | Apache-2.0 OR MIT |
 | autocfg | 1.5.1 | Apache-2.0 OR MIT |
@@ -111,21 +111,21 @@ The shared room of `mix` (`src/mix.rs`) uses the comb and allpass tunings of Fre
 | bitflags | 2.13.2 | MIT OR Apache-2.0 |
 | block-buffer | 0.10.4 | MIT OR Apache-2.0 |
 | block-buffer | 0.12.1 | MIT OR Apache-2.0 |
-| bumpalo | 3.20.3 | MIT OR Apache-2.0 |
+| bumpalo | 3.20.4 | MIT OR Apache-2.0 |
 | bytemuck | 1.25.2 | Zlib OR Apache-2.0 OR MIT |
 | byteorder-lite | 0.1.0 | Unlicense OR MIT |
-| bytes | 1.12.1 | MIT |
-| cc | 1.11.1 | MIT OR Apache-2.0 |
+| bytes | 1.12.2 | MIT |
+| cc | 1.11.3 | MIT OR Apache-2.0 |
 | cfg_aliases | 0.2.2 | MIT |
 | cfg-if | 1.0.5 | MIT OR Apache-2.0 |
 | chromiumoxide_cdp | 0.9.1 | MIT OR Apache-2.0 |
 | chromiumoxide_pdl | 0.9.1 | MIT OR Apache-2.0 |
 | chromiumoxide_types | 0.9.1 | MIT OR Apache-2.0 |
 | chromiumoxide | 0.9.1 | MIT OR Apache-2.0 |
-| clap_builder | 4.6.7 | MIT OR Apache-2.0 |
-| clap_derive | 4.6.7 | MIT OR Apache-2.0 |
-| clap_lex | 1.1.1 | MIT OR Apache-2.0 |
-| clap | 4.6.7 | MIT OR Apache-2.0 |
+| clap_builder | 4.6.10 | MIT OR Apache-2.0 |
+| clap_derive | 4.6.9 | MIT OR Apache-2.0 |
+| clap_lex | 1.1.2 | MIT OR Apache-2.0 |
+| clap | 4.6.10 | MIT OR Apache-2.0 |
 | colorchoice | 1.0.5 | MIT OR Apache-2.0 |
 | const-oid | 0.10.3 | Apache-2.0 OR MIT |
 | constant_time_eq | 0.6.1 | CC0-1.0 OR MIT-0 OR Apache-2.0 |
@@ -134,7 +134,7 @@ The shared room of `mix` (`src/mix.rs`) uses the comb and allpass tunings of Fre
 | core-foundation | 0.10.1 | MIT OR Apache-2.0 |
 | cpufeatures | 0.2.17 | MIT OR Apache-2.0 |
 | cpufeatures | 0.3.1 | MIT OR Apache-2.0 |
-| crc32fast | 1.5.5 | MIT OR Apache-2.0 |
+| crc32fast | 1.5.6 | MIT OR Apache-2.0 |
 | crypto-common | 0.1.7 | MIT OR Apache-2.0 |
 | crypto-common | 0.2.2 | MIT OR Apache-2.0 |
 | dasp_frame | 0.11.0 | MIT OR Apache-2.0 |
@@ -157,7 +157,7 @@ The shared room of `mix` (`src/mix.rs`) uses the comb and allpass tunings of Fre
 | fnv | 1.0.7 | Apache-2.0 / MIT |
 | foreign-types-shared | 0.1.1 | MIT/Apache-2.0 |
 | foreign-types | 0.3.2 | MIT/Apache-2.0 |
-| form_urlencoded | 1.2.2 | MIT OR Apache-2.0 |
+| form_urlencoded | 1.2.3 | MIT OR Apache-2.0 |
 | futures-channel | 0.3.34 | MIT OR Apache-2.0 |
 | futures-core | 0.3.34 | MIT OR Apache-2.0 |
 | futures-executor | 0.3.34 | MIT OR Apache-2.0 |
@@ -172,8 +172,8 @@ The shared room of `mix` (`src/mix.rs`) uses the comb and allpass tunings of Fre
 | getrandom | 0.2.17 | MIT OR Apache-2.0 |
 | getrandom | 0.3.4 | MIT OR Apache-2.0 |
 | getrandom | 0.4.3 | MIT OR Apache-2.0 |
-| h2 | 0.4.20 | MIT |
-| hashbrown | 0.17.1 | MIT OR Apache-2.0 |
+| h2 | 0.4.21 | MIT |
+| hashbrown | 0.17.2 | MIT OR Apache-2.0 |
 | heck | 0.5.0 | MIT OR Apache-2.0 |
 | hex | 0.4.3 | MIT OR Apache-2.0 |
 | hound | 3.5.1 | Apache-2.0 |
@@ -186,7 +186,7 @@ The shared room of `mix` (`src/mix.rs`) uses the comb and allpass tunings of Fre
 | hyper-rustls | 0.27.10 | Apache-2.0 OR ISC OR MIT |
 | hyper-tls | 0.6.0 | MIT/Apache-2.0 |
 | hyper-util | 0.1.21 | MIT |
-| hyper | 1.12.0 | MIT |
+| hyper | 1.13.0 | MIT |
 | icu_collections | 2.4.0 | Unicode-3.0 |
 | icu_locale_core | 2.4.0 | Unicode-3.0 |
 | icu_normalizer_data | 2.4.0 | Unicode-3.0 |
@@ -215,12 +215,12 @@ The shared room of `mix` (`src/mix.rs`) uses the comb and allpass tunings of Fre
 | mime | 0.3.18 | MIT OR Apache-2.0 |
 | miniz_oxide | 0.8.9 | MIT OR Zlib OR Apache-2.0 |
 | miniz_oxide | 0.9.1 | MIT OR Zlib OR Apache-2.0 |
-| mio | 1.2.4 | MIT |
+| mio | 1.2.5 | MIT |
 | moxcms | 0.8.1 | BSD-3-Clause OR Apache-2.0 |
 | multer | 3.1.0 | MIT |
 | multiversion_no_op | 1.0.0 | Apache-2.0 OR MIT |
 | native-tls | 0.2.18 | MIT OR Apache-2.0 |
-| nix | 0.31.3 | MIT |
+| nix | 0.32.0 | MIT |
 | num-traits | 0.2.19 | MIT OR Apache-2.0 |
 | once_cell_polyfill | 1.70.2 | MIT OR Apache-2.0 |
 | once_cell | 1.21.4 | MIT OR Apache-2.0 |
@@ -231,7 +231,7 @@ The shared room of `mix` (`src/mix.rs`) uses the comb and allpass tunings of Fre
 | parking_lot_core | 0.9.12 | MIT OR Apache-2.0 |
 | parking_lot | 0.12.5 | MIT OR Apache-2.0 |
 | percent-encoding | 2.3.2 | MIT OR Apache-2.0 |
-| pin-project-lite | 0.2.17 | Apache-2.0 OR MIT |
+| pin-project-lite | 0.2.18 | Apache-2.0 OR MIT |
 | pkg-config | 0.3.34 | MIT OR Apache-2.0 |
 | png | 0.18.1 | MIT OR Apache-2.0 |
 | potential_utf | 0.1.6 | Unicode-3.0 |
@@ -247,9 +247,9 @@ The shared room of `mix` (`src/mix.rs`) uses the comb and allpass tunings of Fre
 | redox_syscall | 0.5.18 | MIT |
 | ref-cast-impl | 1.0.27 | MIT OR Apache-2.0 |
 | ref-cast | 1.0.27 | MIT OR Apache-2.0 |
-| regex-automata | 0.4.18 | MIT OR Apache-2.0 |
-| regex-syntax | 0.8.11 | MIT OR Apache-2.0 |
-| regex | 1.13.1 | MIT OR Apache-2.0 |
+| regex-automata | 0.4.19 | MIT OR Apache-2.0 |
+| regex-syntax | 0.8.12 | MIT OR Apache-2.0 |
+| regex | 1.13.2 | MIT OR Apache-2.0 |
 | reqwest | 0.13.5 | MIT OR Apache-2.0 |
 | ring | 0.17.14 | Apache-2.0 AND ISC |
 | rustix | 1.1.6 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT |
@@ -280,7 +280,7 @@ The shared room of `mix` (`src/mix.rs`) uses the comb and allpass tunings of Fre
 | simd-adler32 | 0.3.10 | MIT |
 | simdutf8 | 0.1.5 | MIT OR Apache-2.0 |
 | slab | 0.4.12 | MIT |
-| smallvec | 1.16.5 | MIT OR Apache-2.0 |
+| smallvec | 1.16.6 | MIT OR Apache-2.0 |
 | socket2 | 0.6.5 | MIT OR Apache-2.0 |
 | spin | 0.9.9 | MIT |
 | stable_deref_trait | 1.2.1 | MIT OR Apache-2.0 |
@@ -301,9 +301,9 @@ The shared room of `mix` (`src/mix.rs`) uses the comb and allpass tunings of Fre
 | tokio-util | 0.7.20 | MIT |
 | tokio | 1.54.1 | MIT |
 | toml_datetime | 1.1.3+spec-1.1.0 | MIT OR Apache-2.0 |
-| toml_parser | 1.1.5+spec-1.1.0 | MIT OR Apache-2.0 |
+| toml_parser | 1.1.6+spec-1.1.0 | MIT OR Apache-2.0 |
 | toml_writer | 1.2.0+spec-1.1.0 | MIT OR Apache-2.0 |
-| toml | 1.2.1+spec-1.1.0 | MIT OR Apache-2.0 |
+| toml | 1.2.2+spec-1.1.0 | MIT OR Apache-2.0 |
 | tower-http | 0.6.11 | MIT |
 | tower-layer | 0.3.3 | MIT |
 | tower-service | 0.3.3 | MIT |
@@ -318,15 +318,15 @@ The shared room of `mix` (`src/mix.rs`) uses the comb and allpass tunings of Fre
 | unicase | 2.10.0 | MIT OR Apache-2.0 |
 | unicode-ident | 1.0.27 | (MIT OR Apache-2.0) AND Unicode-3.0 |
 | untrusted | 0.9.0 | ISC |
-| url | 2.5.8 | MIT OR Apache-2.0 |
+| url | 2.5.9 | MIT OR Apache-2.0 |
+| utf_types | 1.0.0 | Apache-2.0 OR MIT |
 | utf-8 | 0.7.6 | MIT OR Apache-2.0 |
 | utf8_iter | 1.1.0 | Apache-2.0 OR MIT |
 | utf8parse | 0.2.2 | Apache-2.0 OR MIT |
-| utf_types | 1.0.0 | Apache-2.0 OR MIT |
-| uuid | 1.29.2 | Apache-2.0 OR MIT |
+| uuid | 1.29.3 | Apache-2.0 OR MIT |
 | vcpkg | 0.2.15 | MIT/Apache-2.0 |
 | version_check | 0.9.5 | MIT/Apache-2.0 |
-| walkdir | 2.5.0 | Unlicense/MIT |
+| walkdir | 2.5.1 | Unlicense/MIT |
 | want | 0.3.2 | MIT |
 | wasi | 0.11.1+wasi-snapshot-preview1 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT |
 | wasip2 | 1.0.4+wasi-0.2.12 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT |
@@ -360,17 +360,17 @@ The shared room of `mix` (`src/mix.rs`) uses the comb and allpass tunings of Fre
 | writeable | 0.6.4 | Unicode-3.0 |
 | yoke-derive | 0.8.4 | Unicode-3.0 |
 | yoke | 0.8.4 | Unicode-3.0 |
-| zerocopy-derive | 0.8.63 | BSD-2-Clause OR Apache-2.0 OR MIT |
-| zerocopy | 0.8.63 | BSD-2-Clause OR Apache-2.0 OR MIT |
+| zerocopy-derive | 0.8.65 | BSD-2-Clause OR Apache-2.0 OR MIT |
+| zerocopy | 0.8.65 | BSD-2-Clause OR Apache-2.0 OR MIT |
 | zerofrom-derive | 0.1.8 | Unicode-3.0 |
 | zerofrom | 0.1.8 | Unicode-3.0 |
 | zeroize_derive | 1.5.0 | Apache-2.0 OR MIT |
-| zeroize | 1.9.1 | Apache-2.0 OR MIT |
+| zeroize | 1.9.2 | Apache-2.0 OR MIT |
 | zerotrie | 0.2.5 | Unicode-3.0 |
 | zerovec-derive | 0.11.7 | Unicode-3.0 |
 | zerovec | 0.11.9 | Unicode-3.0 |
-| zip | 9.5.1 | MIT |
-| zlib-rs | 0.6.8 | Zlib |
+| zip | 9.8.2 | MIT |
+| zlib-rs | 0.6.9 | Zlib |
 | zmij | 1.0.23 | MIT |
 | zune-core | 0.5.3 | MIT OR Apache-2.0 OR Zlib |
 | zune-jpeg | 0.5.15 | MIT OR Apache-2.0 OR Zlib |
@@ -384,7 +384,7 @@ The shared room of `mix` (`src/mix.rs`) uses the comb and allpass tunings of Fre
 | @emnapi/wasi-threads | 2.2.0 | MIT |
 | @jridgewell/gen-mapping | 0.3.13 | MIT |
 | @jridgewell/remapping | 2.3.5 | MIT |
-| @jridgewell/resolve-uri | 3.1.2 | MIT |
+| @jridgewell/resolve-uri | 3.1.3 | MIT |
 | @jridgewell/sourcemap-codec | 1.6.0 | MIT |
 | @jridgewell/trace-mapping | 0.3.31 | MIT |
 | @napi-rs/wasm-runtime | 1.2.6 | MIT |
@@ -405,11 +405,11 @@ The shared room of `mix` (`src/mix.rs`) uses the comb and allpass tunings of Fre
 | @rolldown/binding-wasm32-wasi | 1.2.19 | MIT |
 | @rolldown/binding-win32-arm64-msvc | 1.2.19 | MIT |
 | @rolldown/binding-win32-x64-msvc | 1.2.19 | MIT |
-| @rolldown/pluginutils | 1.1.0 | MIT |
+| @rolldown/pluginutils | 1.1.1 | MIT |
 | @sveltejs/acorn-typescript | 1.0.13 | MIT |
 | @sveltejs/load-config | 0.2.3 | MIT |
-| @sveltejs/vite-plugin-svelte | 7.3.1 | MIT |
-| @tybys/wasm-util | 0.10.4 | MIT |
+| @sveltejs/vite-plugin-svelte | 7.3.2 | MIT |
+| @tybys/wasm-util | 0.10.5 | MIT |
 | @types/estree | 1.0.10 | MIT |
 | @typescript/typescript-aix-ppc64 | 7.0.2 | Apache-2.0 |
 | @typescript/typescript-darwin-arm64 | 7.0.2 | Apache-2.0 |
@@ -440,11 +440,10 @@ The shared room of `mix` (`src/mix.rs`) uses the comb and allpass tunings of Fre
 | detect-libc | 2.1.2 | Apache-2.0 |
 | devalue | 5.9.4 | MIT |
 | esm-env | 1.2.2 | MIT |
-| esrap | 2.4.0 | MIT |
+| esrap | 2.4.2 | MIT |
 | fdir | 6.5.0 | MIT |
 | fsevents | 2.3.3 | MIT |
 | is-reference | 3.0.3 | MIT |
-| lightningcss | 1.33.0 | MPL-2.0 |
 | lightningcss-android-arm64 | 1.33.0 | MPL-2.0 |
 | lightningcss-darwin-arm64 | 1.33.0 | MPL-2.0 |
 | lightningcss-darwin-x64 | 1.33.0 | MPL-2.0 |
@@ -456,29 +455,29 @@ The shared room of `mix` (`src/mix.rs`) uses the comb and allpass tunings of Fre
 | lightningcss-linux-x64-musl | 1.33.0 | MPL-2.0 |
 | lightningcss-win32-arm64-msvc | 1.33.0 | MPL-2.0 |
 | lightningcss-win32-x64-msvc | 1.33.0 | MPL-2.0 |
+| lightningcss | 1.33.0 | MPL-2.0 |
 | locate-character | 3.0.0 | MIT |
 | magic-string | 0.30.21 | MIT |
-| magic-string | 1.4.5 | MIT |
 | mri | 1.2.0 | MIT |
 | nanoid | 3.3.20 | MIT |
-| obug | 2.2.1 | MIT |
+| obug | 3.0.0 | MIT |
 | picocolors | 1.1.1 | ISC |
 | picomatch | 4.0.7 | MIT |
-| postcss | 8.5.32 | MIT |
-| prettier-plugin-svelte | 4.1.1 | MIT |
+| postcss | 8.5.33 | MIT |
+| prettier-plugin-svelte | 4.2.0 | MIT |
 | prettier | 3.10.1 | MIT |
 | readdirp | 4.1.2 | MIT |
 | rolldown | 1.2.19 | MIT |
 | sade | 1.8.1 | MIT |
-| source-map-js | 1.2.2 | BSD-3-Clause |
+| source-map-js | 1.2.4 | BSD-3-Clause |
 | svelte-check | 4.7.8 | MIT |
-| svelte | 5.57.3 | MIT |
+| svelte | 5.59.1 | MIT |
 | tinyglobby | 0.2.17 | MIT |
 | tslib | 2.9.1 | 0BSD |
 | typescript | 6.0.3 | Apache-2.0 |
 | typescript | 7.0.2 | Apache-2.0 |
 | vite | 8.3.8 | MIT |
-| vitefu | 1.1.3 | MIT |
+| vitefu | 1.1.4 | MIT |
 | zimmerframe | 1.1.5 | MIT |
 
 ## Lockfile entries without a locally installed license file
@@ -509,7 +508,7 @@ The following entries have no matching top-level license file in the local packa
 - npm: @rolldown/binding-wasm32-wasi 1.2.19
 - npm: @rolldown/binding-win32-arm64-msvc 1.2.19
 - npm: @rolldown/binding-win32-x64-msvc 1.2.19
-- npm: @tybys/wasm-util 0.10.4
+- npm: @tybys/wasm-util 0.10.5
 - npm: @typescript/typescript-aix-ppc64 7.0.2
 - npm: @typescript/typescript-darwin-arm64 7.0.2
 - npm: @typescript/typescript-darwin-x64 7.0.2

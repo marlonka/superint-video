@@ -200,13 +200,13 @@
   <div class="home-heading">
     <h2 id="styles-title">{$t('styles.title')}</h2>
     <p class="home-summary">{$t('styles.lead')}</p>
-    <span class="home-heading-actions"
-      ><button class="button quiet" onclick={() => reveal('/api/app/reveal/styles')}
-        ><Icon name="folder" />{$t('styles.folder')}</button
-      ><button class="button quiet" onclick={() => picker.click()}
-        ><Icon name="import" />{$t('style.import')}</button
-      ></span
-    >
+    <span class="home-heading-actions">
+      <button class="button quiet" onclick={() => reveal('/api/app/reveal/styles')}>
+        <Icon name="folder" />{$t('styles.folder')}
+      </button><button class="button quiet" onclick={() => picker.click()}>
+        <Icon name="import" />{$t('style.import')}
+      </button>
+    </span>
     <input type="file" accept=".zip,application/zip" hidden bind:this={picker} onchange={pick} />
   </div>
   {#if incoming}
@@ -215,9 +215,9 @@
         <strong id="style-import-title">{$t('style.import.ask', { file: incoming.name })}</strong>
         {$t('style.import.trust')}
       </p>
-      <button class="button" disabled={$busy === 'import-style'} onclick={importStyle}
-        >{$t('style.import.confirm')}</button
-      >
+      <button class="button" disabled={$busy === 'import-style'} onclick={importStyle}>
+        {$t('style.import.confirm')}
+      </button>
       <button class="button quiet" onclick={() => (incoming = null)}>{$t('common.cancel')}</button>
     </div>
   {/if}
@@ -241,16 +241,16 @@
         }}
         ondrop={dropOnCard}
       >
-        <button class="style-pictures" tabindex="-1" aria-hidden="true" onclick={() => openMaker()}
-          ><Icon name="plus" size={28} /></button
-        >
+        <button class="style-pictures" tabindex="-1" aria-hidden="true" onclick={() => openMaker()}>
+          <Icon name="plus" size={28} />
+        </button>
         <strong class="style-title">{$t('style.new.title')}</strong>
         <p class="style-description">{$t('style.new.card')}</p>
         <span class="style-facts">{$t('style.new.drop')}</span>
         <div class="style-actions">
-          <button class="button" bind:this={opener} onclick={() => openMaker()}
-            >{$t('style.new.open')}</button
-          >
+          <button class="button" bind:this={opener} onclick={() => openMaker()}>
+            {$t('style.new.open')}
+          </button>
         </div>
       </li>
     {/if}
@@ -259,13 +259,14 @@
       {@const text = styleText(style, $locale)}
       {@const sources = pictures(style)}
       <li class="style" class:chosen data-style={style.name}>
-        <StylePictures {sources}
-          >{#if !sources.length}<button
+        <StylePictures {sources}>
+          {#if !sources.length}<button
               class="text-link"
               onclick={() => reveal(`/api/app/styles/${style.name}/reveal`)}
-              >{$t('style.menu.references')}</button
-            >{/if}</StylePictures
-        >
+            >
+              {$t('style.menu.references')}
+            </button>{/if}
+        </StylePictures>
         <strong class="style-title">{text.title}</strong>
         <p class="style-description">{text.description}</p>
         <span class="style-facts">{facts(style)}</span>
@@ -291,11 +292,13 @@
             <button
               class="button"
               type="submit"
-              disabled={!copyName.trim() || $busy === 'copy-style'}>{$t('style.create')}</button
+              disabled={!copyName.trim() || $busy === 'copy-style'}
             >
-            <button class="button quiet" type="button" onclick={() => (copying = '')}
-              >{$t('common.cancel')}</button
-            >
+              {$t('style.create')}
+            </button>
+            <button class="button quiet" type="button" onclick={() => (copying = '')}>
+              {$t('common.cancel')}
+            </button>
           </form>
         {:else}
           <div class="style-actions">
@@ -304,25 +307,28 @@
               aria-pressed={chosen}
               disabled={$busy === 'settings'}
               onclick={() => toggleDefault(style, chosen)}
-              >{#if chosen}<Icon name="check" />{$t('style.isDefault')}{:else}{$t(
-                  'style.makeDefault',
-                )}{/if}</button
             >
+              {#if chosen}<Icon name="check" />{$t('style.isDefault')}{:else}{$t(
+                  'style.makeDefault',
+                )}{/if}
+            </button>
             <MoreMenu place="style-more" label={$t('menu.moreFor', { name: text.title })}>
               <button
                 role="menuitem"
                 onclick={() => void reveal(`/api/app/styles/${style.name}/reveal`)}
-                ><Icon name="folder" />{$t('style.menu.references')}</button
               >
-              <button role="menuitem" onclick={() => startCopy(style)}
-                ><Icon name="duplicate" />{$t('style.menu.copy')}</button
-              >
+                <Icon name="folder" />{$t('style.menu.references')}
+              </button>
+              <button role="menuitem" onclick={() => startCopy(style)}>
+                <Icon name="duplicate" />{$t('style.menu.copy')}
+              </button>
               <button
                 role="menuitem"
                 disabled={$busy === 'export-style'}
                 onclick={() => exportStyle(style)}
-                ><Icon name="export" />{$t('style.menu.export')}</button
               >
+                <Icon name="export" />{$t('style.menu.export')}
+              </button>
             </MoreMenu>
           </div>
         {/if}

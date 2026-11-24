@@ -356,8 +356,10 @@
     class:primary
     {href}
     target="_blank"
-    rel="noreferrer">{label}<Icon name="external" size={16} /></a
-  >{/snippet}
+    rel="noreferrer"
+  >
+    {label}<Icon name="external" size={16} />
+  </a>{/snippet}
 
 <!-- One provider's key: what it is for, the models it serves, its check and its field. -->
 {#snippet keyItem(key: KeyRow)}
@@ -376,84 +378,93 @@
       {/each}
     </dl>
     {#if google}<span>{$t('setup.cloud.signInWhy')}</span>
-      {#if signingIn}<span class="setup-note" role="status"
-          >{$t(mac ? 'setup.cloud.signingInMac' : 'setup.cloud.signingIn')}</span
-        >{/if}
-      {#if !cloudByKey}<button class="text-link" onclick={() => (cloudByKey = true)}
-          >{$t('setup.cloud.useKey')}</button
-        >{/if}
+      {#if signingIn}<span class="setup-note" role="status">
+          {$t(mac ? 'setup.cloud.signingInMac' : 'setup.cloud.signingIn')}
+        </span>{/if}
+      {#if !cloudByKey}<button class="text-link" onclick={() => (cloudByKey = true)}>
+          {$t('setup.cloud.useKey')}
+        </button>{/if}
     {/if}
     {#if key.place && (key.present || cloudByKey)}
-      {#if key.source === 'google' && !key.place.project}<span class="setup-note failed"
-          >{$t('setup.cloud.needsProject')}</span
-        >{:else}<span
-          >{key.place.project
+      {#if key.source === 'google' && !key.place.project}<span class="setup-note failed">
+          {$t('setup.cloud.needsProject')}
+        </span>{:else}<span>
+          {key.place.project
             ? $t('setup.cloud.place', {
                 project: key.place.project,
                 location: key.place.location,
               })
             : $t('setup.cloud.express')}
-          {#if key.place.fixed}{$t('setup.cloud.fixed')}{/if}</span
-        >{/if}
+          {#if key.place.fixed}{$t('setup.cloud.fixed')}{/if}
+        </span>{/if}
       {#if !key.place.fixed && !placeOpen}<button
           class="text-link"
           aria-label={$t('setup.cloud.changeFor')}
-          onclick={openPlace}>{$t('setup.cloud.change')}</button
-        >{/if}
+          onclick={openPlace}
+        >
+          {$t('setup.cloud.change')}
+        </button>{/if}
     {/if}
     {#if key.region}
-      <label class="setup-check"
-        ><input
+      <label class="setup-check">
+        <input
           type="checkbox"
           checked={key.region === 'eu'}
           disabled={$busy === 'settings'}
           onchange={(event) => setOpenAiRegion(key, event.currentTarget.checked)}
-        /><span>{$t('setup.openai.eu')}</span></label
-      >
+        /><span>{$t('setup.openai.eu')}</span>
+      </label>
       <span class="model-hint">{$t('setup.openai.euHint')}</span>
     {/if}
     {#if key.present && key.source}<span>{$t(`setup.key.source.${key.source}`)}</span>{/if}
-    {#if check === 'checking'}<span class="setup-note" role="status"
-        ><span class="loader small"></span>{$t('setup.key.asking', {
+    {#if check === 'checking'}<span class="setup-note" role="status">
+        <span class="loader small"></span>{$t('setup.key.asking', {
           provider: key.title,
-        })}</span
-      >{:else if check}<span class="setup-note" class:failed={!check.ok} role="status"
-        >{checkText(key, check)}</span
-      >
+        })}
+      </span>{:else if check}<span class="setup-note" class:failed={!check.ok} role="status">
+        {checkText(key, check)}
+      </span>
       {#if refused && check.signIn && !key.place?.fixed && !placeOpen}
-        {#if check.usable?.length}<span class="setup-links"
-            >{#each check.usable.slice(0, 3) as project (project)}<button
+        {#if check.usable?.length}<span class="setup-links">
+            {#each check.usable.slice(0, 3) as project (project)}<button
                 class="text-link"
                 disabled={$busy === 'settings'}
                 onclick={() => useProject(key, project)}
-                >{$t('setup.cloud.use', { project })}</button
-              >{/each}</span
-          >{:else if check.reason === 'SERVICE_DISABLED' && check.project}<a
+              >
+                {$t('setup.cloud.use', { project })}
+              </button>{/each}
+          </span>{:else if check.reason === 'SERVICE_DISABLED' && check.project}<a
             class="text-link"
             href={`https://console.cloud.google.com/apis/library/aiplatform.googleapis.com?project=${encodeURIComponent(check.project)}`}
             target="_blank"
-            rel="noreferrer">{$t('setup.cloud.enableApi')}</a
-          >{/if}
+            rel="noreferrer"
+          >
+            {$t('setup.cloud.enableApi')}
+          </a>{/if}
       {/if}
     {/if}
     {#if own && !replacing[key.name]}<span class="setup-links">
-        <button class="text-link" onclick={() => (replacing = { ...replacing, [key.name]: true })}
-          >{$t('setup.key.replace')}</button
-        >
-        <button class="text-link" disabled={$busy === id} onclick={() => removeKey(key)}
-          >{$t('setup.key.remove')}</button
-        >
+        <button class="text-link" onclick={() => (replacing = { ...replacing, [key.name]: true })}>
+          {$t('setup.key.replace')}
+        </button>
+        <button class="text-link" disabled={$busy === id} onclick={() => removeKey(key)}>
+          {$t('setup.key.remove')}
+        </button>
       </span>{/if}
     <svelte:fragment slot="action">
       {#if key.present}<button
           class="button"
           disabled={check === 'checking'}
-          onclick={() => checkKey(key)}>{$t('setup.key.check')}</button
-        >{:else if google}<button
+          onclick={() => checkKey(key)}
+        >
+          {$t('setup.key.check')}
+        </button>{:else if google}<button
           class="button"
           disabled={$busy === 'google-sign-in'}
-          onclick={signIn}>{$t('setup.cloud.signIn')}</button
-        >{:else}{@render site(key.get, $t('setup.key.get'), next === id && !typed)}{/if}
+          onclick={signIn}
+        >
+          {$t('setup.cloud.signIn')}
+        </button>{:else}{@render site(key.get, $t('setup.key.get'), next === id && !typed)}{/if}
     </svelte:fragment>
     <svelte:fragment slot="below">
       {#if (!key.present && (!google || cloudByKey)) || (own && replacing[key.name])}
@@ -477,14 +488,17 @@
             class="button"
             class:primary={next === id && typed}
             type="submit"
-            disabled={!typed || $busy === id}>{$t('common.save')}</button
+            disabled={!typed || $busy === id}
           >
+            {$t('common.save')}
+          </button>
           {#if replacing[key.name]}<button
               class="text-link"
               type="button"
               onclick={() => (replacing = { ...replacing, [key.name]: false })}
-              >{$t('common.cancel')}</button
-            >{/if}
+            >
+              {$t('common.cancel')}
+            </button>{/if}
         </form>
       {/if}
       {#if key.place && placeOpen}
@@ -508,20 +522,20 @@
               bind:value={placeProject}
             />
             <select aria-label={$t('setup.cloud.location')} bind:value={placeLocation}>
-              {#each LOCATIONS as location (location)}<option value={location}
-                  >{$t(`setup.cloud.location.${location}`)}</option
-                >{/each}
+              {#each LOCATIONS as location (location)}<option value={location}>
+                  {$t(`setup.cloud.location.${location}`)}
+                </option>{/each}
             </select>
           </div>
-          <button class="button" type="submit" disabled={$busy === 'settings'}
-            >{$t('common.save')}</button
-          >
+          <button class="button" type="submit" disabled={$busy === 'settings'}>
+            {$t('common.save')}
+          </button>
           <span class="model-hint" id="place-hint">{$t('setup.cloud.hint')}</span>
-          <span class="setup-links"
-            ><button class="text-link" type="button" onclick={() => (placeOpen = false)}
-              >{$t('common.cancel')}</button
-            ></span
-          >
+          <span class="setup-links">
+            <button class="text-link" type="button" onclick={() => (placeOpen = false)}>
+              {$t('common.cancel')}
+            </button>
+          </span>
         </form>
       {/if}
     </svelte:fragment>
@@ -538,13 +552,15 @@
       class:done={step && steps[step]}
       class:current={step && current === step}
       aria-hidden="true"
-      >{#if step && steps[step]}<Icon name="check" size={14} />{:else if step}{Object.keys(
-          steps,
-        ).indexOf(step) + 1}{/if}</span
     >
+      {#if step && steps[step]}<Icon name="check" size={14} />{:else if step}{Object.keys(
+          steps,
+        ).indexOf(step) + 1}{/if}
+    </span>
     <h3 {id}>
-      {title}{#if step}<span class="sr-only">: {$t(steps[step] ? 'setup.done' : 'setup.todo')}</span
-        >{/if}
+      {title}{#if step}<span class="sr-only">
+          : {$t(steps[step] ? 'setup.done' : 'setup.todo')}
+        </span>{/if}
     </h3>
     <p>{why}</p>
   </header>
@@ -580,14 +596,14 @@
         {#each setup.agents as agent (agent.id)}
           {@const id = `agent-${agent.id}`}
           <SetupItem title={agent.title} done={agent.ready}>
-            <span
-              >{#if !agent.found}{$t('setup.agent.absent')}{:else if agent.missing.length}{$t(
+            <span>
+              {#if !agent.found}{$t('setup.agent.absent')}{:else if agent.missing.length}{$t(
                   'setup.agent.missing',
                   { count: agent.missing.length, total: agent.skills },
                 )}{:else if agent.outdated.length}{$t('setup.agent.outdated', {
                   count: agent.outdated.length,
-                })}{:else}{$t('setup.agent.ready')}{/if}</span
-            >
+                })}{:else}{$t('setup.agent.ready')}{/if}
+            </span>
             <svelte:fragment slot="action">
               {#if !agent.found}{@render site(
                   agent.get,
@@ -599,8 +615,9 @@
                   title={agent.missing.length ? undefined : $t('setup.agent.updateHint')}
                   disabled={$busy === id}
                   onclick={() => installSkills(agent)}
-                  >{$t(agent.missing.length ? 'setup.agent.add' : 'setup.agent.update')}</button
-                >{/if}
+                >
+                  {$t(agent.missing.length ? 'setup.agent.add' : 'setup.agent.update')}
+                </button>{/if}
             </svelte:fragment>
           </SetupItem>
         {/each}
@@ -614,22 +631,26 @@
           {@const id = `tool-${tool.id}`}
           <SetupItem title={tool.title} done={tool.ok}>
             <span>{$t(`setup.tool.${tool.id}.why`)}</span>
-            {#if !tool.ok && installing[tool.id]}<span class="setup-note" role="status"
-                >{$t('setup.tool.installing', { name: tool.title })}</span
-              >{/if}
+            {#if !tool.ok && installing[tool.id]}<span class="setup-note" role="status">
+                {$t('setup.tool.installing', { name: tool.title })}
+              </span>{/if}
             {#if !tool.ok && tool.install}<a
                 class="text-link"
                 href={tool.get}
                 target="_blank"
-                rel="noreferrer">{$t('setup.tool.page')}</a
-              >{/if}
+                rel="noreferrer"
+              >
+                {$t('setup.tool.page')}
+              </a>{/if}
             <svelte:fragment slot="action">
               {#if !tool.ok && tool.install}<button
                   class="button"
                   class:primary={next === id}
                   disabled={$busy === id}
-                  onclick={() => installTool(tool)}>{$t('setup.tool.install')}</button
-                >{:else if !tool.ok}{@render site(
+                  onclick={() => installTool(tool)}
+                >
+                  {$t('setup.tool.install')}
+                </button>{:else if !tool.ok}{@render site(
                   tool.get,
                   $t('setup.tool.page'),
                   next === id,
@@ -650,22 +671,23 @@
         )}
         <ul class="setup-list">
           <SetupItem title={$t('setup.shortcut.item')} done={shortcutDone}>
-            <span
-              >{$t(
+            <span>
+              {$t(
                 shortcutDone
                   ? 'setup.shortcut.ready'
                   : shortcutElsewhere
                     ? 'setup.shortcut.elsewhere'
                     : 'setup.shortcut.missing',
-              )}</span
-            >
+              )}
+            </span>
             <svelte:fragment slot="action">
               {#if !shortcutDone}<button
                   class="button"
                   disabled={$busy === 'shortcut'}
                   onclick={makeShortcut}
-                  >{$t(shortcutElsewhere ? 'setup.shortcut.renew' : 'setup.shortcut.make')}</button
-                >{/if}
+                >
+                  {$t(shortcutElsewhere ? 'setup.shortcut.renew' : 'setup.shortcut.make')}
+                </button>{/if}
             </svelte:fragment>
           </SetupItem>
         </ul>
@@ -683,8 +705,8 @@
         {#if setup.envFile}
           <ul class="setup-list">
             <SetupItem title={$t('setup.env.title')} done={false}>
-              <span
-                >{$t(
+              <span>
+                {$t(
                   envKept
                     ? mac
                       ? 'setup.env.keptMac'
@@ -695,14 +717,16 @@
                   {
                     file: setup.envFile,
                   },
-                )}</span
-              >
+                )}
+              </span>
               <svelte:fragment slot="action">
                 {#if !envKept}<button
                     class="button"
                     disabled={$busy === 'adopt-keys'}
-                    onclick={adoptKeys}>{$t('setup.env.adopt')}</button
-                  >{/if}
+                    onclick={adoptKeys}
+                  >
+                    {$t('setup.env.adopt')}
+                  </button>{/if}
               </svelte:fragment>
             </SetupItem>
           </ul>
@@ -725,10 +749,11 @@
             aria-expanded={moreShown}
             aria-controls="setup-more-keys"
             onclick={() => (moreOpen = !moreOpen)}
-            >{$t('setup.more.toggle', {
+          >
+            {$t('setup.more.toggle', {
               providers: $format.and(moreKeys.map((key) => key.title)),
-            })}</button
-          >{/if}
+            })}
+          </button>{/if}
         {#if moreShown}
           <ul class="setup-list" id="setup-more-keys" transition:unfold>
             {#each moreKeys as key (key.name)}{@render keyItem(key)}{/each}
@@ -760,21 +785,22 @@
             title={$t(chosenModels.length ? 'setup.models.own' : 'setup.models.usual')}
             done={null}
           >
-            <span
-              >{chosenModels.length
+            <span>
+              {chosenModels.length
                 ? chosenModels
                     .map((field) => `${$t(field.label)} ${settings[field.setting]}`)
                     .join(' · ')
-                : $t('setup.models.usualWhy')}</span
-            >
+                : $t('setup.models.usualWhy')}
+            </span>
             <svelte:fragment slot="action">
               <button
                 class="button"
                 aria-expanded={modelsOpen}
                 aria-controls="models-form"
                 onclick={() => (modelsOpen ? (modelsOpen = false) : openModels())}
-                >{$t('setup.models.change')}</button
               >
+                {$t('setup.models.change')}
+              </button>
             </svelte:fragment>
             <svelte:fragment slot="below">
               {#if modelsOpen}
@@ -789,8 +815,8 @@
                 >
                   <div class="models-fields">
                     {#each MODEL_FIELDS as field (field.setting)}
-                      <label
-                        ><span>{$t(field.label)}</span>
+                      <label>
+                        <span>{$t(field.label)}</span>
                         {#if field.setting === 'narrationVoice'}<VoiceChoice
                             model={modelDrafts.narrationModel.trim() || setup.models.narration}
                             voices={setup.voices}
@@ -807,24 +833,26 @@
                             placeholder={setup.models[field.usual]}
                             aria-describedby="models-hint"
                             bind:value={modelDrafts[field.setting]}
-                          />{/if}</label
-                      >
+                          />{/if}
+                      </label>
                     {/each}
                   </div>
                   <p class="model-hint" id="models-hint">{$t('setup.models.hint')}</p>
-                  <button class="button" type="submit" disabled={$busy === 'settings'}
-                    >{$t('common.save')}</button
-                  >
+                  <button class="button" type="submit" disabled={$busy === 'settings'}>
+                    {$t('common.save')}
+                  </button>
                   <span class="setup-links">
                     {#if chosenModels.length}<button
                         class="text-link"
                         type="button"
                         disabled={$busy === 'settings'}
-                        onclick={() => saveModels(true)}>{$t('setup.models.reset')}</button
-                      >{/if}
-                    <button class="text-link" type="button" onclick={() => (modelsOpen = false)}
-                      >{$t('common.cancel')}</button
-                    >
+                        onclick={() => saveModels(true)}
+                      >
+                        {$t('setup.models.reset')}
+                      </button>{/if}
+                    <button class="text-link" type="button" onclick={() => (modelsOpen = false)}>
+                      {$t('common.cancel')}
+                    </button>
                   </span>
                 </form>
               {/if}
@@ -845,28 +873,34 @@
         <ul class="setup-list">
           {#each optional as tool (tool.id)}
             <SetupItem title={tool.title} done={tool.ok}>
-              <span
-                >{$t(`setup.tool.${tool.id}.why`)}{tool.ok && tool.sounds
+              <span>
+                {$t(`setup.tool.${tool.id}.why`)}{tool.ok && tool.sounds
                   ? ` ${$t('setup.tool.sounds', { count: tool.sounds })}`
-                  : ''}</span
-              >
-              {#if !tool.ok && installing[tool.id]}<span class="setup-note" role="status"
-                  >{$t('setup.tool.installing', { name: tool.title })}</span
-                >{/if}
+                  : ''}
+              </span>
+              {#if !tool.ok && installing[tool.id]}<span class="setup-note" role="status">
+                  {$t('setup.tool.installing', { name: tool.title })}
+                </span>{/if}
               {#if !tool.ok}<span class="setup-links">
-                  {#if tool.command}<button class="text-link" onclick={() => copyTask(tool)}
-                      >{$t('setup.tool.copyTask')}</button
-                    >{/if}
-                  <a class="text-link" href={tool.get} target="_blank" rel="noreferrer"
-                    >{$t('setup.tool.project')}</a
-                  >
+                  {#if tool.command}<button class="text-link" onclick={() => copyTask(tool)}>
+                      {$t('setup.tool.copyTask')}
+                    </button>{/if}
+                  <a class="text-link" href={tool.get} target="_blank" rel="noreferrer">
+                    {$t('setup.tool.project')}
+                  </a>
                 </span>{/if}
               <svelte:fragment slot="action">
                 {#if !tool.ok && tool.install}<button
                     class="button"
                     disabled={$busy === `tool-${tool.id}`}
-                    onclick={() => installTool(tool)}>{$t('setup.tool.install')}</button
-                  >{:else if !tool.ok}{@render site(tool.get, $t('setup.tool.page'), false)}{/if}
+                    onclick={() => installTool(tool)}
+                  >
+                    {$t('setup.tool.install')}
+                  </button>{:else if !tool.ok}{@render site(
+                    tool.get,
+                    $t('setup.tool.page'),
+                    false,
+                  )}{/if}
               </svelte:fragment>
             </SetupItem>
           {/each}
@@ -874,23 +908,25 @@
             title="Chrome DevTools MCP"
             done={agentsHere.length > 0 && withoutBrowser.length === 0}
           >
-            <span
-              >{$t('setup.browser.why')}{withBrowser.length
+            <span>
+              {$t('setup.browser.why')}{withBrowser.length
                 ? ` ${$t('setup.browser.has', { agents: $format.and(withBrowser) })}`
                 : ''}{withBrowser.length && withoutBrowser.length
                 ? ` ${$t('setup.browser.lacks', { agents: $format.and(withoutBrowser) })}`
-                : ''}</span
-            >
-            {#if !agentsHere.length || withoutBrowser.length}<span class="setup-links"
-                ><a class="text-link" href={BROWSER_PAGE} target="_blank" rel="noreferrer"
-                  >{$t('setup.tool.project')}</a
-                ></span
-              >{/if}
+                : ''}
+            </span>
+            {#if !agentsHere.length || withoutBrowser.length}<span class="setup-links">
+                <a class="text-link" href={BROWSER_PAGE} target="_blank" rel="noreferrer">
+                  {$t('setup.tool.project')}
+                </a>
+              </span>{/if}
             <svelte:fragment slot="action">
               {#if !agentsHere.length || withoutBrowser.length}<button
                   class="button"
-                  onclick={copyBrowserTask}>{$t('setup.browser.copy')}</button
-                >{/if}
+                  onclick={copyBrowserTask}
+                >
+                  {$t('setup.browser.copy')}
+                </button>{/if}
             </svelte:fragment>
           </SetupItem>
         </ul>
@@ -898,22 +934,27 @@
     {/if}
 
     <div class="setup-foot">
-      {#if first && done < total}<button class="text-link" onclick={onskip}
-          >{$t('setup.skip')}</button
-        >{:else if !first}<button class="text-link" onclick={() => reveal('/api/app/reveal/home')}
-          >{$t('setup.settingsFolder')}</button
-        >{/if}
+      {#if first && done < total}<button class="text-link" onclick={onskip}>
+          {$t('setup.skip')}
+        </button>{:else if !first}<button
+          class="text-link"
+          onclick={() => reveal('/api/app/reveal/home')}
+        >
+          {$t('setup.settingsFolder')}
+        </button>{/if}
       <span class="setup-foot-actions">
         {#if somethingOpen}<button
             class="button"
             title={$t('setup.checkAgainHint')}
-            onclick={() => refresh(true)}>{$t('setup.checkAgain')}</button
-          >{/if}
-        {#if first && done === total}<button class="button primary" onclick={oncontinue}
-            >{$t('setup.continue')}</button
-          >{:else if onclose}<button class="button primary" onclick={onclose}
-            >{$t('setup.close')}</button
-          >{/if}
+            onclick={() => refresh(true)}
+          >
+            {$t('setup.checkAgain')}
+          </button>{/if}
+        {#if first && done === total}<button class="button primary" onclick={oncontinue}>
+            {$t('setup.continue')}
+          </button>{:else if onclose}<button class="button primary" onclick={onclose}>
+            {$t('setup.close')}
+          </button>{/if}
       </span>
     </div>
   </div>

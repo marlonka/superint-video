@@ -188,9 +188,9 @@
   </div>
   {#if film}
     {#if film.picture}<div class="maker-pictures">
-        <span class="maker-picture"
-          ><img src={`/api/app/films/${film.id}/picture?v=${film.picture}`} alt="" /></span
-        >
+        <span class="maker-picture">
+          <img src={`/api/app/films/${film.id}/picture?v=${film.picture}`} alt="" />
+        </span>
       </div>{/if}
   {:else}
     <ul class="maker-pictures" aria-label={$t('maker.pictures')}>
@@ -202,16 +202,17 @@
             aria-label={$t('maker.remove', { name: picture.file.name })}
             title={$t('maker.remove', { name: picture.file.name })}
             disabled={working}
-            onclick={() => remove(index)}><Icon name="close" size={16} /></button
+            onclick={() => remove(index)}
           >
+            <Icon name="close" size={16} />
+          </button>
         </li>
       {/each}
       {#if pictures.length < MOST_PICTURES}
         <li>
-          <button class="maker-add" disabled={working} onclick={() => picker.click()}
-            ><Icon name="plus" /><span>{$t(pictures.length ? 'maker.addMore' : 'maker.add')}</span
-            ></button
-          >
+          <button class="maker-add" disabled={working} onclick={() => picker.click()}>
+            <Icon name="plus" /><span>{$t(pictures.length ? 'maker.addMore' : 'maker.add')}</span>
+          </button>
         </li>
       {/if}
     </ul>
@@ -259,15 +260,15 @@
     </div>
     <div class="maker-actions">
       <button class="button quiet" onclick={working ? stop : onclose}>{$t('common.cancel')}</button>
-      <button class="button primary" disabled={working || !can || !enough} onclick={create}
-        >{$t('maker.create')}</button
-      >
+      <button class="button primary" disabled={working || !can || !enough} onclick={create}>
+        {$t('maker.create')}
+      </button>
     </div>
   </div>
   <p class="maker-note" class:working role="status">
-    {#if working}<span class="loader small"></span><span
-        >{$t(film ? 'maker.filmWorking' : 'maker.working', values)}</span
-      ><span class="maker-clock">{filmClock(seconds)}</span>{:else if !can}{$t(
+    {#if working}<span class="loader small"></span><span>
+        {$t(film ? 'maker.filmWorking' : 'maker.working', values)}
+      </span><span class="maker-clock">{filmClock(seconds)}</span>{:else if !can}{$t(
         'maker.needsKey',
       )}{:else}{$t(film ? 'maker.filmWho' : 'maker.who', values)}{/if}
   </p>

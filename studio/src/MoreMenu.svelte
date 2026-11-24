@@ -57,8 +57,10 @@
     title={label}
     aria-haspopup="menu"
     aria-expanded={open}
-    onclick={() => (open = !open)}><Icon name="more" /><slot name="badge" /></button
+    onclick={() => (open = !open)}
   >
+    <Icon name="more" /><slot name="badge" />
+  </button>
   {#if open}<div
       class="more-menu"
       role="menu"

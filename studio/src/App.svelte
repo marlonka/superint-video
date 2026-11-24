@@ -1401,9 +1401,9 @@
   style={`--left-width:${leftOpen ? leftWidth : 0}px;--right-width:${inspectorVisible ? rightWidth : 0}px;--timeline-height:${timelineHeight}px`}
 >
   <header class="app-header">
-    {#if onhome}<button class="wordmark" title={$t('studio.startPage')} onclick={onhome}
-        ><Logo /></button
-      >{:else}<a class="wordmark" href="/" aria-label="Superint Video"><Logo /></a>{/if}
+    {#if onhome}<button class="wordmark" title={$t('studio.startPage')} onclick={onhome}>
+        <Logo />
+      </button>{:else}<a class="wordmark" href="/" aria-label="Superint Video"><Logo /></a>{/if}
     <div class="project-identity">
       <input
         bind:this={headerTitle}
@@ -1414,9 +1414,9 @@
         disabled={!project || saving}
         onblur={(event) =>
           edit({ type: 'updateProject', changes: { name: event.currentTarget.value } })}
-      /><span class="sr-only" role="status" aria-live="polite"
-        >{project ? $t(`save.${saveState}`) : ''}</span
-      >
+      /><span class="sr-only" role="status" aria-live="polite">
+        {project ? $t(`save.${saveState}`) : ''}
+      </span>
     </div>
     <div class="header-actions">
       <button
@@ -1425,8 +1425,10 @@
         aria-expanded={leftOpen}
         aria-controls="media-panel"
         onclick={() => (leftOpen = !leftOpen)}
-        disabled={!project}><Icon name="folder" /><span>{$t('studio.media')}</span></button
+        disabled={!project}
       >
+        <Icon name="folder" /><span>{$t('studio.media')}</span>
+      </button>
       <button
         class="button quiet labelled production-toggle"
         class:active={inspectorVisible && inspectorMode === 'production'}
@@ -1435,10 +1437,12 @@
         aria-expanded={inspectorVisible && inspectorMode === 'production'}
         onclick={toggleProduction}
         disabled={!project}
-        ><Icon name="production" /><span>{$t('studio.progress')}</span
-        >{#if production?.status?.step}<span class="production-indicator" aria-hidden="true"
-          ></span>{/if}</button
       >
+        <Icon name="production" /><span>
+          {$t('studio.progress')}
+        </span>{#if production?.status?.step}<span class="production-indicator" aria-hidden="true"
+          ></span>{/if}
+      </button>
       <button
         class="button quiet labelled settings-toggle"
         class:active={inspectorVisible && inspectorMode === 'project'}
@@ -1446,78 +1450,81 @@
         title={$t('studio.filmSettingsHint')}
         aria-expanded={inspectorVisible && inspectorMode === 'project'}
         onclick={toggleProjectSettings}
-        disabled={!project}><Icon name="settings" /><span>{$t('studio.film')}</span></button
+        disabled={!project}
       >
+        <Icon name="settings" /><span>{$t('studio.film')}</span>
+      </button>
       <button
         class="button quiet labelled voice-toggle"
         aria-label={$t('voice.title')}
         title={$t('voice.hint')}
         onclick={openVoice}
         disabled={!project}
-        ><Icon name="mic" /><span>{$t('voice.short')}</span>{#if asking}<span
+      >
+        <Icon name="mic" /><span>{$t('voice.short')}</span>{#if asking}<span
             class="production-indicator"
             aria-hidden="true"
-          ></span>{/if}</button
-      >
+          ></span>{/if}
+      </button>
       <MoreMenu
         place="more-wrapper"
         button="icon-button more-toggle"
         label={$t('studio.more')}
         bind:open={moreOpen}
       >
-        <svelte:fragment slot="badge"
-          >{#if diagnostics.length}<span
+        <svelte:fragment slot="badge">
+          {#if diagnostics.length}<span
               class="diagnostic-indicator"
               aria-label={$t('studio.diagnosticsCount', { count: diagnostics.length })}
-            ></span>{/if}</svelte:fragment
-        >
-        <button role="menuitem" disabled={!project} onclick={() => void copyContext()}
-          ><Icon name="copy" />{$t('studio.copyContext')}</button
-        >
-        <button role="menuitem" disabled={!project || checking} onclick={() => void checkProject()}
-          ><Icon name="check" />{$t(checking ? 'studio.checking' : 'studio.check')}</button
-        >
-        <button role="menuitem" onclick={() => (diagnosticsOpen = true)}
-          ><Icon name="alert" />{$t('studio.diagnostics')}{#if diagnostics.length}<span
-              >{diagnostics.length}</span
-            >{/if}</button
-        >
-        <button role="menuitem" onclick={() => (shortcutsOpen = true)}
-          ><Icon name="keyboard" />{$t('studio.shortcuts')}</button
-        >
-        <button role="menuitem" onclick={toggleTheme}
-          ><Icon name={$theme === 'dark' ? 'sun' : 'moon'} />{$t(
+            ></span>{/if}
+        </svelte:fragment>
+        <button role="menuitem" disabled={!project} onclick={() => void copyContext()}>
+          <Icon name="copy" />{$t('studio.copyContext')}
+        </button>
+        <button role="menuitem" disabled={!project || checking} onclick={() => void checkProject()}>
+          <Icon name="check" />{$t(checking ? 'studio.checking' : 'studio.check')}
+        </button>
+        <button role="menuitem" onclick={() => (diagnosticsOpen = true)}>
+          <Icon name="alert" />{$t('studio.diagnostics')}{#if diagnostics.length}<span>
+              {diagnostics.length}
+            </span>{/if}
+        </button>
+        <button role="menuitem" onclick={() => (shortcutsOpen = true)}>
+          <Icon name="keyboard" />{$t('studio.shortcuts')}
+        </button>
+        <button role="menuitem" onclick={toggleTheme}>
+          <Icon name={$theme === 'dark' ? 'sun' : 'moon'} />{$t(
             $theme === 'dark' ? 'theme.toLight' : 'theme.toDark',
-          )}</button
-        >
+          )}
+        </button>
         {#each LOCALES.filter((entry) => entry.code !== $locale) as entry (entry.code)}<button
             role="menuitem"
             lang={entry.code}
             aria-label={$t('language.switch', { language: entry.name })}
-            onclick={() => void setLanguage(entry.code)}><Icon name="globe" />{entry.name}</button
-          >{/each}
+            onclick={() => void setLanguage(entry.code)}
+          >
+            <Icon name="globe" />{entry.name}
+          </button>{/each}
       </MoreMenu>
       {#if liveRender && (liveRunning || !renderViewOpen)}<button
           class="button quiet live-pill"
           class:running={liveRunning}
           title={$t('studio.renderToggle')}
           onclick={toggleRenderView}
-          >{#if liveRunning}<span class="live-dot" aria-hidden="true"></span>{$t(
-              'state.rendering',
-              {
-                percent: $format.percent(livePercent / 100),
-              },
-            )}{:else if liveRender.status === 'completed'}<Icon name="check" />{$t(
+        >
+          {#if liveRunning}<span class="live-dot" aria-hidden="true"></span>{$t('state.rendering', {
+              percent: $format.percent(livePercent / 100),
+            })}{:else if liveRender.status === 'completed'}<Icon name="check" />{$t(
               'state.filmReady',
-            )}{:else}<Icon name="alert" />{$t('studio.renderStopped')}{/if}</button
-        >{/if}
-      <button class="button primary" onclick={() => (exportOpen = true)} disabled={!project}
-        ><Icon name="export" /><span
-          >{renderActive
+            )}{:else}<Icon name="alert" />{$t('studio.renderStopped')}{/if}
+        </button>{/if}
+      <button class="button primary" onclick={() => (exportOpen = true)} disabled={!project}>
+        <Icon name="export" /><span>
+          {renderActive
             ? $t('studio.exporting', { percent: $format.percent(progress / 100) })
-            : $t('studio.export')}</span
-        ></button
-      >
+            : $t('studio.export')}
+        </span>
+      </button>
     </div>
   </header>
 
@@ -1529,13 +1536,17 @@
     <div class="error-banner" role="alert">
       <Icon name="alert" /><span>{error}</span>
       <div class="banner-actions">
-        {#if recovery}<button onclick={downloadRecovery}>{$t('studio.recovery')}</button
-          >{/if}<button onclick={() => loadProject()}>{$t('studio.reload')}</button
-        >{#if !conflict}<button
+        {#if recovery}<button onclick={downloadRecovery}>
+            {$t('studio.recovery')}
+          </button>{/if}<button onclick={() => loadProject()}>
+          {$t('studio.reload')}
+        </button>{#if !conflict}<button
             class="icon-button"
             aria-label={$t('studio.dismissError')}
-            onclick={() => (error = '')}><Icon name="close" /></button
-          >{/if}
+            onclick={() => (error = '')}
+          >
+            <Icon name="close" />
+          </button>{/if}
       </div>
     </div>
   {/if}
@@ -1560,24 +1571,26 @@
             <button
               class="icon-button"
               aria-label={$t('media.close')}
-              onclick={() => (leftOpen = false)}><Icon name="close" /></button
+              onclick={() => (leftOpen = false)}
             >
+              <Icon name="close" />
+            </button>
           </div>
           <div class="library-controls">
-            <label class="search-field"
-              ><Icon name="search" /><span class="sr-only">{$t('media.search')}</span><input
+            <label class="search-field">
+              <Icon name="search" /><span class="sr-only">{$t('media.search')}</span><input
                 placeholder={$t('media.search')}
                 bind:value={search}
-              /></label
-            ><label class="asset-filter"
-              ><span class="sr-only">{$t('media.type')}</span><select bind:value={assetFilter}
-                ><option value="all">{$t('media.all')}</option><option value="scene"
-                  >{$t('media.scenes')}</option
-                ><option value="video">{$t('media.video')}</option><option value="image"
-                  >{$t('media.images')}</option
-                ><option value="audio">{$t('media.audio')}</option></select
-              ></label
-            >
+              />
+            </label><label class="asset-filter">
+              <span class="sr-only">{$t('media.type')}</span><select bind:value={assetFilter}>
+                <option value="all">{$t('media.all')}</option><option value="scene">
+                  {$t('media.scenes')}
+                </option><option value="video">{$t('media.video')}</option><option value="image">
+                  {$t('media.images')}
+                </option><option value="audio">{$t('media.audio')}</option>
+              </select>
+            </label>
           </div>
           <!-- Import is also available through a native file picker. -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -1599,30 +1612,33 @@
                   class="asset-main"
                   onclick={() => inspectAsset(asset)}
                   aria-label={$t('media.inspect', { name: asset.name })}
-                  ><span class={`asset-thumbnail ${asset.kind}`}
-                    >{#if thumbnailUrl(asset)}<img
+                >
+                  <span class={`asset-thumbnail ${asset.kind}`}>
+                    {#if thumbnailUrl(asset)}<img
                         src={thumbnailUrl(asset)}
                         alt=""
                         loading="lazy"
-                      />{:else}<Icon name={asset.kind} />{/if}</span
-                  ><span class="asset-description"
-                    ><span class="asset-name">{asset.name}</span><span class="asset-meta"
-                      >{asset.kind === 'scene'
+                      />{:else}<Icon name={asset.kind} />{/if}
+                  </span><span class="asset-description">
+                    <span class="asset-name">{asset.name}</span><span class="asset-meta">
+                      {asset.kind === 'scene'
                         ? $t('media.htmlScene')
                         : asset.width && asset.height
                           ? `${asset.width} × ${asset.height}`
                           : sizeLabel(asset.size)}{asset.duration
                         ? ` · ${asset.duration.toFixed(1)}s`
-                        : ''}</span
-                    ></span
-                  ></button
-                >
+                        : ''}
+                    </span>
+                  </span>
+                </button>
                 <button
                   class="button quiet add-asset"
                   aria-label={$t('media.addAt', { name: asset.name })}
                   onclick={() => addAsset(asset)}
-                  disabled={saving || asset.kind === 'other'}>{$t('media.add')}</button
+                  disabled={saving || asset.kind === 'other'}
                 >
+                  {$t('media.add')}
+                </button>
               </div>{/each}
             {#if !visibleAssets.length}<div class="empty-assets">
                 <Icon name="folder" size={28} />
@@ -1632,16 +1648,18 @@
                     onclick={() => {
                       search = '';
                       assetFilter = 'all';
-                    }}>{$t('media.clearFilters')}</button
-                  >{:else}<button class="button" onclick={() => importInput.click()}
-                    >{$t('media.import')}</button
-                  >{/if}
+                    }}
+                  >
+                    {$t('media.clearFilters')}
+                  </button>{:else}<button class="button" onclick={() => importInput.click()}>
+                    {$t('media.import')}
+                  </button>{/if}
               </div>{/if}
           </div>
           <div class="library-footer">
-            <button class="button full" onclick={() => importInput.click()} disabled={importBusy}
-              ><Icon name="import" />{$t(importBusy ? 'media.importing' : 'media.import')}</button
-            >
+            <button class="button full" onclick={() => importInput.click()} disabled={importBusy}>
+              <Icon name="import" />{$t(importBusy ? 'media.importing' : 'media.import')}
+            </button>
           </div>
         </aside>
         <div
@@ -1719,20 +1737,25 @@
               class="icon-button"
               onclick={() => seek(frame - 1)}
               aria-label={$t('preview.previous')}
-              title={`${$t('preview.previous')} · ←`}><Icon name="back" /></button
-            ><button
+              title={`${$t('preview.previous')} · ←`}
+            >
+              <Icon name="back" />
+            </button><button
               class="play-button"
               onclick={togglePlayback}
               disabled={!playerReady}
               aria-label={$t(playing ? 'preview.pause' : 'preview.play')}
               title={`${$t('preview.playPause')} · Space`}
-              ><Icon name={playing ? 'pause' : 'play'} size={22} /></button
-            ><button
+            >
+              <Icon name={playing ? 'pause' : 'play'} size={22} />
+            </button><button
               class="icon-button"
               onclick={() => seek(frame + 1)}
               aria-label={$t('preview.next')}
-              title={`${$t('preview.next')} · →`}><Icon name="next" /></button
+              title={`${$t('preview.next')} · →`}
             >
+              <Icon name="next" />
+            </button>
           </div>
           <div
             class="transport-readout"
@@ -1741,28 +1764,29 @@
               total: timecode(duration),
             })}
           >
-            <span class="timecode">{timecode(frame)}</span><span class="duration-time"
-              >/ {timecode(duration)}</span
-            >
+            <span class="timecode">{timecode(frame)}</span><span class="duration-time">
+              / {timecode(duration)}
+            </span>
           </div>
-          <label class="frame-readout"
-            ><span>{$t('preview.frame')}</span><input
+          <label class="frame-readout">
+            <span>{$t('preview.frame')}</span><input
               type="number"
               aria-label={$t('preview.currentFrame')}
               min="0"
               max={duration - 1}
               value={frame}
               oninput={(event) => seek(numberValue(event))}
-            /></label
-          >
-          <label class="transport-scale"
-            ><span>{$t('preview.zoom')}</span><select bind:value={previewScale}
-              ><option value="fit">{$t('preview.whole')}</option
-              >{#each [25, 50, 100] as percent (percent)}<option value={String(percent)}
-                  >{$format.percent(percent / 100)}</option
-                >{/each}</select
-            ></label
-          >
+            />
+          </label>
+          <label class="transport-scale">
+            <span>{$t('preview.zoom')}</span><select bind:value={previewScale}>
+              <option value="fit">
+                {$t('preview.whole')}
+              </option>{#each [25, 50, 100] as percent (percent)}<option value={String(percent)}>
+                  {$format.percent(percent / 100)}
+                </option>{/each}
+            </select>
+          </label>
         </div>
       </section>
 
@@ -1802,8 +1826,10 @@
             <button
               class="icon-button"
               aria-label={$t('panel.close')}
-              onclick={() => (rightOpen = false)}><Icon name="close" /></button
+              onclick={() => (rightOpen = false)}
             >
+              <Icon name="close" />
+            </button>
           </div>
           <div class="inspector-content">
             {#if inspectorMode === 'production'}
@@ -1817,12 +1843,13 @@
                     {#each live.running as command (command.startedAt + command.label)}<li
                         class="activity-row running-row"
                       >
-                        <span><span class="live-dot" aria-hidden="true"></span>{command.label}</span
-                        ><span
-                          >{$t('progress.since', {
+                        <span>
+                          <span class="live-dot" aria-hidden="true"></span>{command.label}
+                        </span><span>
+                          {$t('progress.since', {
                             time: $format.clock(command.startedAt),
-                          })}</span
-                        >
+                          })}
+                        </span>
                       </li>{/each}
                   </ul>
                 </section>{/if}
@@ -1832,9 +1859,9 @@
                   aria-live="polite"
                 >
                   <div class="section-label">
-                    {$t('progress.now')}{#if production.status.step}<span
-                        >{production.status.step}</span
-                      >{/if}
+                    {$t('progress.now')}{#if production.status.step}<span>
+                        {production.status.step}
+                      </span>{/if}
                   </div>
                   {#if production.status.note}<p class="production-note">
                       {production.status.note}
@@ -1843,12 +1870,13 @@
                       {#each production.status.steps as step (step.name)}<li
                           class={`step ${step.state || 'todo'}`}
                         >
-                          <span class="step-dot" aria-hidden="true"></span><span>{step.name}</span
-                          >{#if step.state === 'done'}<span class="sr-only"
-                              >{$t('progress.stepDone')}</span
-                            >{:else if step.state === 'active'}<span class="sr-only"
-                              >{$t('progress.stepActive')}</span
-                            >{/if}
+                          <span class="step-dot" aria-hidden="true"></span><span>
+                            {step.name}
+                          </span>{#if step.state === 'done'}<span class="sr-only">
+                              {$t('progress.stepDone')}
+                            </span>{:else if step.state === 'active'}<span class="sr-only">
+                              {$t('progress.stepActive')}
+                            </span>{/if}
                         </li>{/each}
                     </ol>{/if}
                 </section>{/if}
@@ -1880,12 +1908,12 @@
                       ></span><span style={`flex:${counts.open};background:transparent`}></span>
                     </div>
                     <div class="details-row">
-                      <span>{$t('polish.lookedAt')}</span><span
-                        >{$t('polish.lookedAtCount', {
+                      <span>{$t('polish.lookedAt')}</span><span>
+                        {$t('polish.lookedAtCount', {
                           seen: counts.listed - counts.open,
                           listed: counts.listed,
-                        })}</span
-                      >
+                        })}
+                      </span>
                     </div>
                     {#if counts.fixed}<div class="details-row">
                         <span>{$t('polish.fixed')}</span><span>{counts.fixed}</span>
@@ -1896,9 +1924,9 @@
                     {#if counts.settled}<div class="details-row">
                         <span>{$t('polish.settled')}</span><span>{counts.settled}</span>
                       </div>{/if}
-                    <button class="button full polish-open" onclick={() => (polishOpen = true)}
-                      >{$t('polish.open')}</button
-                    >
+                    <button class="button full polish-open" onclick={() => (polishOpen = true)}>
+                      {$t('polish.open')}
+                    </button>
                   {/if}
                 </section>{/if}
               {#if production?.latestLook}<section
@@ -1906,21 +1934,22 @@
                   aria-label={$t('progress.lookedLastLabel')}
                 >
                   <div class="section-label">
-                    {$t('progress.lookedLast')}<span
-                      >{$format.ago(production.latestLook.modified, clock)}</span
-                    >
+                    {$t('progress.lookedLast')}<span>
+                      {$format.ago(production.latestLook.modified, clock)}
+                    </span>
                   </div>
                   <a
                     href={assetUrl(production.latestLook.path)}
                     target="_blank"
                     rel="noreferrer"
                     title={production.latestLook.path}
-                    ><img
+                  >
+                    <img
                       class="latest-look"
                       src={`${assetUrl(production.latestLook.path)}?v=${production.latestLook.modified}`}
                       alt={$t('progress.contactSheet')}
-                    /></a
-                  >
+                    />
+                  </a>
                 </section>{/if}
               {#if production?.brief}
                 <section class="inspector-section" aria-label={$t('progress.brief')}>
@@ -1932,17 +1961,17 @@
                       {production.brief.message}
                     </p>{/if}
                   {#if production.brief.seconds}<div class="details-row">
-                      <span>{$t('field.length')}</span><span
-                        >{$t('progress.aboutSeconds', { seconds: production.brief.seconds })}</span
-                      >
+                      <span>{$t('field.length')}</span><span>
+                        {$t('progress.aboutSeconds', { seconds: production.brief.seconds })}
+                      </span>
                     </div>{/if}
                   {#if production.brief.format}<div class="details-row">
                       <span>{$t('field.format')}</span><span>{production.brief.format}</span>
                     </div>{/if}
                   {#if production.brief.language}<div class="details-row">
-                      <span>{$t('field.language')}</span><span
-                        >{$format.language(production.brief.language)}</span
-                      >
+                      <span>{$t('field.language')}</span><span>
+                        {$format.language(production.brief.language)}
+                      </span>
                     </div>{/if}
                   <div class="details-row">
                     <span>{$t('progress.scenes')}</span><span>{production.scenes}</span>
@@ -1976,8 +2005,9 @@
                             alt={reference.split('/').pop()}
                             title={reference.split('/').pop()}
                             loading="lazy"
-                          />{:else}<span class="reference-file">{reference.split('/').pop()}</span
-                          >{/if}{/each}
+                          />{:else}<span class="reference-file">
+                            {reference.split('/').pop()}
+                          </span>{/if}{/each}
                     </div>
                   </section>{/if}
                 {#if production.documents.length}<section
@@ -1987,10 +2017,9 @@
                     <div class="section-label">{$t('progress.documents')}</div>
                     <ul class="doc-list">
                       {#each production.documents as doc (doc.path)}<li>
-                          <button class="doc-link" onclick={() => openDocument(doc.path)}
-                            ><span>{doc.path}</span><span>{$format.ago(doc.modified, clock)}</span
-                            ></button
-                          >
+                          <button class="doc-link" onclick={() => openDocument(doc.path)}>
+                            <span>{doc.path}</span><span>{$format.ago(doc.modified, clock)}</span>
+                          </button>
                         </li>{/each}
                     </ul>
                   </section>{/if}
@@ -2047,52 +2076,52 @@
               <section class="inspector-section">
                 <h3 class="section-label">{$t('clip.timing')} <span>{$t('unit.frames')}</span></h3>
                 <div class="field-grid">
-                  <label
-                    >{$t('clip.start')}<input
+                  <label>
+                    {$t('clip.start')}<input
                       type="number"
                       min="0"
                       max={duration - selected.durationFrames}
                       value={selected.startFrame}
                       onblur={(event) => changeNumber('startFrame', event)}
-                    /></label
-                  ><label
-                    >{$t('clip.duration')}<input
+                    />
+                  </label><label>
+                    {$t('clip.duration')}<input
                       type="number"
                       min="1"
                       max={duration - selected.startFrame}
                       value={selected.durationFrames}
                       onblur={(event) => changeNumber('durationFrames', event)}
-                    /></label
-                  >
+                    />
+                  </label>
                 </div>
               </section>
               {#if selected.type === 'audio' || selected.type === 'video'}<section
                   class="inspector-section"
                 >
                   <h3 class="section-label">{$t('clip.audio')}</h3>
-                  {#if selected.type === 'video'}<label class="checkbox-field"
-                      ><input
+                  {#if selected.type === 'video'}<label class="checkbox-field">
+                      <input
                         type="checkbox"
                         checked={selected.includeAudio || false}
                         onchange={(event) =>
                           changeClip({ includeAudio: event.currentTarget.checked })}
-                      /><span>{$t('clip.useVideoAudio')}</span></label
-                    >{/if}<label class="range-label"
-                    >{$t('clip.volume')}<span>{$format.percent(selected.gain ?? 1)}</span><input
+                      /><span>{$t('clip.useVideoAudio')}</span>
+                    </label>{/if}<label class="range-label">
+                    {$t('clip.volume')}<span>{$format.percent(selected.gain ?? 1)}</span><input
                       type="range"
                       min="0"
                       max="2"
                       step="0.01"
                       value={selected.gain ?? 1}
                       onchange={(event) => changeClip({ gain: numberValue(event, 1) })}
-                    /></label
-                  ><label class="checkbox-field"
-                    ><input
+                    />
+                  </label><label class="checkbox-field">
+                    <input
                       type="checkbox"
                       checked={selected.muted || false}
                       onchange={(event) => changeClip({ muted: event.currentTarget.checked })}
-                    /><span>{$t('clip.mute')}</span></label
-                  >
+                    /><span>{$t('clip.mute')}</span>
+                  </label>
                 </section>{/if}
               <details class="advanced-settings">
                 <summary><span>{$t('clip.advanced')}</span></summary>
@@ -2104,110 +2133,116 @@
                           changeClip({
                             transform: { x: 0, y: 0, scale: 1, rotation: 0 },
                             opacity: 1,
-                          })}>{$t('clip.reset')}</button
+                          })}
                       >
+                        {$t('clip.reset')}
+                      </button>
                     </h3>
                     <div class="field-grid">
-                      <label
-                        ><span>X (px)</span><input
+                      <label>
+                        <span>X (px)</span><input
                           type="number"
                           value={selected.transform?.x || 0}
                           onblur={(event) => setTransform('x', event)}
-                        /></label
-                      ><label
-                        ><span>Y (px)</span><input
+                        />
+                      </label><label>
+                        <span>Y (px)</span><input
                           type="number"
                           value={selected.transform?.y || 0}
                           onblur={(event) => setTransform('y', event)}
-                        /></label
-                      ><label
-                        >{$t('clip.scale')}<input
+                        />
+                      </label><label>
+                        {$t('clip.scale')}<input
                           type="number"
                           min="0.01"
                           step="0.05"
                           value={selected.transform?.scale ?? 1}
                           onblur={(event) => setTransform('scale', event)}
-                        /></label
-                      ><label
-                        ><span>{$t('clip.rotation')} (°)</span><input
+                        />
+                      </label><label>
+                        <span>{$t('clip.rotation')} (°)</span><input
                           type="number"
                           value={selected.transform?.rotation || 0}
                           onblur={(event) => setTransform('rotation', event)}
-                        /></label
-                      >
+                        />
+                      </label>
                     </div>
-                    <label class="range-label"
-                      >{$t('clip.opacity')}<span>{$format.percent(selected.opacity ?? 1)}</span
-                      ><input
+                    <label class="range-label">
+                      {$t('clip.opacity')}<span>
+                        {$format.percent(selected.opacity ?? 1)}
+                      </span><input
                         type="range"
                         min="0"
                         max="1"
                         step="0.01"
                         value={selected.opacity ?? 1}
                         onchange={(event) => changeClip({ opacity: numberValue(event, 1) })}
-                      /></label
-                    >
+                      />
+                    </label>
                   </section>{/if}
                 <section class="inspector-section">
                   <h3 class="section-label">
                     {$t('clip.fades')} <span>{$t('unit.frames')}</span>
                   </h3>
                   <div class="field-grid">
-                    <label
-                      >{$t('clip.fadeIn')}<input
+                    <label>
+                      {$t('clip.fadeIn')}<input
                         type="number"
                         min="0"
                         max={selected.durationFrames}
                         value={selected.fadeInFrames || 0}
                         onblur={(event) => changeNumber('fadeInFrames', event)}
-                      /></label
-                    ><label
-                      >{$t('clip.fadeOut')}<input
+                      />
+                    </label><label>
+                      {$t('clip.fadeOut')}<input
                         type="number"
                         min="0"
                         max={selected.durationFrames}
                         value={selected.fadeOutFrames || 0}
                         onblur={(event) => changeNumber('fadeOutFrames', event)}
-                      /></label
-                    >
+                      />
+                    </label>
                   </div>
                 </section>
                 <section class="inspector-section">
-                  <label class="wide-field"
-                    ><span>{$t('clip.sourceOffset')} ({$t('unit.frames')})</span><input
+                  <label class="wide-field">
+                    <span>{$t('clip.sourceOffset')} ({$t('unit.frames')})</span><input
                       type="number"
                       min="0"
                       value={selected.sourceOffsetFrames || 0}
                       onblur={(event) => changeNumber('sourceOffsetFrames', event)}
-                    /></label
-                  ><label class="wide-field"
-                    >{$t('clip.track')}<select
+                    />
+                  </label><label class="wide-field">
+                    {$t('clip.track')}<select
                       value={selected.track}
                       onchange={(event) => changeClip({ track: event.currentTarget.value })}
-                      >{#each manifest.tracks.filter((track) => track.kind === (selected?.type === 'audio' ? 'audio' : 'visual')) as track}<option
-                          value={track.id}>{track.name || track.id}</option
-                        >{/each}</select
-                    ></label
-                  >{#if selected.type !== 'audio'}<label class="checkbox-field"
-                      ><input
+                    >
+                      {#each manifest.tracks.filter((track) => track.kind === (selected?.type === 'audio' ? 'audio' : 'visual')) as track}<option
+                          value={track.id}
+                        >
+                          {track.name || track.id}
+                        </option>{/each}
+                    </select>
+                  </label>{#if selected.type !== 'audio'}<label class="checkbox-field">
+                      <input
                         type="checkbox"
                         checked={selected.hidden || false}
                         onchange={(event) => changeClip({ hidden: event.currentTarget.checked })}
-                      /><span>{$t('clip.hide')}</span></label
-                    >{/if}
+                      /><span>{$t('clip.hide')}</span>
+                    </label>{/if}
                   <div class="source-detail">
                     <span>{$t('clip.source')}</span><code>{selected.src}</code>
                   </div>
-                  <button class="button quiet full" onclick={copyContext}
-                    ><Icon name="copy" />{$t('clip.copyContext')}</button
-                  >
+                  <button class="button quiet full" onclick={copyContext}>
+                    <Icon name="copy" />{$t('clip.copyContext')}
+                  </button>
                 </section>
               </details>
             {:else}
               <section class="inspector-section">
                 <div class="field-grid">
-                  <label
-                    ><span>{$t('film.width')} (px)</span><input
+                  <label>
+                    <span>{$t('film.width')} (px)</span><input
                       type="number"
                       min="2"
                       step="2"
@@ -2217,9 +2252,9 @@
                           type: 'updateProject',
                           changes: { width: Math.round(numberValue(event)) },
                         })}
-                    /></label
-                  ><label
-                    ><span>{$t('film.height')} (px)</span><input
+                    />
+                  </label><label>
+                    <span>{$t('film.height')} (px)</span><input
                       type="number"
                       min="2"
                       step="2"
@@ -2229,11 +2264,11 @@
                           type: 'updateProject',
                           changes: { height: Math.round(numberValue(event)) },
                         })}
-                    /></label
-                  >
+                    />
+                  </label>
                 </div>
-                <label class="wide-field"
-                  ><span>{$t('clip.duration')} ({$t('unit.frames')})</span><input
+                <label class="wide-field">
+                  <span>{$t('clip.duration')} ({$t('unit.frames')})</span><input
                     type="number"
                     min="1"
                     value={duration}
@@ -2242,15 +2277,15 @@
                         type: 'updateProject',
                         changes: { durationFrames: Math.round(numberValue(event)) },
                       })}
-                  /></label
-                >
+                  />
+                </label>
                 <div class="details-row">
-                  <span>{$t('film.frameRate')}</span><span
-                    >{manifest.fps.num}{manifest.fps.den !== 1 ? ` / ${manifest.fps.den}` : ''} fps</span
-                  >
+                  <span>{$t('film.frameRate')}</span><span>
+                    {manifest.fps.num}{manifest.fps.den !== 1 ? ` / ${manifest.fps.den}` : ''} fps
+                  </span>
                 </div>
-                <label class="wide-field"
-                  >{$t('film.background')}
+                <label class="wide-field">
+                  {$t('film.background')}
                   <div class="color-field">
                     <input
                       type="color"
@@ -2261,12 +2296,12 @@
                           changes: { background: event.currentTarget.value },
                         })}
                     /><span>{manifest.background || '#101113'}</span>
-                  </div></label
-                >
+                  </div>
+                </label>
                 {#if project.fonts}
                   <!-- The film's main font for every scene that takes it; empty keeps the style's. -->
-                  <label class="wide-field"
-                    ><span>{$t('film.font')}</span>
+                  <label class="wide-field">
+                    <span>{$t('film.font')}</span>
                     <select
                       value={manifest.font || ''}
                       onchange={(event) =>
@@ -2275,26 +2310,26 @@
                           changes: { font: event.currentTarget.value || null },
                         })}
                     >
-                      <option value=""
-                        >{project.fonts.style
+                      <option value="">
+                        {project.fonts.style
                           ? $t('film.fontOfStyle', { font: project.fonts.style })
-                          : $t('film.fontOfScenes')}</option
-                      >
-                      {#if project.fonts.film.length}<optgroup label={$t('film.fontsOfFilm')}
-                          >{#each project.fonts.film as family (family)}<option value={family}
-                              >{family}</option
-                            >{/each}</optgroup
-                        >{/if}
-                      <optgroup label={$t('film.fontsOfTool')}
-                        >{#each project.fonts.library as family (family)}<option value={family}
-                            >{family}</option
-                          >{/each}</optgroup
-                      >
+                          : $t('film.fontOfScenes')}
+                      </option>
+                      {#if project.fonts.film.length}<optgroup label={$t('film.fontsOfFilm')}>
+                          {#each project.fonts.film as family (family)}<option value={family}>
+                              {family}
+                            </option>{/each}
+                        </optgroup>{/if}
+                      <optgroup label={$t('film.fontsOfTool')}>
+                        {#each project.fonts.library as family (family)}<option value={family}>
+                            {family}
+                          </option>{/each}
+                      </optgroup>
                     </select>
-                    {#if !project.fonts.follows}<small class="field-note"
-                        >{$t('film.fontNotTaken')}</small
-                      >{/if}</label
-                  >
+                    {#if !project.fonts.follows}<small class="field-note">
+                        {$t('film.fontNotTaken')}
+                      </small>{/if}
+                  </label>
                 {/if}
               </section>
               <details class="advanced-settings">
@@ -2329,14 +2364,18 @@
             aria-label={$t('timeline.undo')}
             title={`${$t('timeline.undo')} · Ctrl Z`}
             disabled={!project.canUndo || saving || conflict}
-            onclick={() => history('undo')}><Icon name="undo" /></button
-          ><button
+            onclick={() => history('undo')}
+          >
+            <Icon name="undo" />
+          </button><button
             class="icon-button"
             aria-label={$t('timeline.redo')}
             title={`${$t('timeline.redo')} · Ctrl Shift Z`}
             disabled={!project.canRedo || saving || conflict}
-            onclick={() => history('redo')}><Icon name="redo" /></button
-          ><span class="toolbar-divider"></span><button
+            onclick={() => history('redo')}
+          >
+            <Icon name="redo" />
+          </button><span class="toolbar-divider"></span><button
             class="button quiet tool"
             aria-label={$t('timeline.splitHint')}
             title={`${$t('timeline.splitHint')} · S`}
@@ -2344,21 +2383,26 @@
               frame <= selected.startFrame ||
               frame >= selected.startFrame + selected.durationFrames ||
               saving}
-            onclick={split}><Icon name="split" /><span>{$t('timeline.split')}</span></button
-          ><button
+            onclick={split}
+          >
+            <Icon name="split" /><span>{$t('timeline.split')}</span>
+          </button><button
             class="button quiet tool"
             aria-label={$t('timeline.duplicateHint')}
             title={`${$t('timeline.duplicateHint')} · D`}
             disabled={!selected || saving}
             onclick={duplicate}
-            ><Icon name="duplicate" /><span>{$t('timeline.duplicate')}</span></button
-          ><button
+          >
+            <Icon name="duplicate" /><span>{$t('timeline.duplicate')}</span>
+          </button><button
             class="button quiet tool"
             aria-label={$t('timeline.deleteHint')}
             title={`${$t('timeline.deleteHint')} · Backspace`}
             disabled={!selected || saving}
-            onclick={remove}><Icon name="trash" /><span>{$t('timeline.delete')}</span></button
+            onclick={remove}
           >
+            <Icon name="trash" /><span>{$t('timeline.delete')}</span>
+          </button>
         </div>
         <div class="timeline-secondary">
           <button
@@ -2366,16 +2410,19 @@
             aria-pressed={snapping}
             title={`${$t('timeline.snapHint')} · N`}
             onclick={() => (snapping = !snapping)}
-            ><Icon name="snap" /><span>{$t('timeline.snap')}</span></button
-          ><span class="toolbar-divider"></span>
+          >
+            <Icon name="snap" /><span>{$t('timeline.snap')}</span>
+          </button><span class="toolbar-divider"></span>
           <div class="timeline-zoom">
             <button
               class="icon-button"
               aria-label={$t('timeline.zoomOut')}
               title={$t('timeline.zoomOut')}
               disabled={zoom <= 1}
-              onclick={() => (zoom = Math.max(1, zoom / 1.5))}><Icon name="minus" /></button
-            ><input
+              onclick={() => (zoom = Math.max(1, zoom / 1.5))}
+            >
+              <Icon name="minus" />
+            </button><input
               type="range"
               aria-label={$t('timeline.zoom')}
               title={$t('timeline.zoom')}
@@ -2388,16 +2435,20 @@
               aria-label={$t('timeline.zoomIn')}
               title={$t('timeline.zoomIn')}
               disabled={zoom >= 12}
-              onclick={() => (zoom = Math.min(12, zoom * 1.5))}><Icon name="plus" /></button
-            ><button
+              onclick={() => (zoom = Math.min(12, zoom * 1.5))}
+            >
+              <Icon name="plus" />
+            </button><button
               class="button quiet"
               title={$t('timeline.wholeHint')}
               disabled={zoom === 1}
               onclick={() => {
                 zoom = 1;
                 timeline.scrollLeft = 0;
-              }}>{$t('timeline.whole')}</button
+              }}
             >
+              {$t('timeline.whole')}
+            </button>
           </div>
         </div>
       </div>
@@ -2427,8 +2478,10 @@
                       }),
                       kind: 'visual',
                     },
-                  })}><Icon name="plus" size={18} /></button
+                  })}
               >
+                <Icon name="plus" size={18} />
+              </button>
             </div>
             <div
               class="ruler"
@@ -2444,8 +2497,10 @@
             >
               {#each rulerTicks as seconds}<span
                   class="ruler-tick"
-                  style={`left:${seconds * fps * pixelsPerFrame}px`}>{rulerLabel(seconds)}</span
-                >{/each}
+                  style={`left:${seconds * fps * pixelsPerFrame}px`}
+                >
+                  {rulerLabel(seconds)}
+                </span>{/each}
             </div>
           </div>
           {#each manifest.tracks as track (track.id)}
@@ -2453,8 +2508,10 @@
               <div class="track-label">
                 <Icon name={track.kind === 'audio' ? 'audio' : 'video'} size={20} /><span
                   class="track-name"
-                  title={track.name || track.id}>{track.name || track.id}</span
-                ><button
+                  title={track.name || track.id}
+                >
+                  {track.name || track.id}
+                </span><button
                   class="icon-button track-toggle"
                   class:muted={track.hidden || track.muted}
                   aria-label={`${trackToggle(track)}: ${track.name || track.id}`}
@@ -2468,7 +2525,8 @@
                           ? { muted: !track.muted }
                           : { hidden: !track.hidden },
                     })}
-                  ><Icon
+                >
+                  <Icon
                     name={track.kind === 'audio'
                       ? track.muted
                         ? 'muted'
@@ -2477,8 +2535,8 @@
                         ? 'hidden'
                         : 'eye'}
                     size={20}
-                  /></button
-                >
+                  />
+                </button>
               </div>
               <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div
@@ -2511,29 +2569,32 @@
                         selectClip(item.id);
                       }}
                       ondblclick={() => seek(item.startFrame)}
-                      ><span class="clip-title"
-                        ><Icon name={item.type} size={18} /><span>{clipName(item)}</span
-                        >{#if item.hidden || item.muted}<Icon
+                    >
+                      <span class="clip-title">
+                        <Icon name={item.type} size={18} /><span>
+                          {clipName(item)}
+                        </span>{#if item.hidden || item.muted}<Icon
                             name={item.hidden ? 'hidden' : 'muted'}
                             size={18}
-                          />{/if}</span
-                      >{#if item.type === 'image'}<span
+                          />{/if}
+                      </span>{#if item.type === 'image'}<span
                           class="clip-image-strip"
                           style={`background-image:url("${assetUrl(item.src)}")`}
-                        ></span>{:else if item.type === 'audio'}<span class="audio-line"
-                          >{#if waveformPath(item, assetMetadata[item.src])}<svg
+                        ></span>{:else if item.type === 'audio'}<span class="audio-line">
+                          {#if waveformPath(item, assetMetadata[item.src])}<svg
                               viewBox="0 0 100 20"
                               preserveAspectRatio="none"
                               aria-hidden="true"
-                              ><path
+                            >
+                              <path
                                 d={waveformPath(item, assetMetadata[item.src])}
                                 fill="none"
                                 stroke="currentColor"
                                 stroke-width="0.55"
-                              /></svg
-                            >{/if}</span
-                        >{/if}</button
-                    >
+                              />
+                            </svg>{/if}
+                        </span>{/if}
+                    </button>
                     <button
                       class="trim-handle left"
                       aria-label={$t('timeline.trimStartOf', { name: clipName(item) })}
@@ -2560,9 +2621,9 @@
             </div>
           {/each}
           {#if !manifest.clips.length}<div class="timeline-empty">
-              <button class="button" onclick={() => (leftOpen = true)}
-                ><Icon name="plus" />{$t('media.addFirst')}</button
-              >
+              <button class="button" onclick={() => (leftOpen = true)}>
+                <Icon name="plus" />{$t('media.addFirst')}
+              </button>
             </div>{/if}
           <div class="timeline-bottom-space"></div>
           {#if snapFrame !== null}<div
@@ -2602,8 +2663,10 @@
         <button
           class="icon-button"
           aria-label={$t('diagnostics.close')}
-          onclick={() => (diagnosticsOpen = false)}><Icon name="close" /></button
+          onclick={() => (diagnosticsOpen = false)}
         >
+          <Icon name="close" />
+        </button>
       </div>
       {#if checking}<div class="diagnostics-empty">
           <span class="loader"></span>{$t('diagnostics.checking')}
@@ -2619,8 +2682,10 @@
                   onclick={() => {
                     selectClip(diagnostic.clipId!);
                     diagnosticsOpen = false;
-                  }}>{$t('diagnostics.selectClip')}</button
-                >{/if}<span class="diagnostic-code">{diagnostic.code}</span>
+                  }}
+                >
+                  {$t('diagnostics.selectClip')}
+                </button>{/if}<span class="diagnostic-code">{diagnostic.code}</span>
             </div>
           </div>{/each}{:else}<p class="diagnostics-empty">
           {lastCheckFrames === null
@@ -2628,11 +2693,11 @@
             : $t('diagnostics.clean', { count: lastCheckFrames })}
         </p>{/if}
       <div class="modal-actions">
-        <button class="button" onclick={() => (diagnosticsOpen = false)}
-          >{$t('common.close')}</button
-        ><button class="button primary" onclick={checkProject} disabled={checking}
-          >{$t(checking ? 'studio.checking' : 'studio.check')}</button
-        >
+        <button class="button" onclick={() => (diagnosticsOpen = false)}>
+          {$t('common.close')}
+        </button><button class="button primary" onclick={checkProject} disabled={checking}>
+          {$t(checking ? 'studio.checking' : 'studio.check')}
+        </button>
       </div>
     </div>
   </div>{/if}
@@ -2654,74 +2719,81 @@
         <button
           class="icon-button"
           aria-label={$t('export.close')}
-          onclick={() => (exportOpen = false)}><Icon name="close" size={20} /></button
+          onclick={() => (exportOpen = false)}
         >
+          <Icon name="close" size={20} />
+        </button>
       </div>
       <div class="export-summary">
-        <span>{manifest?.width} × {manifest?.height}</span><span>{Number(fps.toFixed(3))} fps</span
-        ><span>{$t('export.seconds', { seconds: $format.number(duration / fps, 2) })}</span>
+        <span>{manifest?.width} × {manifest?.height}</span><span>
+          {Number(fps.toFixed(3))} fps
+        </span><span>{$t('export.seconds', { seconds: $format.number(duration / fps, 2) })}</span>
       </div>
-      <label class="wide-field"
-        >{$t('export.path')}<input
+      <label class="wide-field">
+        {$t('export.path')}<input
           type="text"
           bind:value={output}
           oninput={() => (outputEdited = true)}
           disabled={renderActive}
           placeholder={suggestedOutput}
-        /><span class="field-note">{$t('export.pathNote')}</span></label
-      >
+        /><span class="field-note">{$t('export.pathNote')}</span>
+      </label>
       <fieldset class="quality-options" disabled={renderActive}>
-        <legend>{$t('export.quality')}</legend><label class:chosen={quality === 'draft'}
-          ><input type="radio" bind:group={quality} value="draft" /><span
-            ><strong>{$t('export.draft')}</strong><small>{$t('export.draftNote')}</small></span
-          ></label
-        ><label class:chosen={quality === 'final'}
-          ><input type="radio" bind:group={quality} value="final" /><span
-            ><strong>{$t('export.final')}</strong><small>{$t('export.finalNote')}</small></span
-          ></label
-        >
+        <legend>{$t('export.quality')}</legend><label class:chosen={quality === 'draft'}>
+          <input type="radio" bind:group={quality} value="draft" /><span>
+            <strong>{$t('export.draft')}</strong><small>{$t('export.draftNote')}</small>
+          </span>
+        </label><label class:chosen={quality === 'final'}>
+          <input type="radio" bind:group={quality} value="final" /><span>
+            <strong>{$t('export.final')}</strong><small>{$t('export.finalNote')}</small>
+          </span>
+        </label>
       </fieldset>
-      <label class="checkbox-field overwrite-label"
-        ><input type="checkbox" bind:checked={overwrite} disabled={renderActive} /><span
-          >{$t('export.overwrite')}</span
-        ></label
-      >{#if exportError}<p class="render-error" role="alert">{exportError}</p>{/if}{#if job}<div
-          class="render-status"
-          role="status"
-        >
+      <label class="checkbox-field overwrite-label">
+        <input type="checkbox" bind:checked={overwrite} disabled={renderActive} /><span>
+          {$t('export.overwrite')}
+        </span>
+      </label>{#if exportError}<p class="render-error" role="alert">
+          {exportError}
+        </p>{/if}{#if job}<div class="render-status" role="status">
           <div>
-            <span
-              >{job.status === 'completed'
+            <span>
+              {job.status === 'completed'
                 ? $t('export.complete')
                 : job.status === 'failed'
                   ? $t('export.failed')
                   : job.status === 'cancelled'
                     ? $t('export.cancelled')
-                    : job.stage}</span
-            ><span>{renderActive ? $format.percent(progress / 100) : ''}</span>
+                    : job.stage}
+            </span><span>{renderActive ? $format.percent(progress / 100) : ''}</span>
           </div>
           {#if renderActive}<progress max="100" value={progress}></progress><span
               class="render-frames"
-              >{$t('export.frames', { completed: job.completed, total: job.total })}</span
-            >{/if}{#if job.error}<p class="render-error">
+            >
+              {$t('export.frames', { completed: job.completed, total: job.total })}
+            </span>{/if}{#if job.error}<p class="render-error">
               {job.error}
             </p>{/if}{#if job.status === 'completed'}<p class="completed-path">{job.output}</p>{/if}
         </div>{/if}
       <div class="modal-actions">
-        {#if renderActive}<button class="button" onclick={cancelRender}
-            >{$t('export.cancel')}</button
-          >{:else if job?.status === 'completed'}<button class="button" onclick={startRender}
-            >{$t('export.again')}</button
-          ><button class="button primary" onclick={openRender}
-            ><Icon name="external" />{$t('export.open')}</button
-          >{:else}<button class="button" onclick={() => (exportOpen = false)}
-            >{$t('common.close')}</button
-          ><button
+        {#if renderActive}<button class="button" onclick={cancelRender}>
+            {$t('export.cancel')}
+          </button>{:else if job?.status === 'completed'}<button
+            class="button"
+            onclick={startRender}
+          >
+            {$t('export.again')}
+          </button><button class="button primary" onclick={openRender}>
+            <Icon name="external" />{$t('export.open')}
+          </button>{:else}<button class="button" onclick={() => (exportOpen = false)}>
+            {$t('common.close')}
+          </button><button
             class="button primary"
             onclick={startRender}
             disabled={exportStarting || !output.trim()}
-            ><Icon name="export" />{$t(exportStarting ? 'export.starting' : 'export.title')}</button
-          >{/if}
+          >
+            <Icon name="export" />{$t(exportStarting ? 'export.starting' : 'export.title')}
+          </button>{/if}
       </div>
     </div>
   </div>
@@ -2742,8 +2814,10 @@
         <button
           class="icon-button"
           aria-label={$t('shortcuts.close')}
-          onclick={() => (shortcutsOpen = false)}><Icon name="close" /></button
+          onclick={() => (shortcutsOpen = false)}
         >
+          <Icon name="close" />
+        </button>
       </div>
       {#each SHORTCUTS as [action, keys] (action)}<div class="shortcut-row">
           <span>{$t(action)}</span><kbd>{keys}</kbd>
@@ -2777,15 +2851,19 @@
         <button
           class="icon-button"
           aria-label={$t('common.close')}
-          onclick={() => (polishOpen = false)}><Icon name="close" /></button
+          onclick={() => (polishOpen = false)}
         >
+          <Icon name="close" />
+        </button>
       </div>
       <div class="polish-filters" role="group" aria-label={$t('polish.filters')}>
         {#each polishFilters(polish.counts) as [value, count] (value)}<button
             class="button small"
             aria-pressed={polishFilter === value}
-            onclick={() => (polishFilter = value)}>{$t(`polish.filter.${value}`, { count })}</button
-          >{/each}
+            onclick={() => (polishFilter = value)}
+          >
+            {$t(`polish.filter.${value}`, { count })}
+          </button>{/each}
       </div>
       <div class="polish-body">
         <ul class="polish-list">
@@ -2793,24 +2871,25 @@
               <button
                 aria-current={polishRow?.file === row.file}
                 onclick={() => (polishFile = row.file)}
-                >{#if row.taken === false}<span class="polish-wait"></span>{:else}<img
+              >
+                {#if row.taken === false}<span class="polish-wait"></span>{:else}<img
                     src={polishUrl(row.file)}
                     alt=""
                     loading="lazy"
-                  />{/if}<span
-                  ><strong
-                    ><span class={`verdict ${row.verdict}`} aria-hidden="true"></span>{polishName(
+                  />{/if}<span>
+                  <strong>
+                    <span class={`verdict ${row.verdict}`} aria-hidden="true"></span>{polishName(
                       row,
-                    )}</strong
-                  ><span class="said"
-                    >{row.verdict !== 'open'
+                    )}
+                  </strong><span class="said">
+                    {row.verdict !== 'open'
                       ? row.said
                       : row.file === polish.current && row.taken !== false
                         ? $t('polish.lookingNow')
-                        : $t('polish.notLooked')}</span
-                  ></span
-                ></button
-              >
+                        : $t('polish.notLooked')}
+                  </span>
+                </span>
+              </button>
             </li>{:else}<li class="field-note polish-empty">{$t('polish.empty')}</li>{/each}
         </ul>
         <div class="polish-view">
@@ -2853,8 +2932,10 @@
         <button
           class="icon-button"
           aria-label={$t('document.close')}
-          onclick={() => (documentView = null)}><Icon name="close" /></button
+          onclick={() => (documentView = null)}
         >
+          <Icon name="close" />
+        </button>
       </div>
       <pre class="document-text">{documentView.text}</pre>
     </div>
@@ -2876,8 +2957,10 @@
         <button
           class="icon-button"
           aria-label={$t('context.close')}
-          onclick={() => (contextDialog = '')}><Icon name="close" /></button
+          onclick={() => (contextDialog = '')}
         >
+          <Icon name="close" />
+        </button>
       </div>
       <p class="field-note">{$t('context.blocked')}</p>
       <textarea
@@ -2891,8 +2974,10 @@
           onclick={() => {
             contextArea.focus();
             contextArea.select();
-          }}>{$t('context.selectAll')}</button
+          }}
         >
+          {$t('context.selectAll')}
+        </button>
       </div>
     </div>
   </div>

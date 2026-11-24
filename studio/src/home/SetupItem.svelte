@@ -11,15 +11,15 @@
 </script>
 
 <li class="setup-item" class:done={done === true}>
-  <span class="setup-mark" class:blank={done === null} aria-hidden="true"
-    >{#if done}<span in:settle><Icon name="check" size={14} /></span>{/if}</span
-  >
+  <span class="setup-mark" class:blank={done === null} aria-hidden="true">
+    {#if done}<span in:settle><Icon name="check" size={14} /></span>{/if}
+  </span>
   <div class="setup-text">
-    <strong
-      >{title}{#if done !== null}<span class="sr-only"
-          >: {$t(done ? 'setup.done' : 'setup.todo')}</span
-        >{/if}</strong
-    >
+    <strong>
+      {title}{#if done !== null}<span class="sr-only">
+          : {$t(done ? 'setup.done' : 'setup.todo')}
+        </span>{/if}
+    </strong>
     <slot />
   </div>
   <div class="setup-action"><slot name="action" /></div>

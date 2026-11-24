@@ -98,11 +98,12 @@
     aria-haspopup="dialog"
     aria-expanded={$updateOpen}
     onclick={() => updateOpen.update((open) => !open)}
-    ><Icon name="update" /><span>{$t('update.button')}</span><span
+  >
+    <Icon name="update" /><span>{$t('update.button')}</span><span
       class="production-indicator"
       aria-hidden="true"
-    ></span></button
-  >{/if}
+    ></span>
+  </button>{/if}
 
 {#if $updateOpen}
   <div
@@ -122,9 +123,9 @@
             {published(available.publishedAt)}
           </p>{/if}
       </div>
-      <button class="icon-button" aria-label={$t('common.close')} onclick={close}
-        ><Icon name="close" /></button
-      >
+      <button class="icon-button" aria-label={$t('common.close')} onclick={close}>
+        <Icon name="close" />
+      </button>
     </header>
 
     {#if available}
@@ -137,21 +138,21 @@
               {:else}<p>{note.text}</p>{/if}
             {/each}
           </div>{/if}
-        <a class="text-link update-all" href={available.url} target="_blank" rel="noreferrer"
-          >{$t('update.allChanges')}<Icon name="external" size={16} /></a
-        >
+        <a class="text-link update-all" href={available.url} target="_blank" rel="noreferrer">
+          {$t('update.allChanges')}<Icon name="external" size={16} />
+        </a>
       </div>
 
       <div class="update-foot">
         {#if progress}
           <div class="update-progress" role="status">
-            <span
-              >{progress.phase === 'downloading'
+            <span>
+              {progress.phase === 'downloading'
                 ? $t('update.downloading', { percent })
                 : progress.phase === 'installing'
                   ? $t('update.installing')
-                  : $t('update.preparing')}</span
-            >
+                  : $t('update.preparing')}
+            </span>
             {#if progress.phase === 'downloading' && progress.total}<progress
                 max={progress.total}
                 value={progress.received ?? 0}
@@ -167,21 +168,25 @@
             {#if canInstall}<button
                 class="button primary"
                 disabled={update.busy.length > 0 || $busy === 'update-install' || $updating}
-                onclick={install}>{$t('update.install')}</button
-              >{:else}<a
+                onclick={install}
+              >
+                {$t('update.install')}
+              </button>{:else}<a
                 class="button primary"
                 href={available.url}
                 target="_blank"
                 rel="noreferrer"
                 onclick={() => updateOpen.set(false)}
-                ><Icon name="download" />{$t('update.download')}</a
-              >{/if}
+              >
+                <Icon name="download" />{$t('update.download')}
+              </a>{/if}
             {#if !available.skipped}<button
                 class="text-link"
                 disabled={$busy === 'update-skip'}
                 onclick={() => available && skipUpdate(available.version)}
-                >{$t('update.skip')}</button
-              >{/if}
+              >
+                {$t('update.skip')}
+              </button>{/if}
           </div>
           <p class="update-hint">{$t(hint)}</p>
         {/if}
@@ -199,10 +204,11 @@
           class="button"
           disabled={$busy === 'update-check'}
           onclick={() => checkUpdate().then(() => (now = Date.now()))}
-          ><Icon name="refresh" />{$busy === 'update-check'
-            ? $t('update.checking')
-            : $t('update.checkNow')}</button
         >
+          <Icon name="refresh" />{$busy === 'update-check'
+            ? $t('update.checking')
+            : $t('update.checkNow')}
+        </button>
       </div>
     {/if}
   </div>

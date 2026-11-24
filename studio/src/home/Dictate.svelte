@@ -227,19 +227,21 @@
         class="icon-button"
         aria-label={$t('dictate.discard')}
         title={$t('dictate.discard')}
-        onclick={discard}><Icon name="close" /></button
+        onclick={discard}
       >
+        <Icon name="close" />
+      </button>
       <canvas
         class="dictate-wave"
         class:writing={phase !== 'recording'}
         aria-hidden="true"
         bind:this={canvas}
       ></canvas>
-      <span class="dictate-time"
-        >{#if phase === 'writing'}{$t('dictate.writing')}{:else if phase === 'starting'}{$t(
+      <span class="dictate-time">
+        {#if phase === 'writing'}{$t('dictate.writing')}{:else if phase === 'starting'}{$t(
             'dictate.starting',
-          )}{:else}{filmClock(seconds)}{/if}</span
-      >
+          )}{:else}{filmClock(seconds)}{/if}
+      </span>
     {:else if !available}
       <span class="dictate-hint">{$t('dictate.needsKey')}</span>
     {/if}
@@ -256,10 +258,9 @@
           : undefined}
       disabled={!available || paused || phase === 'starting' || phase === 'writing'}
       onclick={phase === 'recording' ? finish : begin}
-      >{#if phase === 'writing'}<span class="loader small"></span>{:else}<Icon
-          name="mic"
-        />{/if}</button
     >
+      {#if phase === 'writing'}<span class="loader small"></span>{:else}<Icon name="mic" />{/if}
+    </button>
     <span class="sr-only" role="status" aria-live="polite">{spoken}</span>
   </div>
 {/if}

@@ -17,6 +17,7 @@
     <span>{missing.map((need) => $t(`setup.effect.${need}`)).join(' ')}</span>
   </div>
   <button class="button primary" onclick={onfinish}>{$t('setup.banner.action')}</button>
-  {#if onlater}<button class="button quiet" onclick={onlater}>{$t('setup.banner.later')}</button
-    >{/if}
+  {#if onlater}<button class="button quiet" onclick={onlater}>
+      {$t('setup.banner.later')}
+    </button>{/if}
 </div>

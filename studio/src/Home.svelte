@@ -135,49 +135,56 @@
 
 <div class="home">
   <header class="app-header">
-    <span class="wordmark"
-      ><Logo /><button
+    <span class="wordmark">
+      <Logo /><button
         class="app-version"
         title={$t('update.versionTitle')}
         aria-haspopup="dialog"
         aria-expanded={$updateOpen}
-        onclick={() => updateOpen.update((open) => !open)}>{overview.version}</button
-      ></span
-    >
+        onclick={() => updateOpen.update((open) => !open)}
+      >
+        {overview.version}
+      </button>
+    </span>
     <div class="header-actions">
       <Update {overview} />
-      {#if onclose}<button class="button" onclick={onclose}
-          ><Icon name="arrowLeft" /><span
-            >{overview.project?.name
+      {#if onclose}<button class="button" onclick={onclose}>
+          <Icon name="arrowLeft" /><span>
+            {overview.project?.name
               ? $t('home.back', { name: overview.project.name })
-              : $t('home.backToFilm')}</span
-          ></button
-        >{/if}
+              : $t('home.backToFilm')}
+          </span>
+        </button>{/if}
       {#if !gate}<button
           class="button quiet labelled"
           aria-pressed={setupOpen}
           title={$t('setup.title')}
           onclick={() => toggleSetup()}
-          ><Icon name="settings" /><span>{$t('setup.title')}</span>{#if attention}<span
+        >
+          <Icon name="settings" /><span>{$t('setup.title')}</span>{#if attention}<span
               class="production-indicator"
               aria-hidden="true"
-            ></span>{/if}</button
-        >{/if}
-      <label class="language-select" title={$t('language.label')}
-        ><Icon name="globe" /><span class="sr-only">{$t('language.label')}</span><select
+            ></span>{/if}
+        </button>{/if}
+      <label class="language-select" title={$t('language.label')}>
+        <Icon name="globe" /><span class="sr-only">{$t('language.label')}</span><select
           value={$locale}
           onchange={(event) =>
             isLocale(event.currentTarget.value) && setLanguage(event.currentTarget.value)}
-          >{#each LOCALES as entry (entry.code)}<option value={entry.code}>{entry.name}</option
-            >{/each}</select
-        ></label
-      >
+        >
+          {#each LOCALES as entry (entry.code)}<option value={entry.code}>
+              {entry.name}
+            </option>{/each}
+        </select>
+      </label>
       <button
         class="icon-button"
         aria-label={$t($theme === 'dark' ? 'theme.toLight' : 'theme.toDark')}
         title={$t($theme === 'dark' ? 'theme.toLight' : 'theme.toDark')}
-        onclick={toggleTheme}><Icon name={$theme === 'dark' ? 'sun' : 'moon'} /></button
+        onclick={toggleTheme}
       >
+        <Icon name={$theme === 'dark' ? 'sun' : 'moon'} />
+      </button>
     </div>
   </header>
 
@@ -190,36 +197,58 @@
         <Icon name="alert" /><span>{$problem}</span><button
           class="icon-button"
           aria-label={$t('common.dismiss')}
-          onclick={() => problem.set('')}><Icon name="close" /></button
+          onclick={() => problem.set('')}
         >
+          <Icon name="close" />
+        </button>
       </div>{/if}
     {#if $reachable && outcome?.status === 'updated'}<div class="home-notice" role="status">
         <Icon name="check" /><span>{$t('update.done', { version: outcome.version })}</span><a
           class="text-link"
           href={releasePage(outcome.version)}
           target="_blank"
-          rel="noreferrer">{$t('update.whatsNew')}</a
-        >{#if skillsBehind(overview.setup).length}<button
-            class="text-link"
-            onclick={() => toggleSetup(true)}>{$t('update.updateSkills')}</button
-          >{/if}<button class="icon-button" aria-label={$t('common.dismiss')} onclick={seenUpdate}
-          ><Icon name="close" /></button
+          rel="noreferrer"
         >
+          {$t('update.whatsNew')}
+        </a>{#if skillsBehind(overview.setup).length}<button
+            class="text-link"
+            onclick={() => toggleSetup(true)}
+          >
+            {$t('update.updateSkills')}
+          </button>{/if}<button
+          class="icon-button"
+          aria-label={$t('common.dismiss')}
+          onclick={seenUpdate}
+        >
+          <Icon name="close" />
+        </button>
       </div>{:else if $reachable && outcome?.status === 'failed' && !restarting}<div
         class="home-problem"
         role="alert"
       >
-        <Icon name="alert" /><span
-          >{$t(outcome.reason === 'in-use' ? 'update.failedInUse' : 'update.failed', {
+        <Icon name="alert" /><span>
+          {$t(outcome.reason === 'in-use' ? 'update.failedInUse' : 'update.failed', {
             version: outcome.version,
-          })}</span
-        ><a class="text-link" href={releasePage(outcome.version)} target="_blank" rel="noreferrer"
-          >{$t('update.downloadInstaller')}</a
-        >{#if outcome.log}<button class="text-link" onclick={() => reveal('/api/app/reveal/update')}
-            >{$t('update.showLog')}</button
-          >{/if}<button class="icon-button" aria-label={$t('common.dismiss')} onclick={seenUpdate}
-          ><Icon name="close" /></button
+          })}
+        </span><a
+          class="text-link"
+          href={releasePage(outcome.version)}
+          target="_blank"
+          rel="noreferrer"
         >
+          {$t('update.downloadInstaller')}
+        </a>{#if outcome.log}<button
+            class="text-link"
+            onclick={() => reveal('/api/app/reveal/update')}
+          >
+            {$t('update.showLog')}
+          </button>{/if}<button
+          class="icon-button"
+          aria-label={$t('common.dismiss')}
+          onclick={seenUpdate}
+        >
+          <Icon name="close" />
+        </button>
       </div>{/if}
 
     {#if gate}

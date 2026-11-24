@@ -195,23 +195,28 @@
     {#if base}<p class="composer-base">
         <Icon name="film" size={18} /><span>{$t('compose.base', { name: base.name })}</span><button
           class="text-link"
-          onclick={() => baseFilm.set(null)}>{$t('compose.baseClear')}</button
+          onclick={() => baseFilm.set(null)}
         >
+          {$t('compose.baseClear')}
+        </button>
       </p>{/if}
     <div class="composer-options">
       <div class="composer-choice">
         <label for="film-style">{$t('field.style')}</label>
-        {#if base}<select id="film-style" disabled><option>{$t('choice.likeBase')}</option></select
-          >{:else}<select id="film-style" bind:value={pick.style}>
-            <option value=""
-              >{defaultStyle
+        {#if base}<select id="film-style" disabled>
+            <option>{$t('choice.likeBase')}</option>
+          </select>{:else}<select id="film-style" bind:value={pick.style}>
+            <option value="">
+              {defaultStyle
                 ? $t('choice.yourDefault', { value: styleText(defaultStyle, $locale).title })
-                : $t('choice.fit')}</option
-            >
+                : $t('choice.fit')}
+            </option>
             {#if defaultStyle}<option value={FIT}>{$t('choice.fit')}</option>{/if}
             {#each styles.filter((entry) => entry.name !== defaultStyle?.name) as entry (entry.name)}<option
-                value={entry.name}>{styleText(entry, $locale).title}</option
-              >{/each}
+                value={entry.name}
+              >
+                {styleText(entry, $locale).title}
+              </option>{/each}
             <option value={ASK}>{$t('choice.ask')}</option>
           </select>{/if}
       </div>
@@ -227,21 +232,22 @@
           onchange={(event) => (pick.format = event.currentTarget.value)}
         >
           {#if base}<option value="">{$t('choice.likeBase')}</option>{/if}
-          {#each formats as entry (entry.value)}<option value={entry.value}
-              >{$t(entry.label)}</option
-            >{/each}
+          {#each formats as entry (entry.value)}<option value={entry.value}>
+              {$t(entry.label)}
+            </option>{/each}
         </select>
       </div>
       <div class="composer-choice">
         <label for="film-language">{$t('field.language')}</label>
         <select id="film-language" bind:value={pick.language}>
-          <option value=""
-            >{written
+          <option value="">
+            {written
               ? $t('choice.topicLanguage', { language: $format.language(written) })
-              : $t('choice.topicLanguageOpen')}</option
-          >
-          {#each languages as entry (entry.code)}<option value={entry.code}>{entry.name}</option
-            >{/each}
+              : $t('choice.topicLanguageOpen')}
+          </option>
+          {#each languages as entry (entry.code)}<option value={entry.code}>
+              {entry.name}
+            </option>{/each}
         </select>
       </div>
       <div class="composer-choice">
@@ -251,21 +257,18 @@
           {#each NARRATIONS.filter((entry) => entry !== usualNarration) as entry (entry)}<option
               value={entry}
               disabled={entry === 'ai' && !aiVoice}
-              >{$t(
-                entry === 'ai' && !aiVoice ? 'choice.voice.aiNeedsKey' : `choice.voice.${entry}`,
-              )}</option
-            >{/each}
+            >
+              {$t(entry === 'ai' && !aiVoice ? 'choice.voice.aiNeedsKey' : `choice.voice.${entry}`)}
+            </option>{/each}
         </select>
       </div>
     </div>
     <p class="composer-prompt-for" id="prompt-for">{$t('compose.promptFor', { agents })}</p>
     <div class="composer-prompt">
       <pre aria-label={$t('compose.promptLabel')} aria-describedby="prompt-for">{prompt}</pre>
-      <button class="button primary" disabled={!topic.trim()} onclick={copyPrompt}
-        ><Icon name={copied ? 'check' : 'copy'} />{$t(
-          copied ? 'common.copied' : 'compose.copy',
-        )}</button
-      >
+      <button class="button primary" disabled={!topic.trim()} onclick={copyPrompt}>
+        <Icon name={copied ? 'check' : 'copy'} />{$t(copied ? 'common.copied' : 'compose.copy')}
+      </button>
     </div>
     {#if handedOver}<p class="composer-next" role="status">
         {$t(overview.settings.follow ? 'compose.next' : 'compose.nextList')}

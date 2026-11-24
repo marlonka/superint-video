@@ -65,16 +65,16 @@
         aria-label={$t('setup.polish.choice')}
         aria-describedby="polish-rounds-what"
       >
-        {#each ROUNDS as rounds (rounds)}<label class:checked={shown === rounds}
-            ><input
+        {#each ROUNDS as rounds (rounds)}<label class:checked={shown === rounds}>
+            <input
               type="radio"
               name="polish-rounds"
               value={rounds}
               checked={shown === rounds}
               aria-label={$t('setup.polish.rounds', { count: rounds })}
               onchange={() => choose(rounds)}
-            /><span aria-hidden="true">{rounds}</span></label
-          >{/each}
+            /><span aria-hidden="true">{rounds}</span>
+          </label>{/each}
       </div>
     </svelte:fragment>
   </SetupItem>
