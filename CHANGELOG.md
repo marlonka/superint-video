@@ -2,7 +2,7 @@
 
 Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. Das Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Nummern folgen [Semantic Versioning](https://semver.org/lang/de/). Jede Version zum Herunterladen steht unter [Releases](https://github.com/marlonka/superint-video/releases).
 
-## [Unveröffentlicht]
+## [0.15.2] – 2026-11-25
 
 ### Geändert
 
@@ -327,6 +327,7 @@ Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. 
 
 - Erste Version: eine Rust-CLI und Studio im Browser für HTML-Szenen, Timeline, Prüfen, Snapshots und MP4-Export über Chromium und FFmpeg.
 
+[0.15.2]: https://github.com/marlonka/superint-video/releases/tag/v0.15.2
 [0.15.1]: https://github.com/marlonka/superint-video/releases/tag/v0.15.1
 [0.15.0]: https://github.com/marlonka/superint-video/releases/tag/v0.15.0
 [0.14.0]: https://github.com/marlonka/superint-video/releases/tag/v0.14.0
