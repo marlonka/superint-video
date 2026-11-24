@@ -12,6 +12,7 @@ A preset is only the look. How a film is planned, written and cut comes from the
 | `flat-explainer` | Rich flat-vector illustration with cel shading, a character rig, props and places, bright colour worlds | `superint-explainer` |
 | `launch` | The product's own interface rebuilt in code on a dark ground: Geist and a mono, the brand's colours or a grey ramp, lines read over a soft picture, an end card from the film's last shape. Music-led. | `superint-launch` |
 | `miniature-3d` | A photographic miniature world computed in code by its own WebGL2 renderer: depth of field, motion blur, soft shadows, reflections. Rooms of a cut-open building at night, objects that act, no people. 16:9. The `superint-miniature` skill holds the renderer and the recipes. | `superint-explainer` |
+| `faltwerk` | A pop-up book on a desk, computed in code by the same kind of WebGL2 renderer: a leather binding with gold, leaves that turn on the voice, and on every spread a cut-paper picture that stands up as the book opens and acts on the voice's words. One spread per chapter, one camera journey. 16:9. The `superint-faltwerk` skill holds the paper mechanics, the timing and a whole film as an example. | `superint-explainer` |
 
 ## Where presets come from
 

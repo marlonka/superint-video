@@ -22,7 +22,7 @@ Der Agent fragt nur nach, was er nicht selbst gut entscheiden kann, etwa Screens
 | Teil | Bestimmt | Mitgeliefert |
 | --- | --- | --- |
 | **Ablauf-Skill** | Welche Art Film, wie er geplant, geschrieben und geprüft wird | [`superint-explainer`](../skills/superint-explainer/SKILL.md) für Erklärvideos, [`superint-launch`](../skills/superint-launch/SKILL.md) für Launch-, Update- und Produktfilme (aufgebaut auf [cinetic](https://github.com/Leonxlnx/cinetic)), [`superint-rebuild`](../skills/superint-rebuild/SKILL.md), um ein vorhandenes Video als bearbeitbaren Film nachzubauen und Bild für Bild mit ihm zu vergleichen |
-| **Stil-Preset** | Der Look: Farbe, Licht, Schrift, Formen, Figuren, Bewegung | `flat-explainer`, `miniature-3d` (mit eigenem Skill [`superint-miniature`](../skills/superint-miniature/SKILL.md)), `launch`, `blank` |
+| **Stil-Preset** | Der Look: Farbe, Licht, Schrift, Formen, Figuren, Bewegung | `flat-explainer`, `miniature-3d` (mit eigenem Skill [`superint-miniature`](../skills/superint-miniature/SKILL.md)), `faltwerk` (mit eigenem Skill [`superint-faltwerk`](../skills/superint-faltwerk/SKILL.md)), `launch`, `blank` |
 | **Referenzen** | Woran der Agent seine Bilder misst | Deine Standbilder und Screenshots, am Preset oder im Projekt |
 
 Dazu kommen der Werkzeug-Skill [`superint-video`](../skills/superint-video/SKILL.md) und der Ton-Skill [`superint-audio`](../skills/superint-audio/SKILL.md). Die Regeln in Skills und Presets sind eine Untergrenze: Ein stärkeres Modell darf es besser machen und begründet das im Bericht. Einen Stil gibst du als eine Datei weiter (`<name>.superint-style.zip`).

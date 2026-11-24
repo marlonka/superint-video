@@ -1,0 +1,76 @@
+{
+ "loudness": -14,
+ "ceiling": -3.4,
+ "musicUnder": 24,
+ "duckDb": 3,
+ "rides": [
+  {
+   "from": 0,
+   "to": 100,
+   "db": 6,
+   "rampFrames": 15,
+   "note": "der erste Einsatz (Takt 0, 0,7-2,6 s) unter \"Code Mode soll\": sonst hört man die Musik erst mit dem zweiten Einsatz (Kritiker: \"Stimme bis 3,8 s völlig isoliert\"); Übergang in der Stille der Quelle 3,3-3,8 s"
+  },
+  {
+   "from": 115,
+   "to": 690,
+   "db": 1.5,
+   "rampFrames": 15,
+   "note": "Einband und Titelblatt (3,8-23,0 s): der zweite Einsatz mit dem Deckel und das Horn-Thema liegen sonst 1 dB weiter unter der Stimme als der Rest; aus in der Wendung des Titelblatts"
+  },
+  {
+   "from": 1532,
+   "to": 2010,
+   "db": 5,
+   "rampFrames": 30,
+   "note": "Doppelseite 3 bis zum dichten Puls (51,1-67,0 s): Takt 11 noch einmal und Takt 12-14 sind die leisesten Takte unter der Stimme; Rampe in der Wendung"
+  },
+  {
+   "from": 2040,
+   "to": 2487,
+   "db": 2.5,
+   "rampFrames": 30,
+   "note": "Doppelseite 3 ab Takt 15 (68,0-82,9 s): der dichte Puls, wie in Runde 1; die beiden Rampen ergeben einen Übergang von 5 auf 2,5 dB in 67,0-68,0 s"
+  },
+  {
+   "from": 3947,
+   "to": 4969,
+   "db": 1.5,
+   "rampFrames": 30,
+   "note": "Doppelseite 5 (131,6-165,6 s): die offenen Akkorde und der Puls, angeglichen"
+  },
+  {
+   "from": 5038,
+   "to": 6087,
+   "db": 4.5,
+   "rampFrames": 30,
+   "note": "Doppelseite 6 und der Anfang von 7 (167,9-202,9 s): Nacht und abwägender Teil, seit dem Tiefenschnitt in Takt 32-39 die leisesten Teile; angeglichen"
+  },
+  {
+   "from": 6117,
+   "to": 6799,
+   "db": -2,
+   "rampFrames": 30,
+   "note": "Doppelseite 7 ab dem warmen Teil bis zum letzten Wort (203,9-226,6 s): der lauteste Teil, der Höhepunkt auf dem MCP-Heft; zurückgenommen. Übergang von +4,5 auf -2 dB im letzten Schlag vor Takt 40, wenn die Tiefe zurückkommt"
+  },
+  {
+   "from": 6814,
+   "to": 6897,
+   "db": 6,
+   "rampFrames": 15,
+   "note": "nach dem letzten Wort (226,6 s): die gehaltene Dominante klingt über der Karte aus"
+  },
+  {
+   "from": 6912,
+   "to": 7108,
+   "db": 11,
+   "rampFrames": 15,
+   "note": "der Schlussakkord (Einsatz 231,8 s) mit dem Zuklappen (231,8-234,3 s) und der Endkarte: ein leiser Akkord, so laut wie die Dominante davor; Übergang in der Pause 229,9-230,4 s"
+  }
+ ],
+ "room": {
+  "seconds": 0.7,
+  "db": -18,
+  "tone": 4500
+ }
+}

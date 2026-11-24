@@ -1,0 +1,192 @@
+{
+ "kit": 1,
+ "name": "code-mode-buch",
+ "sr": 48000,
+ "roles": {
+  "cover.open": {
+   "sound": "swipe/paper",
+   "takes": 1,
+   "seed": 11,
+   "edits": {
+    "dur": 0.7,
+    "apex": 0.22
+   },
+   "align": "onset",
+   "note": "Leaf 0: the cover lifts off the page block, a short dry friction; the swing itself stays silent (a long swipe read as a filtered-noise sweep; the bank has no creak)"
+  },
+  "cover.thud": {
+   "sound": "fit/land.light/fingertip_book",
+   "takes": 1,
+   "seed": 21,
+   "align": "onset",
+   "note": "Leaf 0 lands flat: a soft thud on a book at the fit's own size (CLAP's best for 'a hardcover book being closed')"
+  },
+  "cover.slap": {
+   "sound": "click/thock",
+   "takes": 1,
+   "seed": 25,
+   "align": "onset",
+   "note": "layer: the dry klack of the board edge, upper body of the thud (no sub)"
+  },
+  "air": {
+   "sound": "swipe/cloth",
+   "takes": 2,
+   "seed": 31,
+   "edits": {
+    "dur": 0.45,
+    "apex": 0.07
+   },
+   "align": "onset",
+   "note": "the short breath of air a heavy cover pushes out as it lands (layer under the thuds; cloth, not velvet: less sub-bass)"
+  },
+  "sheet": {
+   "sound": "swipe/flick",
+   "takes": 1,
+   "seed": 41,
+   "edits": {
+    "dur": 1.0,
+    "apex": 0.55
+   },
+   "align": "peak",
+   "note": "Leaf 1: one thin sheet turned over"
+  },
+  "glide": {
+   "sound": "swipe/glide",
+   "takes": 1,
+   "seed": 191,
+   "edits": {
+    "dur": 1.0,
+    "apex": 0.72
+   },
+   "align": "peak",
+   "note": "Title page pop-up: the long listing slides back over the agent into the KI's slot (the usual way); one soft glide, its peak in the pause after \"Nein\""
+  },
+  "slip": {
+   "sound": "swipe/flick",
+   "takes": 1,
+   "seed": 195,
+   "edits": {
+    "dur": 0.35,
+    "apex": 0.18
+   },
+   "align": "peak",
+   "note": "Title page pop-up: the small result slip slides into the KI (Code Mode), a short light flick after \"Endergebnis\": the counterpart of the long glide"
+  },
+  "turn": {
+   "sound": "swipe/cloth",
+   "takes": 4,
+   "seed": 51,
+   "edits": {
+    "dur": 1.3,
+    "apex": 0.75
+   },
+   "align": "peak",
+   "note": "Boards 2-6: the heavy card leaf swinging over, its fastest point (easeTurn 2.1u^2-1.1u^3: about 0.55 of the turn)"
+  },
+  "turn.b": {
+   "sound": "swipe/paper",
+   "takes": 3,
+   "seed": 61,
+   "edits": {
+    "dur": 1.2,
+    "apex": 0.65
+   },
+   "align": "peak",
+   "note": "the same swing in the crisper paper member, so the five board turns alternate"
+  },
+  "standup": {
+   "sound": "swipe/paper",
+   "takes": 5,
+   "seed": 71,
+   "edits": {
+    "dur": 0.75
+   },
+   "align": "onset",
+   "note": "second half of a board turn: the dry rustle of the paper scene standing up; take 4 for the message card on spread 7, take 5 for the sandbox on spread 5"
+  },
+  "standup.b": {
+   "sound": "swipe/flick",
+   "takes": 3,
+   "seed": 81,
+   "edits": {
+    "dur": 0.6
+   },
+   "align": "onset",
+   "note": "the same rustle, lighter, for the alternate boards"
+  },
+  "lock": {
+   "sound": "click/thock",
+   "takes": 3,
+   "seed": 101,
+   "align": "onset",
+   "note": "where a scene locks: a short soft knock with a small body and no note; take 3 for the sandbox frame"
+  },
+  "lock.b": {
+   "sound": "fit/land.light/fingertip_book",
+   "takes": 2,
+   "seed": 111,
+   "align": "onset",
+   "note": "a second lock knock: a fingertip on a book (fit of a real recording); take 2 for the message card"
+  },
+  "lock.c": {
+   "sound": "tap/knuckle",
+   "takes": 2,
+   "seed": 121,
+   "align": "onset",
+   "note": "a third lock knock, drier and shorter"
+  },
+  "click": {
+   "sound": "fit/click/floss_lid",
+   "takes": 3,
+   "seed": 131,
+   "align": "onset",
+   "note": "a tiny click layered on some locks: the cardboard tab seating"
+  },
+  "plug": {
+   "sound": "toggle/micro",
+   "takes": 4,
+   "seed": 2,
+   "align": "onset",
+   "note": "spread 3: a plug seating itself in its plate, seven in a row 0.4 s apart; a tiny dry latch without a note (CLAP: a plug into a socket z 1.8-2.3, ahead of keyboard and shutter)"
+  },
+  "flap": {
+   "sound": "shutter/mirror",
+   "takes": 1,
+   "seed": 1,
+   "align": "onset",
+   "note": "spread 4 \"Runde\": the brass flap over the round counter swings open, release, travel and stop (CLAP reads it as a door latch, z 2.7; quiet enough not to read as a camera)"
+  },
+  "tick": {
+   "sound": "fit/tick/domino",
+   "takes": 4,
+   "seed": 151,
+   "align": "onset",
+   "note": "the round counter on spreads 4 and 5 turning one digit on: a very soft wooden tick (CLAP: as close to a counter as toggle/micro, and a different material from the plugs)"
+  },
+  "cover.close": {
+   "sound": "swipe/paper",
+   "takes": 1,
+   "seed": 171,
+   "edits": {
+    "dur": 0.8,
+    "apex": 0.25
+   },
+   "align": "onset",
+   "note": "Leaf 7: the back cover lifts off, a short dry friction; the swing stays silent"
+  },
+  "book.shut": {
+   "sound": "fit/land.light/fingertip_book",
+   "takes": 1,
+   "seed": 181,
+   "align": "onset",
+   "note": "the closed book: a soft, full thud at the fit's own size (the lowered size and a tap/soft sub layer read as a bass drum)"
+  },
+  "book.slap": {
+   "sound": "click/thock",
+   "takes": 1,
+   "seed": 185,
+   "align": "onset",
+   "note": "layer: the boards meeting, the dry klack over the thud (no sub)"
+  }
+ }
+}

@@ -6,6 +6,7 @@ Kopierfertige Aufträge für Claude Code, ChatGPT Codex oder Google Antigravity.
 | --- | --- |
 | [explainer.md](explainer.md) | Der Hauptauftrag: Erklärvideo zu einem Thema, Agent recherchiert, schreibt, gestaltet und rendert selbst |
 | [miniatur.md](miniatur.md) | Erklärfilm im Look von „Videos aus Code“: eine fotografische Miniaturwelt, ganz aus Code gerechnet |
+| [faltwerk.md](faltwerk.md) | Erklärfilm als Pop-up-Buch: Kapitel für Kapitel eine Doppelseite aus geschnittenem Papier, ganz aus Code gerechnet |
 | [launch.md](launch.md) | Launch-Film, Update-Video oder Produktvideo zu einem Produkt, im eigenen Branding oder mit erfundenem |
 | [short.md](short.md) | Zusätze für Hochkant-Shorts (9:16, 30–45 s) |
 | [eigenes-skript.md](eigenes-skript.md) | Video zu einem Sprechertext, den du schon hast |

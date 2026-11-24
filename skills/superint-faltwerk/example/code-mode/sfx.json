@@ -1,0 +1,357 @@
+{
+ "under": 26,
+ "cues": [
+  {
+   "frame": 88,
+   "role": "cover.open",
+   "under": 30,
+   "note": "Blatt 0: der Einband löst sich vom Buchblock"
+  },
+  {
+   "frame": 151,
+   "role": "cover.thud",
+   "under": 23.5,
+   "note": "Blatt 0 liegt: weicher Schlag des Einbands"
+  },
+  {
+   "frame": 151,
+   "role": "cover.slap",
+   "under": 25,
+   "layer": true,
+   "note": "die Deckelkante"
+  },
+  {
+   "frame": 151,
+   "role": "air",
+   "under": 30,
+   "take": 1,
+   "layer": true,
+   "note": "die Luft unter dem Einband"
+  },
+  {
+   "frame": 182,
+   "role": "plug",
+   "under": 30.5,
+   "take": 1,
+   "note": "Titelblatt stecker: Stecker 1 von 3 sitzt"
+  },
+  {
+   "frame": 191,
+   "role": "plug",
+   "under": 31.0,
+   "take": 2,
+   "note": "Titelblatt stecker: Stecker 2 von 3 sitzt"
+  },
+  {
+   "frame": 200,
+   "role": "plug",
+   "under": 31.5,
+   "take": 3,
+   "note": "Titelblatt stecker: Stecker 3 von 3 sitzt"
+  },
+  {
+   "frame": 302,
+   "role": "glide",
+   "under": 26,
+   "note": "Titelblatt direkt: der lange Streifen Endlospapier gleitet über den Agenten in die KI"
+  },
+  {
+   "frame": 626,
+   "role": "slip",
+   "under": 24,
+   "note": "Titelblatt endergebnis: der kleine Zettel gleitet in die KI"
+  },
+  {
+   "frame": 722,
+   "role": "sheet",
+   "under": 25,
+   "note": "Blatt 1: das dünne Titelblatt"
+  },
+  {
+   "frame": 1501,
+   "role": "turn",
+   "under": 24,
+   "take": 1,
+   "note": "Blatt 2: die Karte schwingt um"
+  },
+  {
+   "frame": 1510,
+   "role": "standup",
+   "under": 27,
+   "take": 1,
+   "note": "Blatt 2: die Szene richtet sich auf"
+  },
+  {
+   "frame": 1534,
+   "role": "lock",
+   "under": 24,
+   "take": 1,
+   "note": "Blatt 2: die Szene rastet ein"
+  },
+  {
+   "frame": 1535,
+   "role": "click",
+   "under": 31,
+   "take": 1,
+   "layer": true,
+   "note": "die Lasche sitzt"
+  },
+  {
+   "frame": 1645,
+   "role": "plug",
+   "under": 27,
+   "take": 1,
+   "note": "Doppelseite 3 mcp: Stecker 1 von 7 sitzt in seiner Platte"
+  },
+  {
+   "frame": 1657,
+   "role": "plug",
+   "under": 27.5,
+   "take": 2,
+   "note": "Doppelseite 3 mcp: Stecker 2 von 7 sitzt in seiner Platte"
+  },
+  {
+   "frame": 1786,
+   "role": "plug",
+   "under": 27,
+   "take": 3,
+   "note": "Doppelseite 3 mail: Stecker 3 von 7 sitzt in seiner Platte"
+  },
+  {
+   "frame": 1798,
+   "role": "plug",
+   "under": 27.5,
+   "take": 4,
+   "note": "Doppelseite 3 mail: Stecker 4 von 7 sitzt in seiner Platte"
+  },
+  {
+   "frame": 1810,
+   "role": "plug",
+   "under": 27,
+   "take": 1,
+   "note": "Doppelseite 3 mail: Stecker 5 von 7 sitzt in seiner Platte"
+  },
+  {
+   "frame": 1822,
+   "role": "plug",
+   "under": 27.5,
+   "take": 2,
+   "note": "Doppelseite 3 mail: Stecker 6 von 7 sitzt in seiner Platte"
+  },
+  {
+   "frame": 1834,
+   "role": "plug",
+   "under": 28,
+   "take": 3,
+   "note": "Doppelseite 3 mail: Stecker 7 von 7 sitzt in seiner Platte"
+  },
+  {
+   "frame": 2525,
+   "role": "turn.b",
+   "under": 24,
+   "take": 1,
+   "note": "Blatt 3: die Karte schwingt um"
+  },
+  {
+   "frame": 2534,
+   "role": "standup.b",
+   "under": 27,
+   "take": 1,
+   "note": "Blatt 3: die Szene richtet sich auf"
+  },
+  {
+   "frame": 2558,
+   "role": "lock.c",
+   "under": 24,
+   "take": 1,
+   "note": "Blatt 3: die Szene rastet ein"
+  },
+  {
+   "frame": 3110,
+   "role": "flap",
+   "under": 25,
+   "note": "Doppelseite 4 runde: die Messingklappe über dem Rundenzähler klappt auf"
+  },
+  {
+   "frame": 3208,
+   "role": "tick",
+   "under": 25,
+   "take": 1,
+   "note": "Doppelseite 4 zweite: der Zähler springt auf 2"
+  },
+  {
+   "frame": 3717,
+   "role": "tick",
+   "under": 25,
+   "take": 2,
+   "note": "Doppelseite 4 dritte: der Zähler springt auf 3"
+  },
+  {
+   "frame": 3916,
+   "role": "turn",
+   "under": 24,
+   "take": 2,
+   "note": "Blatt 4: die Karte schwingt um"
+  },
+  {
+   "frame": 3925,
+   "role": "standup",
+   "under": 27,
+   "take": 2,
+   "note": "Blatt 4: die Szene richtet sich auf"
+  },
+  {
+   "frame": 3949,
+   "role": "lock.b",
+   "under": 26,
+   "take": 1,
+   "note": "Blatt 4: die Szene rastet ein"
+  },
+  {
+   "frame": 4167,
+   "role": "tick",
+   "under": 25,
+   "take": 3,
+   "note": "Doppelseite 5: der Zähler springt auf 2 (das Programm)"
+  },
+  {
+   "frame": 4416,
+   "role": "standup",
+   "under": 23,
+   "take": 5,
+   "note": "Doppelseite 5 sandbox: die Sandbox richtet sich auf (das hellere Papier: das dunklere ging im \"abgeschottet\" unter)"
+  },
+  {
+   "frame": 4430,
+   "role": "lock",
+   "under": 26,
+   "take": 3,
+   "note": "ihr Rahmen steht"
+  },
+  {
+   "frame": 4863,
+   "role": "tick",
+   "under": 25,
+   "take": 4,
+   "note": "Doppelseite 5 zeile: die eine Zeile ist durch die Luke, der Zähler springt auf 3"
+  },
+  {
+   "frame": 5007,
+   "role": "turn.b",
+   "under": 24,
+   "take": 2,
+   "note": "Blatt 5: die Karte schwingt um"
+  },
+  {
+   "frame": 5016,
+   "role": "standup.b",
+   "under": 27,
+   "take": 2,
+   "note": "Blatt 5: die Szene richtet sich auf"
+  },
+  {
+   "frame": 5040,
+   "role": "lock",
+   "under": 26,
+   "take": 2,
+   "note": "Blatt 5: die Szene rastet ein"
+  },
+  {
+   "frame": 5041,
+   "role": "click",
+   "under": 33,
+   "take": 2,
+   "layer": true,
+   "note": "die Lasche sitzt"
+  },
+  {
+   "frame": 5673,
+   "role": "turn",
+   "under": 24,
+   "take": 3,
+   "note": "Blatt 6: die Karte schwingt um"
+  },
+  {
+   "frame": 5682,
+   "role": "standup",
+   "under": 27,
+   "take": 3,
+   "note": "Blatt 6: die Szene richtet sich auf"
+  },
+  {
+   "frame": 5706,
+   "role": "lock.c",
+   "under": 24,
+   "take": 2,
+   "note": "Blatt 6: die Szene rastet ein"
+  },
+  {
+   "frame": 5881,
+   "role": "click",
+   "under": 24,
+   "take": 2,
+   "note": "Doppelseite 7 cloudflare: die Karteikarte „Cloudflare“ steht"
+  },
+  {
+   "frame": 5980,
+   "role": "click",
+   "under": 24,
+   "take": 3,
+   "note": "Doppelseite 7 anthropic: die Karteikarte „Anthropic“ steht"
+  },
+  {
+   "frame": 6307,
+   "role": "click",
+   "under": 24,
+   "take": 1,
+   "note": "Doppelseite 7 andere: die Karteikarte „Andere Agenten“ steht"
+  },
+  {
+   "frame": 6452,
+   "role": "cover.open",
+   "under": 29,
+   "note": "Doppelseite 7 mcp: der Deckel des MCP-Hefts hebt sich"
+  },
+  {
+   "frame": 6619,
+   "role": "standup",
+   "under": 26,
+   "take": 4,
+   "note": "Doppelseite 7: die Botschaftskarte richtet sich leer auf, kurz vor „Ende“"
+  },
+  {
+   "frame": 6627,
+   "role": "click",
+   "under": 23,
+   "take": 3,
+   "note": "die Karte steht"
+  },
+  {
+   "frame": 6959,
+   "role": "cover.close",
+   "under": 26,
+   "note": "Blatt 7: der Rückdeckel löst sich"
+  },
+  {
+   "frame": 7031,
+   "role": "book.shut",
+   "under": 19,
+   "note": "das Buch ist zu: weicher, voller Schlag"
+  },
+  {
+   "frame": 7031,
+   "role": "book.slap",
+   "under": 20.5,
+   "layer": true,
+   "note": "die Deckel treffen sich"
+  },
+  {
+   "frame": 7031,
+   "role": "air",
+   "under": 28,
+   "take": 2,
+   "layer": true,
+   "note": "die Luft, die das Buch herausdrückt"
+  }
+ ]
+}

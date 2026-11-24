@@ -46,6 +46,15 @@ fn section(body: &str, heading: &str) -> Option<String> {
     (!text.is_empty() && !text.starts_with("TODO")).then_some(text)
 }
 
+/// The skill that holds a built-in style's renderer and recipes, for the styles that have one.
+fn style_skill(preset: &str) -> Option<&'static str> {
+    match preset {
+        "miniature-3d" => Some("superint-miniature"),
+        "faltwerk" => Some("superint-faltwerk"),
+        _ => None,
+    }
+}
+
 pub fn summary(root: &Path) -> Value {
     let brief = fs::read_to_string(root.join("brief.md")).ok().map(|text| {
         let parsed = frontmatter::split(&text);
@@ -74,6 +83,14 @@ pub fn summary(root: &Path) -> Value {
         .any(|p| root.join(p).exists());
     let mut skills = vec!["superint-video".to_string()];
     skills.extend(workflow);
+    // A style with a skill of its own: the agent reads it for every film in that look.
+    if let Some(skill) = preset
+        .as_ref()
+        .and_then(|p| p["name"].as_str())
+        .and_then(style_skill)
+    {
+        skills.push(skill.into());
+    }
     // A rebuild has no brief: its record names the workflow.
     if root.join(crate::rebuild::RECORD).is_file() {
         skills.push("superint-rebuild".into());
@@ -236,6 +253,22 @@ mod tests {
         assert!(document(root, ".env").is_err());
         assert!(document(root, "scenes/hook.html").is_err());
         assert!(document(root, "../outside.md").is_err());
+
+        // A style with a skill of its own lists it after the workflow.
+        fs::write(
+            root.join("preset.json"),
+            r#"{"name":"faltwerk","title":"Faltwerk","description":"d"}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            summary(root)["skills"],
+            json!([
+                "superint-video",
+                "superint-launch",
+                "superint-faltwerk",
+                "superint-audio"
+            ])
+        );
     }
 
     #[test]

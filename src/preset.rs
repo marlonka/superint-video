@@ -1036,6 +1036,7 @@ mod tests {
         let presets = list().unwrap();
         assert!(presets.iter().any(|p| p.name == "flat-explainer"));
         assert!(presets.iter().any(|p| p.name == "miniature-3d"));
+        assert!(presets.iter().any(|p| p.name == "faltwerk"));
         assert!(presets.iter().any(|p| p.name == "launch"));
         for summary in presets {
             Preset::resolve(&summary.name).unwrap();
@@ -1044,7 +1045,7 @@ mod tests {
 
     #[test]
     fn builtin_styles_show_three_pictures_of_their_own() {
-        for name in ["flat-explainer", "launch", "miniature-3d"] {
+        for name in ["flat-explainer", "launch", "miniature-3d", "faltwerk"] {
             let mut preset = Preset::builtin(name).unwrap();
             let previews = preset.previews();
             assert_eq!(previews.len(), 3, "{name}");
