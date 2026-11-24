@@ -2,6 +2,12 @@
 
 Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. Das Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Nummern folgen [Semantic Versioning](https://semver.org/lang/de/). Jede Version zum Herunterladen steht unter [Releases](https://github.com/marlonka/superint-video/releases).
 
+## [Unveröffentlicht]
+
+### Geändert
+
+- Die App sucht nur noch einmal bei jedem Start nach einer neuen Version, nicht mehr alle sechs Stunden, solange sie läuft. „Jetzt prüfen“ sieht weiterhin sofort nach.
+
 ## [0.15.1] – 2026-11-25
 
 ### Behoben

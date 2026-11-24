@@ -109,7 +109,7 @@ Mehr Ideen findest du in den [Starter-Prompts](prompts/README.md). Wie ein Ergeb
 
 ## Datenschutz und KI-Inhalte
 
-Superint Video sammelt keine Nutzungsdaten und braucht kein Konto. Bilder, Studio und Render bleiben auf deinem PC. Alle paar Stunden fragt die App bei GitHub nach, ob es eine neue Version gibt; dabei geht nichts über dich mit außer dem, was jede Anfrage zeigt (deine IP-Adresse und die Version). Abschalten lässt sich das unter **Einrichtung** → **Updates**. Nur wenn du einen API-Schlüssel einträgst, gehen die Texte für KI-Stimme und Musik an diesen Anbieter, zu dessen Bedingungen. Was dein Coding-Agent mit deinen Dateien macht, regelt dessen Anbieter.
+Superint Video sammelt keine Nutzungsdaten und braucht kein Konto. Bilder, Studio und Render bleiben auf deinem PC. Bei jedem Start fragt die App einmal bei GitHub nach, ob es eine neue Version gibt; dabei geht nichts über dich mit außer dem, was jede Anfrage zeigt (deine IP-Adresse und die Version). Abschalten lässt sich das unter **Einrichtung** → **Updates**. Nur wenn du einen API-Schlüssel einträgst, gehen die Texte für KI-Stimme und Musik an diesen Anbieter, zu dessen Bedingungen. Was dein Coding-Agent mit deinen Dateien macht, regelt dessen Anbieter.
 
 Stimme und Musik kommen meist aus generativen Modellen, und jedes MP4 sagt das in seinen Metadaten. Kennzeichne deine Filme beim Veröffentlichen auch sichtbar als KI-gestützt, und bilde echte Stimmen nur mit Einwilligung nach. Mehr dazu im [Handbuch](docs/HANDBUCH.md#datenschutz-und-ki-kennzeichnung).
 

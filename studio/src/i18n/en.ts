@@ -113,7 +113,7 @@ export const en = {
   'setup.updates.newest': 'This is the newest version.',
   'setup.updates.auto': 'Check for new versions by itself',
   'setup.updates.note':
-    'The app asks GitHub every few hours. Nothing is installed until you click.',
+    'The app asks GitHub once each time it starts. Nothing is installed until you click.',
 
   // Setup
   'setup.title': 'Setup',
