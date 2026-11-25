@@ -448,9 +448,22 @@ impl Server {
         let _ = crate::project::atomic_write(&self.record, record.to_string().as_bytes());
     }
 
+    /// The server notes at its end that it has stopped, and only on its own record: one that
+    /// was started beside another must not report the other as stopped.
+    pub fn unregister(&self) {
+        let own = u64::from(std::process::id());
+        if self
+            .record()
+            .is_some_and(|record| record["pid"].as_u64().is_some_and(|pid| pid != own))
+        {
+            return;
+        }
+        self.mark_stopped();
+    }
+
     /// Notes that it has stopped, and keeps where it was: started again it takes the same
     /// address, and a window that is still open finds it there.
-    pub fn unregister(&self) {
+    fn mark_stopped(&self) {
         match self
             .record()
             .and_then(|record| record["url"].as_str().map(str::to_owned))
@@ -501,20 +514,16 @@ impl Server {
             return None;
         }
         let url = loopback(record["url"].as_str()?)?;
-        let client = reqwest::Client::builder()
-            .no_proxy()
-            .timeout(Duration::from_secs(2))
-            .build()
-            .ok()?;
-        let ping: Value = client
-            .get(format!("{url}{}", self.ping))
-            .send()
-            .await
-            .ok()?
-            .json()
-            .await
-            .ok()?;
+        let ping = ask(&format!("{url}{}", self.ping)).await?;
         (ping[self.names.0] == self.names.1).then_some((url, ping))
+    }
+
+    /// Tells a film's Studio that a page is about to show it, and says whether something
+    /// shows it already: a page that is open, or the window it opened itself a moment ago.
+    /// Then that page stays where it is. `None` when the Studio does not answer.
+    pub async fn claim_view(&self) -> Option<bool> {
+        let (url, _) = self.answer().await?;
+        ask(&format!("{url}/api/follow")).await?["shown"].as_bool()
     }
 
     /// Starts it detached with these arguments and waits until it answers.
@@ -532,7 +541,7 @@ impl Server {
     /// Stops it. Returns whether it was running.
     pub async fn stop(&self) -> bool {
         let alive = self.end().await;
-        self.unregister();
+        self.mark_stopped();
         alive
     }
 
@@ -555,9 +564,49 @@ fn loopback(url: &str) -> Option<String> {
     Some(format!("http://127.0.0.1:{port}"))
 }
 
+/// One question to a server of this tool, which answers at once or not at all.
+async fn ask(url: &str) -> Option<Value> {
+    let client = reqwest::Client::builder()
+        .no_proxy()
+        .timeout(Duration::from_secs(2))
+        .build()
+        .ok()?;
+    client.get(url).send().await.ok()?.json().await.ok()
+}
+
+/// Held while a program brings up a film's Studio, next to its record.
+const STARTING: &str = ".superint/studio.lock";
+
+/// Waits until no other program is bringing up this film's Studio, and holds that until the
+/// returned file is dropped. Two that ask at the same moment, such as the agent's `new` and
+/// the start page that follows the new film, would otherwise start a Studio each, and both
+/// would show it. A start takes at most 20 s: one that holds on longer is stuck, and this one
+/// goes ahead without the lock.
+async fn starting(root: &Path) -> Option<fs::File> {
+    let path = root.join(STARTING);
+    fs::create_dir_all(path.parent()?).ok()?;
+    let file = fs::OpenOptions::new()
+        .create(true)
+        .truncate(false)
+        .write(true)
+        .open(&path)
+        .ok()?;
+    for _ in 0..120 {
+        match file.try_lock() {
+            Ok(()) => return Some(file),
+            Err(fs::TryLockError::WouldBlock) => {
+                tokio::time::sleep(Duration::from_millis(250)).await
+            }
+            Err(_) => return None,
+        }
+    }
+    None
+}
+
 /// Keeps Studio open for this project: starts it detached, with a window, unless it runs already.
 /// When the app's start page is open in front of the user it goes to the film by itself, so no
-/// second window opens. A failure only costs the view, never the command that asked.
+/// second window opens; a start page that sees the film only later leaves it to the window
+/// Studio opened. A failure only costs the view, never the command that asked.
 pub async fn ensure_studio(root: &Path) -> Option<String> {
     if studio_disabled() {
         return None;
@@ -570,6 +619,11 @@ pub async fn ensure_studio(root: &Path) -> Option<String> {
 /// newly started one its own window.
 pub async fn start_studio(root: &Path, open: bool) -> Option<String> {
     let studio = Server::studio(root);
+    if let Some(url) = studio.running().await {
+        return Some(url);
+    }
+    // Asked again once the start is this program's: whoever had it before started Studio.
+    let _starting = starting(root).await;
     if let Some(url) = studio.running().await {
         return Some(url);
     }
@@ -833,6 +887,36 @@ mod tests {
         )
         .unwrap();
         assert_eq!(studio.last_port(), None);
+    }
+
+    #[test]
+    fn a_server_says_it_stopped_only_on_its_own_record() {
+        let root = TempDir::new().unwrap();
+        let studio = Server::studio(root.path());
+        // Another server took the record over: this one's end leaves it as it is.
+        let theirs = json!({"url": "http://127.0.0.1:9", "pid": u64::from(std::process::id()) + 1, "startedAt": 1});
+        fs::create_dir_all(root.path().join(".superint")).unwrap();
+        fs::write(root.path().join(STUDIO), theirs.to_string()).unwrap();
+        studio.unregister();
+        assert_eq!(studio.record().unwrap(), theirs);
+        // Its own record it marks.
+        studio.register("http://127.0.0.1:9");
+        studio.unregister();
+        assert!(studio.record().unwrap()["stoppedAt"].is_u64());
+    }
+
+    #[tokio::test]
+    async fn a_second_start_of_a_studio_waits_for_the_first() {
+        let root = TempDir::new().unwrap();
+        let first = starting(root.path()).await.expect("the first start");
+        let second = tokio::spawn({
+            let root = root.path().to_owned();
+            async move { starting(&root).await.is_some() }
+        });
+        tokio::time::sleep(Duration::from_millis(700)).await;
+        assert!(!second.is_finished(), "the second start went ahead");
+        drop(first);
+        assert!(second.await.unwrap());
     }
 
     #[test]

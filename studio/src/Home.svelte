@@ -60,12 +60,15 @@
   $: if ($updating && $reachable && !overview.update.progress) updating.set(false);
   $: outcome = overview.update.outcome;
 
-  /** Opens a film: the editor underneath when it is this one, its own Studio otherwise. */
-  function openFilm(film: Film) {
+  /** Opens a film: the editor underneath when it is this one, its own Studio otherwise. A
+   * film this page follows stays where a window shows it already, so it never opens twice. */
+  function openFilm(film: Film, following = false) {
     if (film.current && onclose) return onclose();
     void run(`film-${film.id}`, async () => {
-      const result = await call<{ url: string }>(`/api/app/films/${film.id}/open`);
-      location.href = result.url;
+      const result = await call<{ url: string; shown: boolean }>(
+        `/api/app/films/${film.id}/open${following ? '?follow=1' : ''}`,
+      );
+      if (!result.shown) location.href = result.url;
     });
   }
   /** A film the coding agent just began is shown without anyone clicking. */
@@ -78,7 +81,7 @@
     if (!film) return;
     followed.add(film.id);
     announce($t('films.new', { name: film.name }));
-    openFilm(film);
+    openFilm(film, true);
   }
   async function poll(fresh = false) {
     const next = await refresh(fresh);
