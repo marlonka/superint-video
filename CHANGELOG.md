@@ -2,6 +2,12 @@
 
 Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. Das Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Nummern folgen [Semantic Versioning](https://semver.org/lang/de/). Jede Version zum Herunterladen steht unter [Releases](https://github.com/marlonka/superint-video/releases).
 
+## [0.15.3] – 2026-11-25
+
+### Behoben
+
+- Ein Film öffnet sich im Studio nur noch in einem Fenster. Bisher kam er manchmal doppelt, wenn die Startseite beim Beginn des Films hinter einem anderen Fenster lag oder wenn der Coding-Agent ein Studio startete, um auf deine Stimme zu warten.
+
 ## [0.15.2] – 2026-11-25
 
 ### Geändert
@@ -327,6 +333,7 @@ Was sich in jeder Version von Superint Video geändert hat, die neueste zuerst. 
 
 - Erste Version: eine Rust-CLI und Studio im Browser für HTML-Szenen, Timeline, Prüfen, Snapshots und MP4-Export über Chromium und FFmpeg.
 
+[0.15.3]: https://github.com/marlonka/superint-video/releases/tag/v0.15.3
 [0.15.2]: https://github.com/marlonka/superint-video/releases/tag/v0.15.2
 [0.15.1]: https://github.com/marlonka/superint-video/releases/tag/v0.15.1
 [0.15.0]: https://github.com/marlonka/superint-video/releases/tag/v0.15.0
