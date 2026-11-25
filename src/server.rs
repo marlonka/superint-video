@@ -228,10 +228,44 @@ struct StudioState {
     media: MediaService,
     jobs: Arc<Mutex<HashMap<String, Job>>>,
     shutdown: CancellationToken,
+    window: Arc<Window>,
 }
 struct Job {
     progress: Progress,
     cancel: CancellationToken,
+}
+
+impl StudioState {
+    /// Brings Studio in front of the user in a window of its own, unless one shows it already
+    /// or is about to.
+    fn show(&self) {
+        if !self.window.claim(self.events.receiver_count()) {
+            live::open_browser(&self.origin);
+        }
+    }
+}
+
+/// A window of Studio opened or announced this long ago may still be loading: it counts as a
+/// viewer, so no second one opens beside it.
+const WINDOW_LOADS: Duration = Duration::from_secs(30);
+
+/// When a window of this Studio last came: one it opened itself, or the page that said it
+/// would show it.
+struct Window(Mutex<Option<std::time::Instant>>);
+impl Window {
+    fn opened(now: bool) -> Self {
+        Self(Mutex::new(now.then(std::time::Instant::now)))
+    }
+    /// Whether someone sees Studio, its `viewers` or a window that is still loading. If nobody
+    /// does, the caller is about to show it, and that counts from now on.
+    fn claim(&self, viewers: usize) -> bool {
+        let mut came = self.0.lock().unwrap();
+        let shown = viewers > 0 || came.is_some_and(|at| at.elapsed() < WINDOW_LOADS);
+        if !shown {
+            *came = Some(std::time::Instant::now());
+        }
+        shown
+    }
 }
 
 /// A companion Studio without a viewer and without a render ends itself after this long.
@@ -306,6 +340,8 @@ pub async fn studio(root: PathBuf, port: u16, options: StudioOptions) -> Result<
         events: event_sender,
         jobs: Default::default(),
         shutdown: shutdown.clone(),
+        // Counted from before the first look of the watcher below, which opens a window too.
+        window: Arc::new(Window::opened(options.open)),
     };
     let app = Router::new()
         .route("/api/project", get(project_payload))
@@ -321,6 +357,7 @@ pub async fn studio(root: PathBuf, port: u16, options: StudioOptions) -> Result<
         .route("/api/render/{id}/cancel", post(cancel_render))
         .route("/api/render/{id}/open", post(open_render))
         .route("/api/ping", get(ping))
+        .route("/api/follow", get(follow))
         .route("/api/live", get(live_state))
         .route("/api/live/latest", get(live_latest))
         .route("/api/live/strip/{frame}", get(live_strip))
@@ -391,10 +428,9 @@ pub async fn studio(root: PathBuf, port: u16, options: StudioOptions) -> Result<
                 .and_then(|command| command["startedAt"].as_u64());
             if ((rendering && start != last_render_start)
                 || (asked.is_some() && asked != last_asked))
-                && watcher.events.receiver_count() == 0
                 && !live::studio_disabled()
             {
-                live::open_browser(&watcher.origin);
+                watcher.show();
             }
             last_render_start = start;
             last_asked = asked;
@@ -910,6 +946,13 @@ async fn open_render(
 async fn ping(State(state): State<StudioState>) -> Json<Value> {
     Json(json!({"project": state.root}))
 }
+/// A start page is about to show this Studio, as the app asks it before the page goes there.
+/// `shown` says that a window shows it already, and the page stays where it is; otherwise
+/// Studio opens no window of its own while that page loads. A GET, because the app does not
+/// know this Studio's token: all it can do is hold back a window for a moment.
+async fn follow(State(state): State<StudioState>) -> Json<Value> {
+    Json(json!({"shown": state.window.claim(state.events.receiver_count())}))
+}
 async fn live_state(State(state): State<StudioState>) -> Json<Value> {
     Json(live::read(&state.root))
 }
@@ -1270,5 +1313,23 @@ mod tests {
             alone = unwatched.count(false, minute);
         }
         assert!(alone > IDLE_LIMIT);
+    }
+
+    #[test]
+    fn one_window_of_studio_comes_at_a_time() {
+        // Started with a window of its own: neither the watcher nor a start page adds one.
+        let own = Window::opened(true);
+        assert!(own.claim(0));
+        // Started without: the first to ask shows it, the next one finds it shown.
+        let none = Window::opened(false);
+        assert!(!none.claim(0));
+        assert!(none.claim(0));
+        // A page that is open counts whenever it is.
+        assert!(Window::opened(false).claim(1));
+        // A window from long ago that nobody has open any more does not.
+        let gone = Window(Mutex::new(
+            std::time::Instant::now().checked_sub(2 * WINDOW_LOADS),
+        ));
+        assert!(!gone.claim(0));
     }
 }

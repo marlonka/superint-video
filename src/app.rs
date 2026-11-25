@@ -1494,9 +1494,20 @@ async fn film_picture(
     Ok(bytes_response(jpeg, "image/jpeg"))
 }
 
+#[derive(Deserialize)]
+struct OpenFilm {
+    /// The page follows a film the coding agent just began, nobody clicked it.
+    #[serde(default)]
+    follow: Option<u8>,
+}
+
+/// Starts a film's Studio for the page that goes there. `shown` tells a page that follows a
+/// new film that a window shows it already, Studio's own or another page's: it stays where it
+/// is, so the film does not open twice. A click always goes there.
 async fn open_film(
     State(state): State<AppState>,
     RoutePath(id): RoutePath<String>,
+    Query(query): Query<OpenFilm>,
 ) -> ApiResult<Json<Value>> {
     let root = film_root(&state, &id)?;
     if !root.join("video.json").is_file() {
@@ -1509,7 +1520,11 @@ async fn open_film(
     let url = live::start_studio(&root, false).await.ok_or_else(|| {
         ApiError::told("studio-not-started", "Studio did not start for this film")
     })?;
-    Ok(Json(json!({"url": url})))
+    // Asked for a click too: while that page loads, Studio opens no window of its own.
+    let shown = live::Server::studio(&root).claim_view().await == Some(true);
+    Ok(Json(
+        json!({"url": url, "shown": shown && query.follow == Some(1)}),
+    ))
 }
 
 #[derive(Deserialize)]
